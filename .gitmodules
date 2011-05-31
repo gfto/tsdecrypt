@@ -1,0 +1,6 @@
+[submodule "libts"]
+	path = libts
+	url = git@git:libts.git
+[submodule "libfuncs"]
+	path = libfuncs
+	url = git@git:libfuncs.git
