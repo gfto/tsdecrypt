@@ -171,43 +171,30 @@ uint8_t *init_2b(uint32_t val, uint8_t *b) {
 static void camd35_init_auth(char *user, char *pass) {
 	unsigned char dump[16];
 	camd35_auth = crc32(0L, MD5((unsigned char *)user, strlen(user), dump), 16);
-//	fprintf(stderr, "camd35_auth = 0x%08x\n", camd35_auth);
 
 	MD5((unsigned char *)pass, strlen(pass), dump);
-//	fprintf(stderr, "aes_dec_key=0x%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n\n",
-//		dump[0], dump[1], dump[2] , dump[3] , dump[4] , dump[5] , dump[6] , dump[7],
-//		dump[8], dump[9], dump[10], dump[11], dump[12], dump[13], dump[14], dump[15]
-//	);
+
 	AES_set_encrypt_key(dump, 128, &camd35_aes_encrypt_key);
 	AES_set_decrypt_key(dump, 128, &camd35_aes_decrypt_key);
 }
 
 static int camd35_recv(uint8_t *data, int *data_len) {
-	fprintf(stderr, "%s\n", __func__);
 	int i;
 
 	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
-	fprintf(stderr, "recv auth : 0x%08x\n", auth_token);
+	if (auth_token != camd35_auth)
+		fprintf(stderr, "WARN: recv auth : 0x%08x != camd35_auth 0x%08x\n", auth_token, camd35_auth);
 
 	*data_len -= 4; // Remove header
 	memmove(data, data + 4, *data_len); // Remove header
 
-	char *d = ts_hex_dump(data, *data_len, 16);
-	fprintf(stderr, "recv Encrypted data:\n%s\n", d);
-	free(d);
-
 	for (i = 0; i < *data_len; i += 16) // Decrypt payload
 		AES_decrypt(data + i, data + i, &camd35_aes_decrypt_key);
-
-	char *f = ts_hex_dump(data, *data_len, 16);
-	fprintf(stderr, "recv Decrypted data:\n%s\n", f);
-	free(f);
 
 	return 0;
 }
 
-static int camd35_send(uint8_t *data, uint8_t data_len) {
-	fprintf(stderr, "%s\n", __func__);
+static int camd35_send(uint8_t *data, uint8_t data_len, enum e_flag tp) {
 	unsigned int i;
 	uint8_t buf[BUF_SIZE];
 	uint8_t *bdata = buf + 4;
@@ -218,23 +205,17 @@ static int camd35_send(uint8_t *data, uint8_t data_len) {
 	for (i = 0; i < data_len; i += 16) // Encrypt payload
 		AES_encrypt(data + i, bdata + i, &camd35_aes_encrypt_key);
 
-	char *d = ts_hex_dump(bdata, data_len, 16);
-	fprintf(stderr, "ECM SEND (encrypted):\n%s\n", d);
-	free(d);
+	savefile(buf, data_len + 4, tp);
 
-	savefile(buf, data_len + 4, TYPE_ECM);
-
-	int dlen = data_len + 4;
-	camd35_recv(buf, &dlen);
 	return 0;
 }
 
 
 static int camd35_send_ecm(uint16_t service_id, uint16_t ca_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
-	fprintf(stderr, "%s\n", __func__);
 	uint8_t buf[BUF_SIZE];
 	uint32_t provider_id = 0;
 	uint32_t crc = crc32(0L, data, data_len);
+	int to_send = boundary(4, HDR_LEN + data_len);
 
 	memset(buf, 0xff, BUF_SIZE);
 
@@ -249,20 +230,14 @@ static int camd35_send_ecm(uint16_t service_id, uint16_t ca_id, uint16_t idx, ui
 	buf[19] = 0xff;
 	memcpy(buf + HDR_LEN, data, data_len);
 
-	int to_send = boundary(4, data_len + HDR_LEN);
-
-	char *d = ts_hex_dump(buf, to_send, 16);
-	fprintf(stderr, "ECM SEND:\n%s\n", d);
-	free(d);
-
-	savefile(buf, to_send, TYPE_ECM);
-	return camd35_send(buf, to_send);
+	return camd35_send(buf, to_send, TYPE_ECM);
 }
 
 static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	uint8_t buf[BUF_SIZE];
 	uint32_t prov_id = 0;
 	uint32_t crc = crc32(0L, data, data_len);
+	int to_send = boundary(4, data_len + HDR_LEN);
 
 	memset(buf, 0xff, BUF_SIZE);
 
@@ -274,14 +249,7 @@ static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	init_4b(prov_id, buf + 12);
 	memcpy(buf + HDR_LEN, data, data_len);
 
-	int to_send = boundary(4, data_len + HDR_LEN);
-
-	char *d = ts_hex_dump(buf, to_send, 16);
-	fprintf(stderr, "EMM SEND:\n%s\n", d);
-	free(d);
-
-	savefile(buf, to_send, TYPE_EMM);
-	return camd35_send(buf, to_send);
+	return camd35_send(buf, to_send, TYPE_EMM);
 }
 
 #define ERR(x) do { fprintf(stderr, "%s", x); return NULL; } while (0)
