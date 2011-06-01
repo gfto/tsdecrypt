@@ -10,7 +10,7 @@ FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
 TS_DIR = libts
 TS_LIB = $(TS_DIR)/libts.a
 
-tsdecrypt_OBJS = tsdecrypt.o $(FUNCS_LIB) $(TS_LIB)
+tsdecrypt_OBJS = util.o tsdecrypt.o $(FUNCS_LIB) $(TS_LIB)
 tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
 
 CLEAN_OBJS = tsdecrypt $(tsdecrypt_OBJS) *~
