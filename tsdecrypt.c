@@ -210,25 +210,28 @@ static int camd35_send(uint8_t *data, uint8_t data_len, enum e_flag tp) {
 	return 0;
 }
 
+static void camd35_buf_init(uint8_t *buf, uint8_t *data, uint8_t data_len) {
+	memset(buf, 0, HDR_LEN); // Reset header
+	memset(buf + HDR_LEN, 0xff, BUF_SIZE - HDR_LEN); // Reset data
+	buf[1] = data_len; // Data length
+	init_4b(crc32(0L, data, data_len), buf + 4); // Data CRC is at buf[4]
+	memcpy(buf + HDR_LEN, data, data_len); // Copy data to buf
+}
 
 static int camd35_send_ecm(uint16_t service_id, uint16_t ca_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
 	uint8_t buf[BUF_SIZE];
 	uint32_t provider_id = 0;
-	uint32_t crc = crc32(0L, data, data_len);
 	int to_send = boundary(4, HDR_LEN + data_len);
 
-	memset(buf, 0xff, BUF_SIZE);
+	camd35_buf_init(buf, data, data_len);
 
-	memset(buf, 0, HDR_LEN);
-	buf[1] = data_len;
-	init_4b(crc        , buf + 4);
+	buf[0] = 0x00; // CMD ECM request
 	init_2b(service_id , buf + 8);
 	init_2b(ca_id      , buf + 10);
 	init_4b(provider_id, buf + 12);
 	init_2b(idx        , buf + 16);
 	buf[18] = 0xff;
 	buf[19] = 0xff;
-	memcpy(buf + HDR_LEN, data, data_len);
 
 	return camd35_send(buf, to_send, TYPE_ECM);
 }
@@ -236,18 +239,13 @@ static int camd35_send_ecm(uint16_t service_id, uint16_t ca_id, uint16_t idx, ui
 static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	uint8_t buf[BUF_SIZE];
 	uint32_t prov_id = 0;
-	uint32_t crc = crc32(0L, data, data_len);
 	int to_send = boundary(4, data_len + HDR_LEN);
 
-	memset(buf, 0xff, BUF_SIZE);
+	camd35_buf_init(buf, data, data_len);
 
-	memset(buf, 0, HDR_LEN);
-	buf[0] = 0x06;
-	buf[1] = data_len;
-	init_4b(crc    , buf + 4);
+	buf[0] = 0x06; // CMD incomming EMM
 	init_2b(ca_id  , buf + 10);
 	init_4b(prov_id, buf + 12);
-	memcpy(buf + HDR_LEN, data, data_len);
 
 	return camd35_send(buf, to_send, TYPE_EMM);
 }
