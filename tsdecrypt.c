@@ -390,8 +390,14 @@ int main(int argc, char **argv) {
 		if (pid && pid == pmt_pid) {
 			pmt = ts_pmt_push_packet(pmt, ts_packet, pmt_pid);
 			if (pmt->initialized) {
-				if (req_CA_sys != CA_UNKNOWN)
+				if (req_CA_sys != CA_UNKNOWN && !ecm_caid) {
 					ts_get_ecm_info(pmt, req_CA_sys, &ecm_caid, &ecm_pid);
+					char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(emm_caid));
+					printf("%s Service : 0x%04x\n", CA_sys, service_id);
+					printf("%s CA_id   : 0x%04x\n", CA_sys, emm_caid);
+					printf("%s EMM pid : 0x%04x\n", CA_sys, emm_pid);
+					printf("%s ECM pid : 0x%04x\n", CA_sys, ecm_pid);
+				}
 				ts_pmt_free(&pmt);
 				pmt = ts_pmt_alloc();
 			}
@@ -464,13 +470,6 @@ int main(int argc, char **argv) {
 	ts_privsec_free(&last_emm);
 	ts_privsec_free(&last_ecm);
 
-	if (emm_caid) {
-		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(emm_caid));
-		printf("%s PRG_id  : 0x%04x\n", CA_sys, program_id);
-		printf("%s CA_id   : 0x%04x\n", CA_sys, emm_caid);
-		printf("%s EMM pid : 0x%04x\n", CA_sys, emm_pid);
-		printf("%s ECM pid : 0x%04x\n", CA_sys, ecm_pid);
-	}
 
 	exit(0);
 }
