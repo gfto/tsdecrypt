@@ -59,7 +59,13 @@ void ts_free(struct ts **pts) {
 }
 
 void LOG_func(const char *msg) {
-	fprintf(stderr, "%s", msg);
+	char date[64];
+	struct tm tm;
+	time_t now;
+	now = time(NULL);
+	localtime_r(&now, &tm);
+	strftime(date, sizeof(date), "%F %H:%M:%S", localtime(&now));
+	fprintf(stderr, "%s | %s", date, msg);
 }
 
 enum CA_system req_CA_sys = CA_CONNAX;
