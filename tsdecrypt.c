@@ -332,12 +332,11 @@ void camd35_test() {
 
 
 int main(int argc, char **argv) {
-	camd35_test();
-	return 0;
-
 	int fd = 0; // stdin
 
 	parse_options(argc, argv);
+
+	camd35_init_auth(camd35_user, camd35_pass);
 
 	struct ts_pat *pat = ts_pat_alloc();
 	struct ts_cat *cat = ts_cat_alloc();
@@ -348,9 +347,12 @@ int main(int argc, char **argv) {
 	struct ts_privsec *last_ecm = NULL;
 	uint16_t pmt_pid = 0;
 
+	uint16_t ca_id = 0;
 	uint16_t emm_caid = 0, emm_pid = 0;
 	uint16_t ecm_caid = 0, ecm_pid = 0;
-	uint16_t program_id = 0;
+	uint16_t service_id = 0;
+	uint16_t ecm_counter = 0;
+
 	do {
 		uint8_t ts_packet[188];
 		ssize_t readen = read(fd, ts_packet, 188);
@@ -367,7 +369,7 @@ int main(int argc, char **argv) {
 					struct ts_pat_program *prg = pat->programs[i];
 					if (prg->pid) {
 						if (prg->program != 0) {
-							program_id = prg->program;
+							service_id = prg->program;
 							pmt_pid = prg->pid;
 						}
 					}
@@ -380,8 +382,10 @@ int main(int argc, char **argv) {
 		if (pid == 1) {
 			cat = ts_cat_push_packet(cat, ts_packet);
 			if (cat->initialized) {
-				if (req_CA_sys != CA_UNKNOWN)
+				if (req_CA_sys != CA_UNKNOWN) {
 					ts_get_emm_info(cat, req_CA_sys, &emm_caid, &emm_pid);
+					ca_id = emm_caid;
+				}
 				ts_cat_free(&cat);
 				cat = ts_cat_alloc();
 			}
@@ -403,12 +407,12 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		if (0 && emm_pid && pid == emm_pid) {
+		if (emm_pid && pid == emm_pid) {
 			emm = ts_privsec_push_packet(emm, ts_packet);
 			if (emm->initialized) {
 				struct ts_header *th = &emm->ts_header;
 				struct ts_section_header *sec = emm->section_header;
-				//savefile(sec->section_data, sec->section_length + 3, TYPE_EMM);
+				camd35_send_emm(ca_id, sec->section_data, sec->section_length + 3);
 				char *data = ts_hex_dump(sec->section_data, sec->section_length, 0);
 				ts_LOGf("EMM dump | CAID: 0x%04x PID 0x%04x (%5d) Table: 0x%02x (%3d) Length: %4d Data: %s\n",
 					emm_caid,
@@ -440,7 +444,7 @@ int main(int argc, char **argv) {
 						min(last_ecm->section_header->section_length, ecm->section_header->section_length)) == 0;
 				}
 				if (!is_same) {
-					//savefile(sec->section_data, sec->section_length + 3, TYPE_ECM);
+					camd35_send_ecm(service_id, ca_id, ecm_counter++, sec->section_data, sec->section_length + 3);
 					char *data = ts_hex_dump(sec->section_data, sec->section_length, 0);
 					ts_LOGf("ECM dump | CAID: 0x%04x PID 0x%04x (%5d) Table: 0x%02x (%3d) Length: %4d Data: %s\n",
 						ecm_caid,
