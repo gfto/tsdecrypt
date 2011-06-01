@@ -18,6 +18,7 @@
 #include <openssl/aes.h>
 #include <openssl/md5.h>
 
+#include "libfuncs/libfuncs.h"
 #include "libts/tsfuncs.h"
 
 #include "util.h"
@@ -62,6 +63,7 @@ void LOG_func(const char *msg) {
 }
 
 enum CA_system req_CA_sys = CA_CONNAX;
+int server_fd = -1;
 char *camd35_server = "10.0.1.78";
 struct in_addr camd35_server_ip;
 uint16_t camd35_port = 2233;
@@ -75,6 +77,28 @@ enum e_flag {
 	TYPE_EMM,
 	TYPE_ECM
 };
+
+static int connect_to(struct in_addr ip, int port) {
+	ts_LOGf("Connecting to %s:%d\n", inet_ntoa(ip), port);
+
+	int fd = socket(PF_INET, SOCK_STREAM, 0);
+	if (fd < 0)	{
+		ts_LOGf("Could not create socket | %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct sockaddr_in sock;
+	sock.sin_family = AF_INET;
+	sock.sin_port = htons(port);
+	sock.sin_addr = ip;
+	if (do_connect(fd, (struct sockaddr *)&sock, sizeof(sock), 1000) < 0) {
+		ts_LOGf("Could not connect to %s:%d | %s\n", inet_ntoa(ip), port, strerror(errno));
+		return -1;
+	}
+
+	ts_LOGf("Connected with fd:%d\n", fd);
+	return fd;
+}
 
 void savefile(uint8_t *data, int datasize, enum e_flag flag) {
 	static int cnt = 0;
@@ -104,6 +128,11 @@ static void camd35_init_auth(char *user, char *pass) {
 	AES_set_decrypt_key(dump, 128, &camd35_aes_decrypt_key);
 }
 
+static void camd35_connect() {
+	if (server_fd < 0)
+		server_fd = connect_to(camd35_server_ip, camd35_port);
+}
+
 static int camd35_recv(uint8_t *data, int *data_len) {
 	int i;
 
@@ -124,6 +153,8 @@ static int camd35_send(uint8_t *data, uint8_t data_len, enum e_flag tp) {
 	unsigned int i;
 	uint8_t buf[BUF_SIZE];
 	uint8_t *bdata = buf + 4;
+
+	camd35_connect();
 
 	if (!camd35_auth)
 		camd35_init_auth(camd35_user, camd35_pass);
@@ -371,6 +402,7 @@ void show_help() {
 
 void parse_options(int argc, char **argv) {
 	int j, ca_err = 0, server_err = 0;
+	inet_aton(camd35_server, &camd35_server_ip);
 	while ((j = getopt(argc, argv, "C:S:P:u:p:h")) != -1) {
 		switch (j) {
 			case 'C':
@@ -385,7 +417,7 @@ void parse_options(int argc, char **argv) {
 				break;
 			case 'S':
 				camd35_server = optarg;
-				if (inet_aton(optarg, &camd35_server_ip) == 0)
+				if (inet_aton(camd35_server, &camd35_server_ip) == 0)
 					server_err = 1;
 				break;
 			case 'P':
@@ -413,8 +445,9 @@ void parse_options(int argc, char **argv) {
 	}
 	fprintf(stderr, "CA System : %s\n", ts_get_CA_sys_txt(req_CA_sys));
 	fprintf(stderr, "Server\n");
-	fprintf(stderr, "  Addr    : %s:%d\n", camd35_server, camd35_port);
+	fprintf(stderr, "  Addr    : %s:%d\n", inet_ntoa(camd35_server_ip), camd35_port);
 	fprintf(stderr, "  Auth    : %s / %s\n", camd35_user, camd35_pass);
+	camd35_connect();
 }
 
 #define FRAME_SIZE (188 * 7)
@@ -434,5 +467,6 @@ int main(int argc, char **argv) {
 	} while (readen == FRAME_SIZE);
 	ts_free(&ts);
 
+	shutdown_fd(&server_fd);
 	exit(0);
 }
