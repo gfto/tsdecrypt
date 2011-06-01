@@ -11,6 +11,10 @@
 #include <sys/time.h>
 #include <sys/errno.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <openssl/aes.h>
 #include <openssl/md5.h>
 
@@ -58,6 +62,9 @@ void LOG_func(const char *msg) {
 }
 
 enum CA_system req_CA_sys = CA_CONNAX;
+char *camd35_server = "10.0.1.78";
+struct in_addr camd35_server_ip;
+uint16_t camd35_port = 2233;
 char *camd35_user = "user";
 char *camd35_pass = "pass";
 uint32_t camd35_auth = 0;
@@ -346,22 +353,68 @@ static uint8_t *camd35_recv_cw(uint8_t *data, int data_len) {
 
 void show_help() {
 	printf("TSDECRYPT v1.0\n");
-	puts("Copyright (c) 2011 Unix Solutions Ltd.");
-	puts("");
-	puts("	Usage: tsdecrypt [opts] < data > data.decrypted");
-	puts("");
+	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
+	printf("\n");
+	printf("	Usage: tsdecrypt [opts] < mpeg_ts > mpeg_ts.decrypted\n");
+	printf("\n");
+	printf("  Options:\n");
+	printf("    -C ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(req_CA_sys));
+	printf("\n");
+	printf("  Server options:\n");
+	printf("    -S server_ip   | default: %s\n", camd35_server);
+	printf("    -P server_port | default: %u\n", (unsigned int)camd35_port);
+	printf("    -u server_user | default: %s\n", camd35_user);
+	printf("    -p server_pass | default: %s\n", camd35_pass);
+	printf("\n");
 	exit(0);
 }
 
 void parse_options(int argc, char **argv) {
-	int j;
-	while ((j = getopt(argc, argv, "f:h")) != -1) {
+	int j, ca_err = 0, server_err = 0;
+	while ((j = getopt(argc, argv, "C:S:P:u:p:h")) != -1) {
 		switch (j) {
+			case 'C':
+				if (strcasecmp("IRDETO", optarg) == 0)
+					req_CA_sys = CA_IRDETO;
+				else if (strcasecmp("CONNAX", optarg) == 0)
+					req_CA_sys = CA_CONNAX;
+				else if (strcasecmp("CRYPTOWORKS", optarg) == 0)
+					req_CA_sys = CA_CRYPTOWORKS;
+				else
+					ca_err = 1;
+				break;
+			case 'S':
+				camd35_server = optarg;
+				if (inet_aton(optarg, &camd35_server_ip) == 0)
+					server_err = 1;
+				break;
+			case 'P':
+				camd35_port = atoi(optarg);
+				break;
+			case 'u':
+				camd35_user = optarg;
+				break;
+			case 'p':
+				camd35_pass = optarg;
+				break;
 			case 'h':
 				show_help();
 				exit(0);
 		}
 	}
+	if (ca_err || server_err) {
+		if (ca_err)
+			fprintf(stderr, "ERROR: Unknown CA\n");
+		if (server_err)
+			fprintf(stderr, "ERROR: Invalid server IP address\n");
+		fprintf(stderr, "\n");
+		show_help();
+		exit(1);
+	}
+	fprintf(stderr, "CA System : %s\n", ts_get_CA_sys_txt(req_CA_sys));
+	fprintf(stderr, "Server\n");
+	fprintf(stderr, "  Addr    : %s:%d\n", camd35_server, camd35_port);
+	fprintf(stderr, "  Auth    : %s / %s\n", camd35_user, camd35_pass);
 }
 
 #define FRAME_SIZE (188 * 7)
