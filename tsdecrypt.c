@@ -46,6 +46,20 @@ struct ts {
 
 struct ts *ts_alloc() {
 	struct ts *ts = calloc(1, sizeof(struct ts));
+	ts->pat	     = ts_pat_alloc();
+	ts->curpat   = ts_pat_alloc();
+
+	ts->cat      = ts_cat_alloc();
+	ts->curcat   = ts_cat_alloc();
+
+	ts->pmt      = ts_pmt_alloc();
+	ts->curpmt   = ts_pmt_alloc();
+
+	ts->emm      = ts_privsec_alloc();
+	ts->last_emm = ts_privsec_alloc();
+
+	ts->ecm      = ts_privsec_alloc();
+	ts->last_ecm = ts_privsec_alloc();
 	return ts;
 }
 
@@ -284,18 +298,16 @@ static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 #define handle_table_changes(TABLE) \
 	do { \
 		show_ts_pack(pid, #TABLE, NULL, ts_packet); \
-		if (!ts->cur##TABLE) \
-			ts->cur##TABLE = ts_##TABLE##_alloc(); \
 		ts->cur##TABLE = ts_##TABLE##_push_packet(ts->cur##TABLE, ts_packet); \
 		if (!ts->cur##TABLE->initialized) \
 			return;  \
 		if (ts_##TABLE##_is_same(ts->TABLE, ts->cur##TABLE)) { \
-			ts_##TABLE##_free(&ts->cur##TABLE); \
+			ts_##TABLE##_clear(ts->cur##TABLE); \
 			return; \
 		} \
 		ts_##TABLE##_free(&ts->TABLE); \
-		ts->TABLE = ts->cur##TABLE; \
-		ts->cur##TABLE = NULL; \
+		ts->TABLE = ts_##TABLE##_copy(ts->cur##TABLE); \
+		ts_##TABLE##_clear(ts->cur##TABLE); \
 		ts_##TABLE##_dump(ts->TABLE); \
 	} while(0)
 
@@ -351,8 +363,6 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 		return;
 
 	show_ts_pack(pid, "emm", NULL, ts_packet);
-	if (!ts->emm)
-		ts->emm = ts_privsec_alloc();
 
 	ts->emm = ts_privsec_push_packet(ts->emm, ts_packet);
 	if (!ts->emm->initialized)
@@ -368,18 +378,14 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 		sec->section_data_len,
 		dump);
 	camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
-	ts_privsec_free(&ts->last_emm);
-	ts->last_emm = ts->emm;
-	ts->emm = ts_privsec_alloc();
+	ts_privsec_copy(ts->emm, ts->last_emm);
+	ts_privsec_clear(ts->emm);
 }
 
 void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	char dump[dump_buf_sz];
 	if (!ts->ecm_pid || ts->ecm_pid != pid)
 		return;
-
-	if (!ts->ecm)
-		ts->ecm = ts_privsec_alloc();
 
 	ts->ecm = ts_privsec_push_packet(ts->ecm, ts_packet);
 	if (!ts->ecm->initialized)
@@ -406,9 +412,8 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			ts->ecm_counter - 1);
 	}
-	ts_privsec_free(&ts->last_ecm);
-	ts->last_ecm = ts->ecm;
-	ts->ecm = ts_privsec_alloc();
+	ts_privsec_copy(ts->ecm, ts->last_ecm);
+	ts_privsec_clear(ts->ecm);
 
 	show_ts_pack(pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
 }
