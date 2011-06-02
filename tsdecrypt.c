@@ -18,13 +18,17 @@
 #include <openssl/aes.h>
 #include <openssl/md5.h>
 
+#include <dvbcsa/dvbcsa.h>
+
 #include "libfuncs/libfuncs.h"
 #include "libts/tsfuncs.h"
 
 #include "util.h"
 
 uint8_t cur_cw[16];
+int is_valid_cw = 0;
 uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+struct dvbcsa_key_s *csakey[2];
 
 static inline int valid_cw(uint8_t *cw) {
 	return memcmp(cw, invalid_cw, 16) != 0;
@@ -231,6 +235,10 @@ NEXT:
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
 	ts_LOGf("CW  | CAID: 0x%04x ---------------------------------- IDX: 0x%04x Data: %s\n", ca_id, idx, cw_dump);
 
+	is_valid_cw = valid_cw(cur_cw);
+	dvbcsa_key_set(cur_cw    , csakey[0]);
+	dvbcsa_key_set(cur_cw + 8, csakey[1]);
+
 	return NULL;
 }
 
@@ -421,8 +429,8 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	show_ts_pack(pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
 }
 
-void ts_process_packets(struct ts *ts, uint8_t *data, uint8_t data_len) {
-	int i;
+void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
+	ssize_t i;
 	for (i=0; i<data_len; i += 188) {
 		uint8_t *ts_packet = data + i;
 		uint16_t pid = ts_packet_get_pid(ts_packet);
@@ -437,10 +445,34 @@ void ts_process_packets(struct ts *ts, uint8_t *data, uint8_t data_len) {
 
 		if (!ts_pack_shown)
 			dump_ts_pack(pid, ts_packet);
+
+		int scramble_idx = ts_packet_get_scrambled(ts_packet);
+		if (scramble_idx > 1) {
+			if (is_valid_cw) {
+				// scramble_idx 2 == even key
+				// scramble_idx 3 == odd key
+				ts_packet_set_not_scrambled(ts_packet);
+				dvbcsa_decrypt(csakey[scramble_idx - 2], ts_packet + 4, 184);
+			}
+		}
+
 		ts_pack++;
 	}
 }
 
+void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
+	ts = ts;
+	write(1, data, data_len);
+	return;
+/*
+	ssize_t i;
+	for (i=0; i<data_len; i += 188) {
+		uint8_t *ts_packet = data + i;
+		uint16_t pid = ts_packet_get_pid(ts_packet);
+		write(1, ts_packet, 188);
+	}
+*/
+}
 
 void show_help() {
 	printf("TSDECRYPT v1.0\n");
@@ -520,6 +552,9 @@ int main(int argc, char **argv) {
 	ssize_t readen;
 	uint8_t ts_packet[FRAME_SIZE];
 
+	csakey[0] = dvbcsa_key_alloc();
+	csakey[1] = dvbcsa_key_alloc();
+
 	memset(cur_cw, 0, sizeof(cur_cw));
 	ts_set_log_func(LOG_func);
 
@@ -528,9 +563,15 @@ int main(int argc, char **argv) {
 	struct ts *ts = ts_alloc();
 	do {
 		readen = read(0, ts_packet, FRAME_SIZE);
-		ts_process_packets(ts, ts_packet, readen);
-	} while (readen == FRAME_SIZE);
+		if (readen > 0) {
+			ts_process_packets(ts, ts_packet, readen);
+			ts_write_packets(ts, ts_packet, readen);
+		}
+	} while (readen > 0);
 	ts_free(&ts);
+
+	dvbcsa_key_free(csakey[0]);
+	dvbcsa_key_free(csakey[1]);
 
 	shutdown_fd(&server_fd);
 	exit(0);
