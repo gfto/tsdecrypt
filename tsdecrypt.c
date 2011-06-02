@@ -92,16 +92,19 @@ void LOG_func(const char *msg) {
 
 unsigned long ts_pack = 0;
 int ts_pack_shown = 0;
+int debug_level = 0;
 
 static void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
 	char cw1_dump[8 * 6];
 	char cw2_dump[8 * 6];
+	if (debug_level < 4)
+		return;
 	if (ts_pack_shown)
 		return;
 	int stype = ts_packet_get_scrambled(ts_packet);
 	ts_hex_dump_buf(cw1_dump, 8 * 6, cur_cw    , 8, 0);
 	ts_hex_dump_buf(cw2_dump, 8 * 6, cur_cw + 8, 8, 0);
-	fprintf(stdout, "%s %s %03x %5ld %7ld | %s   %s | %s\n",
+	fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
 		stype == 0 ? "------" :
 		stype == 2 ? "even 0" :
 		stype == 3 ? "odd  1" : "??????",
@@ -198,7 +201,7 @@ static int camd35_recv(uint8_t *data, int *data_len) {
 	return *data_len;
 }
 
-#define ERR(x) do { fprintf(stderr, "%s", x); return NULL; } while (0)
+#define ERR(x) do { ts_LOGf("%s", x); return NULL; } while (0)
 
 static uint8_t *camd35_recv_cw() {
 	uint8_t data[BUF_SIZE];
@@ -404,7 +407,7 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			ts->ecm_counter,
 			dump);
 		camd35_send_ecm(ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_data_len);
-	} else {
+	} else if (debug_level > 2) {
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
 			ts->ecm_caid,
 			th->pid,
@@ -460,7 +463,7 @@ void show_help() {
 void parse_options(int argc, char **argv) {
 	int j, ca_err = 0, server_err = 0;
 	inet_aton(camd35_server, &camd35_server_ip);
-	while ((j = getopt(argc, argv, "C:S:P:u:p:h")) != -1) {
+	while ((j = getopt(argc, argv, "C:S:P:u:p:hd:")) != -1) {
 		switch (j) {
 			case 'C':
 				if (strcasecmp("IRDETO", optarg) == 0)
@@ -486,6 +489,9 @@ void parse_options(int argc, char **argv) {
 			case 'p':
 				camd35_pass = optarg;
 				break;
+			case 'd':
+				debug_level = atoi(optarg);
+				break;
 			case 'h':
 				show_help();
 				exit(0);
@@ -500,10 +506,11 @@ void parse_options(int argc, char **argv) {
 		show_help();
 		exit(1);
 	}
-	fprintf(stderr, "CA System : %s\n", ts_get_CA_sys_txt(req_CA_sys));
-	fprintf(stderr, "Server\n");
-	fprintf(stderr, "  Addr    : %s:%d\n", inet_ntoa(camd35_server_ip), camd35_port);
-	fprintf(stderr, "  Auth    : %s / %s\n", camd35_user, camd35_pass);
+	ts_LOGf("CA System : %s\n", ts_get_CA_sys_txt(req_CA_sys));
+	ts_LOGf("Server\n");
+	ts_LOGf("  Addr    : %s:%d\n", inet_ntoa(camd35_server_ip), camd35_port);
+	ts_LOGf("  Auth    : %s / %s\n", camd35_user, camd35_pass);
+
 	camd35_connect();
 }
 
