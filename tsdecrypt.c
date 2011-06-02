@@ -306,7 +306,11 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 }
 
+#define dump_sz      (16)
+#define dump_buf_sz  (dump_sz * 6)
+
 void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	char dump[dump_buf_sz];
 	if (!ts->emm_pid || ts->emm_pid != pid)
 		return;
 
@@ -319,21 +323,21 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->emm->ts_header;
 	struct ts_section_header *sec = ts->emm->section_header;
-	camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_length + 3);
-	char *data = ts_hex_dump(sec->section_data, 16, 0);
-	ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d Data: %s..\n",
+	ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
+	ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d ----------- Data: %s..\n",
 		ts->emm_caid,
 		th->pid,
 		sec->table_id,
-		sec->section_length + 3,
-		data);
-	FREE(data);
+		sec->section_data_len,
+		dump);
+	camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
 	ts_privsec_free(&ts->last_emm);
 	ts->last_emm = ts->emm;
 	ts->emm = ts_privsec_alloc();
 }
 
 void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	char dump[dump_buf_sz];
 	if (!ts->ecm_pid || ts->ecm_pid != pid)
 		return;
 
@@ -346,22 +350,24 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->ecm->ts_header;
 	struct ts_section_header *sec = ts->ecm->section_header;
-	if (!ts_privsec_is_same(ts->ecm, ts->last_ecm)) {
-		camd35_send_ecm(ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_length + 3);
-		char *data = ts_hex_dump(sec->section_data, 16, 0);
-		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d Data: %s..\n",
+	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
+	if (!duplicate) {
+		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
+		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: %s..\n",
 			ts->ecm_caid,
 			th->pid,
 			sec->table_id,
-			sec->section_length + 3,
-			data);
-		FREE(data);
+			sec->section_data_len,
+			ts->ecm_counter,
+			dump);
+		camd35_send_ecm(ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_data_len);
 	} else {
-		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d Data: --duplicate--\n",
+		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
 			ts->ecm_caid,
 			th->pid,
 			sec->table_id,
-			sec->section_length + 3);
+			sec->section_data_len,
+			ts->ecm_counter - 1);
 	}
 	ts_privsec_free(&ts->last_ecm);
 	ts->last_ecm = ts->ecm;
