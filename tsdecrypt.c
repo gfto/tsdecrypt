@@ -76,6 +76,41 @@ void LOG_func(const char *msg) {
 	fprintf(stderr, "%s | %s", date, msg);
 }
 
+unsigned long ts_pack = 0;
+int ts_pack_shown = 0;
+
+static void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
+	char cw1_dump[8 * 6];
+	char cw2_dump[8 * 6];
+	if (ts_pack_shown)
+		return;
+	int stype = ts_packet_get_scrambled(ts_packet);
+	ts_hex_dump_buf(cw1_dump, 8 * 6, cur_cw    , 8, 0);
+	ts_hex_dump_buf(cw2_dump, 8 * 6, cur_cw + 8, 8, 0);
+	fprintf(stdout, "%s %s %03x %5ld %7ld | %s   %s | %s\n",
+		stype == 0 ? "------" :
+		stype == 2 ? "even 0" :
+		stype == 3 ? "odd  1" : "??????",
+		wtf,
+		pid,
+		ts_pack, ts_pack * 188,
+		cw1_dump, cw2_dump, extra ? extra : wtf);
+}
+
+static void dump_ts_pack(uint16_t pid, uint8_t *ts_packet) {
+	if (pid == 0x012)		show_ts_pack(pid, "epg", NULL, ts_packet);
+	else if (pid == 0x10)	show_ts_pack(pid, "nit", NULL, ts_packet);
+	else if (pid == 0x11)	show_ts_pack(pid, "sdt", NULL, ts_packet);
+	else if (pid == 0x64)	show_ts_pack(pid, "PCR",  NULL, ts_packet);
+	else if (pid == 0x26)	show_ts_pack(pid, "EMM", "Cryptoworks", ts_packet);
+	else if (pid == 0x28)	show_ts_pack(pid, "emm", "No PAT/CAT/PMT yet.", ts_packet);
+	else if (pid == 0xd0)	show_ts_pack(pid, "  v", "Video", ts_packet);
+	else if (pid == 0x134)	show_ts_pack(pid, "  a", "Audio", ts_packet);
+	else if (pid == 0x513)	show_ts_pack(pid, "ECM", "Cryptoworks", ts_packet);
+	else if (pid == 0x522)	show_ts_pack(pid, "ecm", "No PAT/CAT/PMT yet.", ts_packet);
+	else					show_ts_pack(pid, "---", NULL, ts_packet);
+}
+
 enum CA_system req_CA_sys = CA_CONNAX;
 int server_fd = -1;
 char *camd35_server = "10.0.1.78";
@@ -248,6 +283,7 @@ static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 
 #define handle_table_changes(TABLE) \
 	do { \
+		show_ts_pack(pid, #TABLE, NULL, ts_packet); \
 		if (!ts->cur##TABLE) \
 			ts->cur##TABLE = ts_##TABLE##_alloc(); \
 		ts->cur##TABLE = ts_##TABLE##_push_packet(ts->cur##TABLE, ts_packet); \
@@ -314,6 +350,7 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (!ts->emm_pid || ts->emm_pid != pid)
 		return;
 
+	show_ts_pack(pid, "emm", NULL, ts_packet);
 	if (!ts->emm)
 		ts->emm = ts_privsec_alloc();
 
@@ -372,6 +409,8 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	ts_privsec_free(&ts->last_ecm);
 	ts->last_ecm = ts->ecm;
 	ts->ecm = ts_privsec_alloc();
+
+	show_ts_pack(pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
 }
 
 void ts_process_packets(struct ts *ts, uint8_t *data, uint8_t data_len) {
@@ -380,11 +419,17 @@ void ts_process_packets(struct ts *ts, uint8_t *data, uint8_t data_len) {
 		uint8_t *ts_packet = data + i;
 		uint16_t pid = ts_packet_get_pid(ts_packet);
 
+		ts_pack_shown = 0;
+
 		process_pat(ts, pid, ts_packet);
 		process_cat(ts, pid, ts_packet);
 		process_pmt(ts, pid, ts_packet);
 		process_emm(ts, pid, ts_packet);
 		process_ecm(ts, pid, ts_packet);
+
+		if (!ts_pack_shown)
+			dump_ts_pack(pid, ts_packet);
+		ts_pack++;
 	}
 }
 
