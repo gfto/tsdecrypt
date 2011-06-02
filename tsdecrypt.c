@@ -23,6 +23,14 @@
 
 #include "util.h"
 
+uint8_t cur_cw[16];
+uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+static inline int valid_cw(uint8_t *cw) {
+	return memcmp(cw, invalid_cw, 16) != 0;
+}
+
+
 struct ts {
 	struct ts_pat		*pat, *curpat;
 	struct ts_cat		*cat, *curcat;
@@ -79,11 +87,6 @@ uint32_t camd35_auth = 0;
 AES_KEY camd35_aes_encrypt_key;
 AES_KEY camd35_aes_decrypt_key;
 
-enum e_flag {
-	TYPE_EMM,
-	TYPE_ECM
-};
-
 static int connect_to(struct in_addr ip, int port) {
 	ts_LOGf("Connecting to %s:%d\n", inet_ntoa(ip), port);
 
@@ -104,20 +107,6 @@ static int connect_to(struct in_addr ip, int port) {
 
 	ts_LOGf("Connected with fd:%d\n", fd);
 	return fd;
-}
-
-void savefile(uint8_t *data, int datasize, enum e_flag flag) {
-	static int cnt = 0;
-	char *fname;
-	asprintf(&fname, "%03d-%s.dump", ++cnt, flag == TYPE_EMM ? "emm" : "ecm");
-	int fd = open(fname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	if (fd < 0) {
-		perror("open");
-		exit(1);
-	}
-	write(fd, data, datasize);
-	close(fd);
-	free(fname);
 }
 
 // 4 auth header, 20 header size, 256 max data size, 16 potential padding
@@ -142,20 +131,61 @@ static void camd35_connect() {
 static int camd35_recv(uint8_t *data, int *data_len) {
 	int i;
 
+	// Read AUTH token
+	ssize_t r = fdread(server_fd, (char *)data, 4);
+	if (r < 4)
+		return -1;
 	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
 	if (auth_token != camd35_auth)
-		fprintf(stderr, "WARN: recv auth : 0x%08x != camd35_auth 0x%08x\n", auth_token, camd35_auth);
+		ts_LOGf("WARN: recv auth 0x%08x != camd35_auth 0x%08x\n", auth_token, camd35_auth);
 
-	*data_len -= 4; // Remove header
-	memmove(data, data + 4, *data_len); // Remove header
-
-	for (i = 0; i < *data_len; i += 16) // Decrypt payload
+	*data_len = 256;
+	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
+		fdread(server_fd, (char *)data + i, 16);
 		AES_decrypt(data + i, data + i, &camd35_aes_decrypt_key);
-
-	return 0;
+		if (i == 0)
+			*data_len = boundary(4, data[1] + 20); // Initialize real data length
+	}
+	return *data_len;
 }
 
-static int camd35_send(uint8_t *data, uint8_t data_len, enum e_flag tp) {
+#define ERR(x) do { fprintf(stderr, "%s", x); return NULL; } while (0)
+
+static uint8_t *camd35_recv_cw() {
+	uint8_t data[BUF_SIZE];
+	int data_len = 0;
+
+NEXT:
+	if (camd35_recv(data, &data_len) < 0)
+		ERR("No data!");
+
+	if (data_len < 48)
+		ERR("len mismatch != 48");
+
+	if (data[0] < 0x01) {
+		ts_LOGf("Not valid CW response, skipping it. data[0] = 0x%02x\n", data[0]);
+		goto NEXT;
+	}
+
+	if (data[1] < 0x10)
+		ERR("CW len mismatch != 0x10");
+
+	uint16_t ca_id = (data[10] << 8) | data[11];
+	uint16_t idx   = (data[16] << 8) | data[17];
+	uint8_t *cw = data + 20;
+	memcpy(cur_cw, cw, 16);
+
+	char cw_dump[16 * 6];
+	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
+	ts_LOGf("CW  | CAID: 0x%04x ---------------------------------- IDX: 0x%04x Data: %s\n", ca_id, idx, cw_dump);
+
+	return NULL;
+}
+
+#undef ERR
+
+
+static int camd35_send(uint8_t *data, uint8_t data_len) {
 	unsigned int i;
 	uint8_t buf[BUF_SIZE];
 	uint8_t *bdata = buf + 4;
@@ -171,9 +201,7 @@ static int camd35_send(uint8_t *data, uint8_t data_len, enum e_flag tp) {
 	for (i = 0; i < data_len; i += 16) // Encrypt payload
 		AES_encrypt(data + i, bdata + i, &camd35_aes_encrypt_key);
 
-	savefile(buf, data_len + 4, tp);
-
-	return 0;
+	return fdwrite(server_fd, (char *)buf, data_len + 4);
 }
 
 static void camd35_buf_init(uint8_t *buf, uint8_t *data, uint8_t data_len) {
@@ -199,7 +227,9 @@ static int camd35_send_ecm(uint16_t service_id, uint16_t ca_id, uint16_t idx, ui
 	buf[18] = 0xff;
 	buf[19] = 0xff;
 
-	return camd35_send(buf, to_send, TYPE_ECM);
+	camd35_send(buf, to_send);
+	camd35_recv_cw();
+	return 0;
 }
 
 static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
@@ -213,7 +243,7 @@ static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	init_2b(ca_id  , buf + 10);
 	init_4b(prov_id, buf + 12);
 
-	return camd35_send(buf, to_send, TYPE_EMM);
+	return camd35_send(buf, to_send);
 }
 
 #define handle_table_changes(TABLE) \
@@ -353,41 +383,6 @@ void ts_process_packets(struct ts *ts, uint8_t *data, uint8_t data_len) {
 }
 
 
-
-#define ERR(x) do { fprintf(stderr, "%s", x); return NULL; } while (0)
-
-static uint8_t *camd35_recv_cw(uint8_t *data, int data_len) {
-	char *d;
-
-	camd35_recv(data, &data_len);
-
-	if (data_len < 48)
-		ERR("len mismatch != 48");
-
-	if (data[0] < 0x01)
-		ERR("Not valid CW response");
-
-	if (data[1] < 0x10)
-		ERR("CW len mismatch != 0x10");
-
-	d = ts_hex_dump(data, data_len, 16);
-	fprintf(stderr, "Recv CW :\n%s\n", d);
-	free(d);
-
-	uint16_t ca_id = (data[10] << 8) | data[11];
-	uint16_t idx   = (data[16] << 8) | data[17];
-	fprintf(stderr, "CW ca_id: 0x%04x\n", ca_id);
-	fprintf(stderr, "CW idx  : 0x%04x\n", idx);
-
-	d = ts_hex_dump(data + 20, 16, 0);
-	fprintf(stderr, "CW      : %s\n", d);
-	free(d);
-
-	return data + 20;
-}
-
-#undef ERR
-
 void show_help() {
 	printf("TSDECRYPT v1.0\n");
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
@@ -462,6 +457,7 @@ int main(int argc, char **argv) {
 	ssize_t readen;
 	uint8_t ts_packet[FRAME_SIZE];
 
+	memset(cur_cw, 0, sizeof(cur_cw));
 	ts_set_log_func(LOG_func);
 
 	parse_options(argc, argv);
