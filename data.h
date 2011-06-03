@@ -14,7 +14,13 @@ struct key {
 	struct dvbcsa_key_s	*csakey[2];
 };
 
+// 4 auth header, 20 header size, 256 max data size, 16 potential padding
+#define CAMD35_HDR_LEN (20)
+#define CAMD35_BUF_LEN (4 + CAMD35_HDR_LEN + 256 + 16)
+
 struct camd35 {
+	uint8_t			buf[CAMD35_BUF_LEN];
+
 	int				server_fd;
 	struct in_addr	server_addr;
 	unsigned int	server_port;

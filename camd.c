@@ -39,10 +39,6 @@ static int connect_to(struct in_addr ip, int port) {
 	return fd;
 }
 
-// 4 auth header, 20 header size, 256 max data size, 16 potential padding
-#define HDR_LEN     (20)
-#define BUF_SIZE	(4 + HDR_LEN + 256 + 16)
-
 static void camd35_init_auth(struct camd35 *c) {
 	unsigned char dump[16];
 
@@ -93,7 +89,7 @@ static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 
 static uint8_t *camd35_recv_cw(struct camd35 *c) {
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	uint8_t data[BUF_SIZE];
+	uint8_t *data = c->buf;
 	int data_len = 0;
 
 NEXT:
@@ -130,61 +126,60 @@ NEXT:
 #undef ERR
 
 
-static int camd35_send(struct camd35 *c, uint8_t *data, uint8_t data_len) {
-	unsigned int i;
-	uint8_t buf[BUF_SIZE];
-	uint8_t *bdata = buf + 4;
+static int camd35_send_buf(struct camd35 *c, int data_len) {
+	int i;
+	uint8_t *bdata = c->buf + 4; // Leave space for auth token
 
 	camd35_connect(c);
 	camd35_init_auth(c);
 
-	init_4b(c->auth_token, buf); // Put authentication token
-	memcpy(bdata, data, data_len); // Put data
+	memmove(bdata, c->buf, data_len); // Move data
+	init_4b(c->auth_token, c->buf); // Put authentication token
 
 	for (i = 0; i < data_len; i += 16) // Encrypt payload
-		AES_encrypt(data + i, bdata + i, &c->aes_encrypt_key);
+		AES_encrypt(bdata + i, bdata + i, &c->aes_encrypt_key);
 
-	return fdwrite(c->server_fd, (char *)buf, data_len + 4);
+	int written = fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
+	return written;
 }
 
-static void camd35_buf_init(struct camd35 *c, uint8_t *buf, uint8_t *data, uint8_t data_len) {
-	memset(buf, 0, HDR_LEN); // Reset header
-	memset(buf + HDR_LEN, 0xff, BUF_SIZE - HDR_LEN); // Reset data
-	buf[1] = data_len; // Data length
-	init_4b(crc32(0L, data, data_len), buf + 4); // Data CRC is at buf[4]
-	memcpy(buf + HDR_LEN, data, data_len); // Copy data to buf
+static void camd35_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
+	memset(c->buf, 0, CAMD35_HDR_LEN); // Reset header
+	memset(c->buf + CAMD35_HDR_LEN, 0xff, CAMD35_BUF_LEN - CAMD35_HDR_LEN); // Reset data
+	c->buf[1] = data_len; // Data length
+	init_4b(crc32(0L, data, data_len), c->buf + 4); // Data CRC is at buf[4]
+	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
 int camd35_send_ecm(struct camd35 *c, uint16_t service_id, uint16_t ca_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
-	uint8_t buf[BUF_SIZE];
 	uint32_t provider_id = 0;
-	int to_send = boundary(4, HDR_LEN + data_len);
+	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
-	camd35_buf_init(c, buf, data, data_len);
+	camd35_buf_init(c, data, (int)data_len);
 
-	buf[0] = 0x00; // CMD ECM request
-	init_2b(service_id , buf + 8);
-	init_2b(ca_id      , buf + 10);
-	init_4b(provider_id, buf + 12);
-	init_2b(idx        , buf + 16);
-	buf[18] = 0xff;
-	buf[19] = 0xff;
+	c->buf[0] = 0x00; // CMD ECM request
+	init_2b(service_id , c->buf + 8);
+	init_2b(ca_id      , c->buf + 10);
+	init_4b(provider_id, c->buf + 12);
+	init_2b(idx        , c->buf + 16);
+	c->buf[18] = 0xff;
+	c->buf[19] = 0xff;
 
-	camd35_send(c, buf, to_send);
+	camd35_send_buf(c, to_send);
+
 	camd35_recv_cw(c);
 	return 0;
 }
 
 int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
-	uint8_t buf[BUF_SIZE];
 	uint32_t prov_id = 0;
-	int to_send = boundary(4, data_len + HDR_LEN);
+	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
-	camd35_buf_init(c, buf, data, data_len);
+	camd35_buf_init(c, data, (int)data_len);
 
-	buf[0] = 0x06; // CMD incomming EMM
-	init_2b(ca_id  , buf + 10);
-	init_4b(prov_id, buf + 12);
+	c->buf[0] = 0x06; // CMD incomming EMM
+	init_2b(ca_id  , c->buf + 10);
+	init_4b(prov_id, c->buf + 12);
 
-	return camd35_send(c, buf, to_send);
+	return camd35_send_buf(c, to_send);
 }
