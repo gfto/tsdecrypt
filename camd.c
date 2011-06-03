@@ -167,6 +167,11 @@ int camd35_send_ecm(struct camd35 *c, uint16_t service_id, uint16_t ca_id, uint1
 	c->buf[18] = 0xff;
 	c->buf[19] = 0xff;
 
+	// OSCAM do not like it if ECM's are comming too fast
+	// It thinks they are part of a single packet and ignores
+	// the data at the end. The usleep() is a hack but works
+	usleep(1000);
+
 	camd35_send_buf(c, to_send);
 
 	camd35_recv_cw(c);
