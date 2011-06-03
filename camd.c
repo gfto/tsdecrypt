@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <string.h>
 #include <sys/errno.h>
 
@@ -180,6 +182,11 @@ int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t dat
 	c->buf[0] = 0x06; // CMD incomming EMM
 	init_2b(ca_id  , c->buf + 10);
 	init_4b(prov_id, c->buf + 12);
+
+	// OSCAM do not like it if EMM's are comming too fast
+	// It thinks they are part of a single packet and ignores
+	// the data at the end. The usleep() is a hack but works
+	usleep(1000);
 
 	return camd35_send_buf(c, to_send);
 }
