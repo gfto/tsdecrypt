@@ -5,15 +5,11 @@
 #include "libts/tsfuncs.h"
 #include "libfuncs/libfuncs.h"
 
-extern struct camd35 camd35;
-
-extern enum CA_system req_CA_sys;
-extern int debug_level;
-extern int emm_send;
+extern void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet);
 
 #define handle_table_changes(TABLE) \
 	do { \
-		show_ts_pack(pid, #TABLE, NULL, ts_packet); \
+		show_ts_pack(ts, pid, #TABLE, NULL, ts_packet); \
 		ts->cur##TABLE = ts_##TABLE##_push_packet(ts->cur##TABLE, ts_packet); \
 		if (!ts->cur##TABLE->initialized) \
 			return;  \
@@ -24,7 +20,7 @@ extern int emm_send;
 		ts_##TABLE##_free(&ts->TABLE); \
 		ts->TABLE = ts_##TABLE##_copy(ts->cur##TABLE); \
 		ts_##TABLE##_clear(ts->cur##TABLE); \
-		if (debug_level >= 1) \
+		if (ts->debug_level >= 1) \
 			ts_##TABLE##_dump(ts->TABLE); \
 	} while(0)
 
@@ -52,7 +48,7 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	handle_table_changes(cat);
 
-	ts_get_emm_info(ts->cat, req_CA_sys, &ts->emm_caid, &ts->emm_pid);
+	ts_get_emm_info(ts->cat, ts->req_CA_sys, &ts->emm_caid, &ts->emm_pid);
 }
 
 void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
@@ -73,7 +69,7 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 
 	if (!ts->ecm_caid) {
-		ts_get_ecm_info(ts->pmt, req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
+		ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
 		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(ts->ecm_caid));
 		ts_LOGf("%s Service : 0x%04x\n", CA_sys, ts->service_id);
 		ts_LOGf("%s CA_id   : 0x%04x\n", CA_sys, ts->emm_caid);
@@ -90,9 +86,9 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (!ts->emm_pid || ts->emm_pid != pid)
 		return;
 
-	show_ts_pack(pid, "emm", NULL, ts_packet);
+	show_ts_pack(ts, pid, "emm", NULL, ts_packet);
 
-	if (!emm_send)
+	if (!ts->emm_send)
 		return;
 
 	ts->emm = ts_privsec_push_packet(ts->emm, ts_packet);
@@ -101,7 +97,7 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->emm->ts_header;
 	struct ts_section_header *sec = ts->emm->section_header;
-	if (debug_level >= 2) {
+	if (ts->debug_level >= 2) {
 		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
 		ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d ----------- Data: %s..\n",
 			ts->emm_caid,
@@ -110,7 +106,7 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			dump);
 	}
-	camd35_send_emm(&camd35, ts->emm_caid, sec->section_data, sec->section_data_len);
+	camd35_send_emm(&ts->camd35, ts->emm_caid, sec->section_data, sec->section_data_len);
 	ts_privsec_copy(ts->emm, ts->last_emm);
 	ts_privsec_clear(ts->emm);
 }
@@ -136,8 +132,8 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			ts->ecm_counter,
 			dump);
-		camd35_send_ecm(&camd35, ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_data_len);
-	} else if (debug_level >= 3) {
+		camd35_send_ecm(&ts->camd35, ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_data_len);
+	} else if (ts->debug_level >= 3) {
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
 			ts->ecm_caid,
 			th->pid,
@@ -148,5 +144,5 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	ts_privsec_copy(ts->ecm, ts->last_ecm);
 	ts_privsec_clear(ts->ecm);
 
-	show_ts_pack(pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
+	show_ts_pack(ts, pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
 }
