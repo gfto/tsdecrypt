@@ -135,7 +135,8 @@ uint32_t camd35_auth = 0;
 AES_KEY camd35_aes_encrypt_key;
 AES_KEY camd35_aes_decrypt_key;
 
-int emm_filter = 0;
+int emm_send = 1;
+int pid_filter = 1;
 
 struct in_addr output_addr;
 unsigned int output_port;
@@ -150,7 +151,6 @@ void show_help() {
 	printf("\n");
 	printf("  Options:\n");
 	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(req_CA_sys));
-	printf("    -e             | Disable EMM processing.\n");
 	printf("\n");
 	printf("  CAMD35 server options:\n");
 	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
@@ -162,18 +162,26 @@ void show_help() {
 	printf("    -i output_intf | default: %s\n", inet_ntoa(output_intf));
 	printf("    -t output_ttl  | default: %d\n", output_ttl);
 	printf("\n");
-	printf("  Misc options:\n");
-	printf("    -D debug_level | level 0 - default messages\n");
-	printf("                     level 1 - show PSI tables\n");
-	printf("                     level 2 - show EMMs\n");
-	printf("                     level 3 - show duplicate ECMs\n");
-	printf("                     level 4 - packet debug\n");
+	printf("  Filtering options:\n");
+	printf("    -e             | EMM send (default: %s).\n", emm_send ? "enabled" : "disabled");
+	printf("                   | - Send EMMs to CAMD server for processing.\n");
+	printf("\n");
+	printf("    -p             | Output PID filter (default: %s).\n", pid_filter ? "enabled" : "disabled");
+	printf("                   | - When PID filter is enabled only PAT/PMT/SDT/data\n");
+	printf("                   | - packets are left in the output.\n");
+	printf("\n");
+	printf("    -D debug_level | Message debug level. Bigger levels includes the levels bellow.\n");
+	printf("                   |    0 - default messages\n");
+	printf("                   |    1 - show PSI tables\n");
+	printf("                   |    2 - show EMMs\n");
+	printf("                   |    3 - show duplicate ECMs\n");
+	printf("                   |    4 - packet debug\n");
 	printf("\n");
 }
 
 void parse_options(int argc, char **argv) {
 	int j, ca_err = 0, server_err = 1, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "ces:o:i:t:U:P:D:h")) != -1) {
+	while ((j = getopt(argc, argv, "cFs:o:i:t:U:P:epD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'c':
@@ -185,9 +193,6 @@ void parse_options(int argc, char **argv) {
 					req_CA_sys = CA_CRYPTOWORKS;
 				else
 					ca_err = 1;
-				break;
-			case 'e':
-				emm_filter = 1;
 				break;
 
 			case 's':
@@ -226,6 +231,13 @@ void parse_options(int argc, char **argv) {
 				camd35_pass = optarg;
 				break;
 
+			case 'e':
+				emm_send = !emm_send;
+				break;
+			case 'p':
+				pid_filter = !pid_filter;
+				break;
+
 			case 'D':
 				debug_level = atoi(optarg);
 				break;
@@ -248,7 +260,6 @@ void parse_options(int argc, char **argv) {
 		exit(1);
 	}
 	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(req_CA_sys));
-	ts_LOGf("EMM        : %s\n", emm_filter ? "filter" : "process");
 	ts_LOGf("Server addr: %s:%u\n", inet_ntoa(camd35_server_addr), camd35_server_port);
 	ts_LOGf("Server user: %s\n", camd35_user);
 	ts_LOGf("Server pass: %s\n", camd35_pass);
@@ -257,7 +268,8 @@ void parse_options(int argc, char **argv) {
 		ts_LOGf("Output intf: %s\n", inet_ntoa(output_intf));
 		ts_LOGf("Output ttl : %d\n", output_ttl);
 	}
-
+	ts_LOGf("EMM send   : %s\n", emm_send   ? "enabled" : "disabled");
+	ts_LOGf("PID filter : %s\n", pid_filter ? "enabled" : "disabled");
 }
 
 static int connect_to(struct in_addr ip, int port) {
@@ -493,6 +505,9 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	show_ts_pack(pid, "emm", NULL, ts_packet);
 
+	if (!emm_send)
+		return;
+
 	ts->emm = ts_privsec_push_packet(ts->emm, ts_packet);
 	if (!ts->emm->initialized)
 		return;
@@ -508,8 +523,7 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			dump);
 	}
-	if (!emm_filter)
-		camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
+	camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
 	ts_privsec_copy(ts->emm, ts->last_emm);
 	ts_privsec_clear(ts->emm);
 }
