@@ -43,6 +43,9 @@ void data_init(struct ts *ts) {
 	ts->emm_send    = 1;
 	ts->pid_filter  = 0;
 	ts->output_ttl  = 1;
+
+	ts->input_fd    = 0; // stdin
+	ts->output_fd   = 1; // stdout
 }
 
 void data_free(struct ts *ts) {

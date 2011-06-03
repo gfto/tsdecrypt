@@ -64,6 +64,9 @@ struct ts {
 	int					output_ttl;
 	struct in_addr		output_intf;
 
+	int					input_fd;
+	int					output_fd;
+
 	int					debug_level;
 };
 

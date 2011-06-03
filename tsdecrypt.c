@@ -227,9 +227,9 @@ void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		uint16_t pid = ts_packet_get_pid(ts_packet);
 		if (ts->pid_filter) {
 			if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
-				write(1, ts_packet, 188);
+				write(ts->output_fd, ts_packet, 188);
 		} else {
-			write(1, ts_packet, 188);
+			write(ts->output_fd, ts_packet, 188);
 		}
 	}
 }
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
 
 	camd35_connect(&ts.camd35);
 	do {
-		readen = read(0, ts_packet, FRAME_SIZE);
+		readen = read(ts.input_fd, ts_packet, FRAME_SIZE);
 		if (readen > 0) {
 			ts_process_packets(&ts, ts_packet, readen);
 			ts_write_packets(&ts, ts_packet, readen);
