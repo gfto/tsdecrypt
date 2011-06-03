@@ -46,6 +46,7 @@ struct ts {
 	uint16_t			emm_caid, emm_pid;
 	uint16_t			ecm_caid, ecm_pid;
 	uint16_t			ecm_counter;
+	pidmap_t			pidmap;
 };
 
 struct ts *ts_alloc() {
@@ -64,6 +65,9 @@ struct ts *ts_alloc() {
 
 	ts->ecm      = ts_privsec_alloc();
 	ts->last_ecm = ts_privsec_alloc();
+
+	pidmap_clear(&ts->pidmap);
+
 	return ts;
 }
 
@@ -136,7 +140,7 @@ AES_KEY camd35_aes_encrypt_key;
 AES_KEY camd35_aes_decrypt_key;
 
 int emm_send = 1;
-int pid_filter = 1;
+int pid_filter = 0;
 
 struct in_addr output_addr;
 unsigned int output_port;
@@ -480,10 +484,21 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 }
 
 void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	int i;
 	if (!pid || pid != ts->pmt_pid)
 		return;
 
 	handle_table_changes(pmt);
+
+	pidmap_clear(&ts->pidmap);
+	pidmap_set(&ts->pidmap, 0x0000); // PAT
+	pidmap_set(&ts->pidmap, 0x0011); // SDT
+	pidmap_set(&ts->pidmap, ts->pmt->ts_header.pid); // PMT PID
+	pidmap_set(&ts->pidmap, ts->pmt->PCR_pid); // PCR
+	for (i=0;i<ts->pmt->streams_num;i++) {
+		struct ts_pmt_stream *stream = ts->pmt->streams[i];
+		pidmap_set(&ts->pidmap, stream->pid); // Data
+	}
 
 	if (!ts->ecm_caid) {
 		ts_get_ecm_info(ts->pmt, req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
@@ -588,6 +603,10 @@ void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 				// scramble_idx 3 == odd key
 				ts_packet_set_not_scrambled(ts_packet);
 				dvbcsa_decrypt(csakey[scramble_idx - 2], ts_packet + 4, 184);
+			} else {
+				// Can't decrypt the packet just make it NULL packet
+				if (pid_filter)
+					ts_packet_set_pid(ts_packet, 0x1fff);
 			}
 		}
 
@@ -596,17 +615,17 @@ void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 }
 
 void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
-	ts = ts;
-	write(1, data, data_len);
-	return;
-/*
 	ssize_t i;
 	for (i=0; i<data_len; i += 188) {
 		uint8_t *ts_packet = data + i;
 		uint16_t pid = ts_packet_get_pid(ts_packet);
-		write(1, ts_packet, 188);
+		if (pid_filter) {
+			if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
+				write(1, ts_packet, 188);
+		} else {
+			write(1, ts_packet, 188);
+		}
 	}
-*/
 }
 
 #define FRAME_SIZE (188 * 7)
