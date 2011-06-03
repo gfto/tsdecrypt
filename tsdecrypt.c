@@ -13,9 +13,7 @@
 #include "camd.h"
 #include "tables.h"
 
-uint8_t cur_cw[16];
-int is_valid_cw = 0;
-struct dvbcsa_key_s *csakey[2];
+struct key key;
 
 int debug_level = 0;
 unsigned long ts_pack = 0;
@@ -184,11 +182,11 @@ void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 
 		int scramble_idx = ts_packet_get_scrambled(ts_packet);
 		if (scramble_idx > 1) {
-			if (is_valid_cw) {
+			if (key.is_valid_cw) {
 				// scramble_idx 2 == even key
 				// scramble_idx 3 == odd key
 				ts_packet_set_not_scrambled(ts_packet);
-				dvbcsa_decrypt(csakey[scramble_idx - 2], ts_packet + 4, 184);
+				dvbcsa_decrypt(key.csakey[scramble_idx - 2], ts_packet + 4, 184);
 			} else {
 				// Can't decrypt the packet just make it NULL packet
 				if (pid_filter)
@@ -220,10 +218,10 @@ int main(int argc, char **argv) {
 	ssize_t readen;
 	uint8_t ts_packet[FRAME_SIZE];
 
-	csakey[0] = dvbcsa_key_alloc();
-	csakey[1] = dvbcsa_key_alloc();
+	memset(&key, 0, sizeof(key));
+	key.csakey[0] = dvbcsa_key_alloc();
+	key.csakey[1] = dvbcsa_key_alloc();
 
-	memset(cur_cw, 0, sizeof(cur_cw));
 	ts_set_log_func(LOG_func);
 
 	parse_options(argc, argv);
@@ -240,8 +238,8 @@ int main(int argc, char **argv) {
 	} while (readen > 0);
 	ts_free(&ts);
 
-	dvbcsa_key_free(csakey[0]);
-	dvbcsa_key_free(csakey[1]);
+	dvbcsa_key_free(key.csakey[0]);
+	dvbcsa_key_free(key.csakey[1]);
 
 	camd35_disconnect();
 	exit(0);

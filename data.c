@@ -57,7 +57,7 @@ void LOG_func(const char *msg) {
 extern int debug_level;
 extern unsigned long ts_pack;
 extern int ts_pack_shown;
-extern uint8_t cur_cw[16];
+extern struct key key;
 
 void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
 	char cw1_dump[8 * 6];
@@ -66,8 +66,8 @@ void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
 		if (ts_pack_shown)
 			return;
 		int stype = ts_packet_get_scrambled(ts_packet);
-		ts_hex_dump_buf(cw1_dump, 8 * 6, cur_cw    , 8, 0);
-		ts_hex_dump_buf(cw2_dump, 8 * 6, cur_cw + 8, 8, 0);
+		ts_hex_dump_buf(cw1_dump, 8 * 6, key.cw    , 8, 0);
+		ts_hex_dump_buf(cw2_dump, 8 * 6, key.cw + 8, 8, 0);
 		fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
 			stype == 0 ? "------" :
 			stype == 2 ? "even 0" :

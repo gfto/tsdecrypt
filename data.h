@@ -1,6 +1,8 @@
 #ifndef DATA_H
 #define DATA_H
 
+#include <dvbcsa/dvbcsa.h>
+
 #include "libts/tsfuncs.h"
 
 struct ts {
@@ -15,6 +17,12 @@ struct ts {
 	uint16_t			ecm_caid, ecm_pid;
 	uint16_t			ecm_counter;
 	pidmap_t			pidmap;
+};
+
+struct key {
+	uint8_t				cw[16];
+	int					is_valid_cw;
+	struct dvbcsa_key_s	*csakey[2];
 };
 
 struct ts *ts_alloc();

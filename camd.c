@@ -13,13 +13,11 @@
 #include "libfuncs/libfuncs.h"
 #include "libts/tsfuncs.h"
 
+#include "data.h"
 #include "util.h"
 #include "camd.h"
 
-
-extern uint8_t cur_cw[16];
-extern int is_valid_cw;
-extern struct dvbcsa_key_s *csakey[2];
+extern struct key key;
 
 static int camd35_server_fd;
 extern struct in_addr camd35_server_addr;
@@ -128,15 +126,15 @@ NEXT:
 	uint16_t ca_id = (data[10] << 8) | data[11];
 	uint16_t idx   = (data[16] << 8) | data[17];
 	uint8_t *cw = data + 20;
-	memcpy(cur_cw, cw, 16);
+	memcpy(key.cw, cw, 16);
 
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
 	ts_LOGf("CW  | CAID: 0x%04x ---------------------------------- IDX: 0x%04x Data: %s\n", ca_id, idx, cw_dump);
 
-	is_valid_cw = valid_cw(cur_cw);
-	dvbcsa_key_set(cur_cw    , csakey[0]);
-	dvbcsa_key_set(cur_cw + 8, csakey[1]);
+	key.is_valid_cw = valid_cw(key.cw);
+	dvbcsa_key_set(key.cw    , key.csakey[0]);
+	dvbcsa_key_set(key.cw + 8, key.csakey[1]);
 
 	return NULL;
 }
