@@ -30,7 +30,7 @@ tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
 	$(Q)$(CC) $(CFLAGS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
-%.o: %.c
+%.o: %.c data.h
 	$(Q)echo "  CC	tsdecrypt	$<"
 	$(Q)$(CC) $(CFLAGS)  -c $<
 
