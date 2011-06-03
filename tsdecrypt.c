@@ -119,16 +119,9 @@ static void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packe
 }
 
 static void dump_ts_pack(uint16_t pid, uint8_t *ts_packet) {
-	if (pid == 0x012)		show_ts_pack(pid, "epg", NULL, ts_packet);
-	else if (pid == 0x10)	show_ts_pack(pid, "nit", NULL, ts_packet);
+	if (pid == 0x010)		show_ts_pack(pid, "nit", NULL, ts_packet);
 	else if (pid == 0x11)	show_ts_pack(pid, "sdt", NULL, ts_packet);
-	else if (pid == 0x64)	show_ts_pack(pid, "PCR",  NULL, ts_packet);
-	else if (pid == 0x26)	show_ts_pack(pid, "EMM", "Cryptoworks", ts_packet);
-	else if (pid == 0x28)	show_ts_pack(pid, "emm", "No PAT/CAT/PMT yet.", ts_packet);
-	else if (pid == 0xd0)	show_ts_pack(pid, "  v", "Video", ts_packet);
-	else if (pid == 0x134)	show_ts_pack(pid, "  a", "Audio", ts_packet);
-	else if (pid == 0x513)	show_ts_pack(pid, "ECM", "Cryptoworks", ts_packet);
-	else if (pid == 0x522)	show_ts_pack(pid, "ecm", "No PAT/CAT/PMT yet.", ts_packet);
+	else if (pid == 0x12)	show_ts_pack(pid, "epg", NULL, ts_packet);
 	else					show_ts_pack(pid, "---", NULL, ts_packet);
 }
 
