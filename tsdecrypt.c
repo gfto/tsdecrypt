@@ -101,21 +101,21 @@ int debug_level = 0;
 static void show_ts_pack(uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
 	char cw1_dump[8 * 6];
 	char cw2_dump[8 * 6];
-	if (debug_level < 4)
-		return;
-	if (ts_pack_shown)
-		return;
-	int stype = ts_packet_get_scrambled(ts_packet);
-	ts_hex_dump_buf(cw1_dump, 8 * 6, cur_cw    , 8, 0);
-	ts_hex_dump_buf(cw2_dump, 8 * 6, cur_cw + 8, 8, 0);
-	fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
-		stype == 0 ? "------" :
-		stype == 2 ? "even 0" :
-		stype == 3 ? "odd  1" : "??????",
-		wtf,
-		pid,
-		ts_pack, ts_pack * 188,
-		cw1_dump, cw2_dump, extra ? extra : wtf);
+	if (debug_level >= 4) {
+		if (ts_pack_shown)
+			return;
+		int stype = ts_packet_get_scrambled(ts_packet);
+		ts_hex_dump_buf(cw1_dump, 8 * 6, cur_cw    , 8, 0);
+		ts_hex_dump_buf(cw2_dump, 8 * 6, cur_cw + 8, 8, 0);
+		fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
+			stype == 0 ? "------" :
+			stype == 2 ? "even 0" :
+			stype == 3 ? "odd  1" : "??????",
+			wtf,
+			pid,
+			ts_pack, ts_pack * 188,
+			cw1_dump, cw2_dump, extra ? extra : wtf);
+	}
 }
 
 static void dump_ts_pack(uint16_t pid, uint8_t *ts_packet) {
@@ -134,14 +134,138 @@ static void dump_ts_pack(uint16_t pid, uint8_t *ts_packet) {
 
 enum CA_system req_CA_sys = CA_CONNAX;
 int server_fd = -1;
-char *camd35_server = "10.0.1.78";
-struct in_addr camd35_server_ip;
-uint16_t camd35_port = 2233;
+struct in_addr camd35_server_addr;
+unsigned int camd35_server_port = 2233;
 char *camd35_user = "user";
 char *camd35_pass = "pass";
 uint32_t camd35_auth = 0;
 AES_KEY camd35_aes_encrypt_key;
 AES_KEY camd35_aes_decrypt_key;
+
+int emm_filter = 0;
+
+struct in_addr output_addr;
+unsigned int output_port;
+int output_ttl = 1;
+struct in_addr output_intf;
+
+void show_help() {
+	printf("TSDECRYPT v1.0\n");
+	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
+	printf("\n");
+	printf("	Usage: tsdecrypt [opts] < mpeg_ts\n");
+	printf("\n");
+	printf("  Options:\n");
+	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(req_CA_sys));
+	printf("    -e             | Disable EMM processing.\n");
+	printf("\n");
+	printf("  CAMD35 server options:\n");
+	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
+	printf("    -U server_user | default: %s\n", camd35_user);
+	printf("    -P server_pass | default: %s\n", camd35_pass);
+	printf("\n");
+	printf("  Output options (if output is disabled stdout is used for output):\n");
+	printf("    -o output_addr | default: disabled (format: 239.78.78.78:5000)\n");
+	printf("    -i output_intf | default: %s\n", inet_ntoa(output_intf));
+	printf("    -t output_ttl  | default: %d\n", output_ttl);
+	printf("\n");
+	printf("  Misc options:\n");
+	printf("    -D debug_level | level 0 - default messages\n");
+	printf("                     level 1 - show PSI tables\n");
+	printf("                     level 2 - show EMMs\n");
+	printf("                     level 3 - show duplicate ECMs\n");
+	printf("                     level 4 - packet debug\n");
+	printf("\n");
+}
+
+void parse_options(int argc, char **argv) {
+	int j, ca_err = 0, server_err = 1, output_addr_err = 0, output_intf_err = 0;
+	while ((j = getopt(argc, argv, "ces:o:i:t:U:P:D:h")) != -1) {
+		char *p = NULL;
+		switch (j) {
+			case 'c':
+				if (strcasecmp("IRDETO", optarg) == 0)
+					req_CA_sys = CA_IRDETO;
+				else if (strcasecmp("CONNAX", optarg) == 0)
+					req_CA_sys = CA_CONNAX;
+				else if (strcasecmp("CRYPTOWORKS", optarg) == 0)
+					req_CA_sys = CA_CRYPTOWORKS;
+				else
+					ca_err = 1;
+				break;
+			case 'e':
+				emm_filter = 1;
+				break;
+
+			case 's':
+				p = strrchr(optarg, ':');
+				if (p) {
+					*p = 0x00;
+					camd35_server_port = atoi(p + 1);
+				}
+				if (inet_aton(optarg, &camd35_server_addr) == 0)
+					server_err = 1;
+				else
+					server_err = 0;
+				break;
+
+			case 'o':
+				p = strrchr(optarg, ':');
+				if (p) {
+					*p = 0x00;
+					output_port = atoi(p + 1);
+				}
+				if (inet_aton(optarg, &output_addr) == 0)
+					output_addr_err = 1;
+				break;
+			case 'i':
+				if (inet_aton(optarg, &output_intf) == 0)
+					output_intf_err = 1;
+				break;
+			case 't':
+				output_ttl = atoi(optarg);
+				break;
+
+			case 'U':
+				camd35_user = optarg;
+				break;
+			case 'P':
+				camd35_pass = optarg;
+				break;
+
+			case 'D':
+				debug_level = atoi(optarg);
+				break;
+
+			case 'h':
+				show_help();
+				exit(0);
+		}
+	}
+	if (ca_err || server_err) {
+		show_help();
+		if (ca_err)
+			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
+		if (server_err)
+			fprintf(stderr, "ERROR: Server IP address is not set or it is invalid.\n");
+		if (output_addr_err)
+			fprintf(stderr, "ERROR: Output IP address is invalid.\n");
+		if (output_intf_err)
+			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
+		exit(1);
+	}
+	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(req_CA_sys));
+	ts_LOGf("EMM        : %s\n", emm_filter ? "filter" : "process");
+	ts_LOGf("Server addr: %s:%u\n", inet_ntoa(camd35_server_addr), camd35_server_port);
+	ts_LOGf("Server user: %s\n", camd35_user);
+	ts_LOGf("Server pass: %s\n", camd35_pass);
+	if (output_port) {
+		ts_LOGf("Output addr: %s:%u\n", inet_ntoa(output_addr), output_port);
+		ts_LOGf("Output intf: %s\n", inet_ntoa(output_intf));
+		ts_LOGf("Output ttl : %d\n", output_ttl);
+	}
+
+}
 
 static int connect_to(struct in_addr ip, int port) {
 	ts_LOGf("Connecting to %s:%d\n", inet_ntoa(ip), port);
@@ -181,7 +305,7 @@ static void camd35_init_auth(char *user, char *pass) {
 
 static void camd35_connect() {
 	if (server_fd < 0)
-		server_fd = connect_to(camd35_server_ip, camd35_port);
+		server_fd = connect_to(camd35_server_addr, camd35_server_port);
 }
 
 static int camd35_recv(uint8_t *data, int *data_len) {
@@ -215,13 +339,13 @@ NEXT:
 	if (camd35_recv(data, &data_len) < 0)
 		ERR("No data!");
 
-	if (data_len < 48)
-		ERR("len mismatch != 48");
-
 	if (data[0] < 0x01) {
 		ts_LOGf("Not valid CW response, skipping it. data[0] = 0x%02x\n", data[0]);
 		goto NEXT;
 	}
+
+	if (data_len < 48)
+		ERR("len mismatch != 48");
 
 	if (data[1] < 0x10)
 		ERR("CW len mismatch != 0x10");
@@ -319,7 +443,8 @@ static int camd35_send_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 		ts_##TABLE##_free(&ts->TABLE); \
 		ts->TABLE = ts_##TABLE##_copy(ts->cur##TABLE); \
 		ts_##TABLE##_clear(ts->cur##TABLE); \
-		ts_##TABLE##_dump(ts->TABLE); \
+		if (debug_level >= 1) \
+			ts_##TABLE##_dump(ts->TABLE); \
 	} while(0)
 
 void process_pat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
@@ -381,14 +506,17 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->emm->ts_header;
 	struct ts_section_header *sec = ts->emm->section_header;
-	ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
-	ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d ----------- Data: %s..\n",
-		ts->emm_caid,
-		th->pid,
-		sec->table_id,
-		sec->section_data_len,
-		dump);
-	camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
+	if (debug_level >= 2) {
+		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
+		ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d ----------- Data: %s..\n",
+			ts->emm_caid,
+			th->pid,
+			sec->table_id,
+			sec->section_data_len,
+			dump);
+	}
+	if (!emm_filter)
+		camd35_send_emm(ts->emm_caid, sec->section_data, sec->section_data_len);
 	ts_privsec_copy(ts->emm, ts->last_emm);
 	ts_privsec_clear(ts->emm);
 }
@@ -415,7 +543,7 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			ts->ecm_counter,
 			dump);
 		camd35_send_ecm(ts->service_id, ts->ecm_caid, ts->ecm_counter++, sec->section_data, sec->section_data_len);
-	} else if (debug_level > 2) {
+	} else if (debug_level >= 3) {
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
 			ts->ecm_caid,
 			th->pid,
@@ -474,78 +602,6 @@ void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 */
 }
 
-void show_help() {
-	printf("TSDECRYPT v1.0\n");
-	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
-	printf("\n");
-	printf("	Usage: tsdecrypt [opts] < mpeg_ts > mpeg_ts.decrypted\n");
-	printf("\n");
-	printf("  Options:\n");
-	printf("    -C ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(req_CA_sys));
-	printf("\n");
-	printf("  Server options:\n");
-	printf("    -S server_ip   | default: %s\n", camd35_server);
-	printf("    -P server_port | default: %u\n", (unsigned int)camd35_port);
-	printf("    -u server_user | default: %s\n", camd35_user);
-	printf("    -p server_pass | default: %s\n", camd35_pass);
-	printf("\n");
-	exit(0);
-}
-
-void parse_options(int argc, char **argv) {
-	int j, ca_err = 0, server_err = 0;
-	inet_aton(camd35_server, &camd35_server_ip);
-	while ((j = getopt(argc, argv, "C:S:P:u:p:hd:")) != -1) {
-		switch (j) {
-			case 'C':
-				if (strcasecmp("IRDETO", optarg) == 0)
-					req_CA_sys = CA_IRDETO;
-				else if (strcasecmp("CONNAX", optarg) == 0)
-					req_CA_sys = CA_CONNAX;
-				else if (strcasecmp("CRYPTOWORKS", optarg) == 0)
-					req_CA_sys = CA_CRYPTOWORKS;
-				else
-					ca_err = 1;
-				break;
-			case 'S':
-				camd35_server = optarg;
-				if (inet_aton(camd35_server, &camd35_server_ip) == 0)
-					server_err = 1;
-				break;
-			case 'P':
-				camd35_port = atoi(optarg);
-				break;
-			case 'u':
-				camd35_user = optarg;
-				break;
-			case 'p':
-				camd35_pass = optarg;
-				break;
-			case 'd':
-				debug_level = atoi(optarg);
-				break;
-			case 'h':
-				show_help();
-				exit(0);
-		}
-	}
-	if (ca_err || server_err) {
-		if (ca_err)
-			fprintf(stderr, "ERROR: Unknown CA\n");
-		if (server_err)
-			fprintf(stderr, "ERROR: Invalid server IP address\n");
-		fprintf(stderr, "\n");
-		show_help();
-		exit(1);
-	}
-	ts_LOGf("CA System : %s\n", ts_get_CA_sys_txt(req_CA_sys));
-	ts_LOGf("Server\n");
-	ts_LOGf("  Addr    : %s:%d\n", inet_ntoa(camd35_server_ip), camd35_port);
-	ts_LOGf("  Auth    : %s / %s\n", camd35_user, camd35_pass);
-
-	camd35_connect();
-}
-
 #define FRAME_SIZE (188 * 7)
 
 int main(int argc, char **argv) {
@@ -559,6 +615,8 @@ int main(int argc, char **argv) {
 	ts_set_log_func(LOG_func);
 
 	parse_options(argc, argv);
+
+	camd35_connect();
 
 	struct ts *ts = ts_alloc();
 	do {
