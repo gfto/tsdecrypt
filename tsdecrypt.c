@@ -14,17 +14,13 @@
 #include "tables.h"
 
 struct key key;
+struct camd35 camd35;
 
 int debug_level = 0;
 unsigned long ts_pack = 0;
 int ts_pack_shown = 0;
 
 enum CA_system req_CA_sys = CA_CONNAX;
-struct in_addr camd35_server_addr;
-unsigned int camd35_server_port = 2233;
-char *camd35_user = "user";
-char *camd35_pass = "pass";
-uint32_t camd35_auth = 0;
 
 int emm_send = 1;
 int pid_filter = 0;
@@ -45,8 +41,8 @@ void show_help() {
 	printf("\n");
 	printf("  CAMD35 server options:\n");
 	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
-	printf("    -U server_user | default: %s\n", camd35_user);
-	printf("    -P server_pass | default: %s\n", camd35_pass);
+	printf("    -U server_user | default: %s\n", camd35.user);
+	printf("    -P server_pass | default: %s\n", camd35.pass);
 	printf("\n");
 	printf("  Output options (if output is disabled stdout is used for output):\n");
 	printf("    -o output_addr | default: disabled (format: 239.78.78.78:5000)\n");
@@ -90,9 +86,9 @@ void parse_options(int argc, char **argv) {
 				p = strrchr(optarg, ':');
 				if (p) {
 					*p = 0x00;
-					camd35_server_port = atoi(p + 1);
+					camd35.server_port = atoi(p + 1);
 				}
-				if (inet_aton(optarg, &camd35_server_addr) == 0)
+				if (inet_aton(optarg, &camd35.server_addr) == 0)
 					server_err = 1;
 				else
 					server_err = 0;
@@ -116,10 +112,12 @@ void parse_options(int argc, char **argv) {
 				break;
 
 			case 'U':
-				camd35_user = optarg;
+				strncpy(camd35.user, optarg, sizeof(camd35.user) - 1);
+				camd35.user[sizeof(camd35.user) - 1] = 0;
 				break;
 			case 'P':
-				camd35_pass = optarg;
+				strncpy(camd35.pass, optarg, sizeof(camd35.pass) - 1);
+				camd35.pass[sizeof(camd35.pass) - 1] = 0;
 				break;
 
 			case 'e':
@@ -151,9 +149,9 @@ void parse_options(int argc, char **argv) {
 		exit(1);
 	}
 	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(req_CA_sys));
-	ts_LOGf("Server addr: %s:%u\n", inet_ntoa(camd35_server_addr), camd35_server_port);
-	ts_LOGf("Server user: %s\n", camd35_user);
-	ts_LOGf("Server pass: %s\n", camd35_pass);
+	ts_LOGf("Server addr: %s:%u\n", inet_ntoa(camd35.server_addr), camd35.server_port);
+	ts_LOGf("Server user: %s\n", camd35.user);
+	ts_LOGf("Server pass: %s\n", camd35.pass);
 	if (output_port) {
 		ts_LOGf("Output addr: %s:%u\n", inet_ntoa(output_addr), output_port);
 		ts_LOGf("Output intf: %s\n", inet_ntoa(output_intf));
@@ -222,11 +220,18 @@ int main(int argc, char **argv) {
 	key.csakey[0] = dvbcsa_key_alloc();
 	key.csakey[1] = dvbcsa_key_alloc();
 
+	memset(&camd35, 0, sizeof(camd35));
+	camd35.server_fd = -1;
+	camd35.server_port = 2233;
+	strcpy(camd35.user, "user");
+	strcpy(camd35.pass, "pass");
+	camd35.key = &key;
+
 	ts_set_log_func(LOG_func);
 
 	parse_options(argc, argv);
 
-	camd35_connect();
+	camd35_connect(&camd35);
 
 	struct ts *ts = ts_alloc();
 	do {
@@ -241,6 +246,6 @@ int main(int argc, char **argv) {
 	dvbcsa_key_free(key.csakey[0]);
 	dvbcsa_key_free(key.csakey[1]);
 
-	camd35_disconnect();
+	camd35_disconnect(&camd35);
 	exit(0);
 }
