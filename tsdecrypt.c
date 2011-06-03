@@ -12,6 +12,7 @@
 #include "util.h"
 #include "camd.h"
 #include "tables.h"
+#include "udp.h"
 
 void LOG_func(const char *msg) {
 	char date[64];
@@ -248,6 +249,10 @@ int main(int argc, char **argv) {
 	parse_options(&ts, argc, argv);
 
 	camd35_connect(&ts.camd35);
+	if (ts.output_port)
+		if (udp_connect_output(&ts) < 1)
+			goto EXIT;
+
 	do {
 		readen = read(ts.input_fd, ts_packet, FRAME_SIZE);
 		if (readen > 0) {
@@ -255,6 +260,7 @@ int main(int argc, char **argv) {
 			ts_write_packets(&ts, ts_packet, readen);
 		}
 	} while (readen > 0);
+EXIT:
 	camd35_disconnect(&ts.camd35);
 
 	data_free(&ts);
