@@ -98,8 +98,13 @@ NEXT:
 	if (camd35_recv(c, data, &data_len) < 0)
 		ERR("No data!");
 
-	if (data[0] < 0x01) {
-		ts_LOGf("Not valid CW response, skipping it. data[0] = 0x%02x\n", data[0]);
+	if (data[0] == 0x05) {
+		// ts_LOGf("Received EMM request, ignoring it.\n");
+		goto NEXT;
+	}
+
+	if (data[0] != 0x01) {
+		ts_LOGf("Not valid CW response, skipping it. cmd = 0x%02x\n", data[0]);
 		goto NEXT;
 	}
 
