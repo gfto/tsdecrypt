@@ -18,6 +18,44 @@ static void set_sock_nonblock(int sockfd) {
 	fcntl(sockfd, F_SETFL, arg);
 }
 
+int udp_connect_input(struct io *io) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
+		ts_LOGf("socket(SOCK_DGRAM): %s", strerror(errno));
+		return -1;
+	}
+
+	ts_LOGf("Connecting input to udp://%s:%d/\n", inet_ntoa(io->addr), io->port);
+	int on = 1;
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+	// subscribe to multicast group
+	if (IN_MULTICAST(ntohl(io->addr.s_addr))) {
+		struct ip_mreq mreq;
+		memcpy(&mreq.imr_multiaddr, &io->addr, sizeof(struct in_addr));
+		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+		if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+			ts_LOGf("setsockopt(IP_ADD_MEMBERSHIP %s): %s", inet_ntoa(io->addr), strerror(errno));
+			return -1;
+		}
+	}
+	// bind to the socket so data can be read
+	struct sockaddr_in receiving_from;
+	memset(&receiving_from, 0, sizeof(receiving_from));
+	receiving_from.sin_family = AF_INET;
+	receiving_from.sin_addr   = io->addr;
+	receiving_from.sin_port   = htons(io->port);
+	if (bind(sock, (struct sockaddr *) &receiving_from, sizeof(receiving_from)) < 0) {
+		ts_LOGf("bind(): %s", strerror(errno));
+		return -1;
+	}
+
+	io->fd = sock;
+	ts_LOGf("Input connected to fd:%d\n", io->fd);
+
+	return 1;
+}
+
 int udp_connect_output(struct io *io) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
