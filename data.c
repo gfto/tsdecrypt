@@ -42,10 +42,13 @@ void data_init(struct ts *ts) {
 	ts->req_CA_sys  = CA_CONNAX;
 	ts->emm_send    = 1;
 	ts->pid_filter  = 0;
-	ts->output_ttl  = 1;
 
-	ts->input_fd    = 0; // stdin
-	ts->output_fd   = 1; // stdout
+	ts->input.fd    = 0; // STDIN
+	ts->input.type  = FILE_IO;
+
+	ts->output.fd   = 1; // STDOUT
+	ts->output.type = FILE_IO;
+	ts->output.ttl  = 1;
 }
 
 void data_free(struct ts *ts) {
@@ -62,4 +65,7 @@ void data_free(struct ts *ts) {
 
 	dvbcsa_key_free(ts->key.csakey[0]);
 	dvbcsa_key_free(ts->key.csakey[1]);
+
+	FREE(ts->input.fname);
+	FREE(ts->output.fname);
 }

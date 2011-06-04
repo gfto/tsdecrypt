@@ -35,6 +35,23 @@ struct camd35 {
 	struct key		*key;
 };
 
+enum io_type {
+	FILE_IO,
+	NET_IO,
+	WTF_IO
+};
+
+struct io {
+	int					fd;
+	enum io_type		type;
+	char				*fname;
+	struct in_addr		addr;
+	unsigned int		port;
+	// Used only for output
+	int					ttl;
+	struct in_addr		intf;
+};
+
 struct ts {
 	// Stream handling
 	struct ts_pat		*pat, *curpat;
@@ -59,13 +76,8 @@ struct ts {
 	int					emm_send;
 	int					pid_filter;
 
-	struct in_addr		output_addr;
-	unsigned int		output_port;
-	int					output_ttl;
-	struct in_addr		output_intf;
-
-	int					input_fd;
-	int					output_fd;
+	struct io			input;
+	struct io			output;
 
 	int					debug_level;
 };

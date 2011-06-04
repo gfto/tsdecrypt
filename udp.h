@@ -3,6 +3,6 @@
 
 #include "data.h"
 
-int udp_connect_output(struct ts *ts);
+int udp_connect_output(struct io *io);
 
 #endif

@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include <dvbcsa/dvbcsa.h>
 
@@ -25,23 +29,32 @@ void LOG_func(const char *msg) {
 }
 
 void show_help(struct ts *ts) {
-	printf("ts v1.0\n");
+	printf("tsdecrypt v1.0\n");
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
-	printf("	Usage: ts [opts] < mpeg_ts\n");
+	printf("	Usage: tsdecrypt [opts]\n");
 	printf("\n");
-	printf("  Options:\n");
+	printf("  Input options:\n");
+	printf("    -I input       | Where to read from. Supports files and multicast\n");
+	printf("                   |    -I 224.0.0.1:5000 (multicast receive)\n");
+	printf("                   |    -I file.ts        (read from file)\n");
+	printf("                   |    -I -              (read from STDIN, the default)\n");
+	printf("\n");
 	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+	printf("\n");
+	printf("  Output options:\n");
+	printf("    -O output      | Where to send output. Supports files and multicast\n");
+	printf("                   |    -O 239.0.0.1:5000 (multicast send)\n");
+	printf("                   |    -O file.ts        (write to file)\n");
+	printf("                   |    -O -              (write to STDOUT, the default)\n");
+	printf("\n");
+	printf("    -i output_intf | default: %s\n", inet_ntoa(ts->output.intf));
+	printf("    -t output_ttl  | default: %d\n", ts->output.ttl);
 	printf("\n");
 	printf("  CAMD35 server options:\n");
 	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
 	printf("    -U server_user | default: %s\n", ts->camd35.user);
 	printf("    -P server_pass | default: %s\n", ts->camd35.pass);
-	printf("\n");
-	printf("  Output options (if output is disabled stdout is used for output):\n");
-	printf("    -o output_addr | default: disabled (format: 239.78.78.78:5000)\n");
-	printf("    -i output_intf | default: %s\n", inet_ntoa(ts->output_intf));
-	printf("    -t output_ttl  | default: %d\n", ts->output_ttl);
 	printf("\n");
 	printf("  Filtering options:\n");
 	printf("    -e             | EMM send (default: %s).\n", ts->emm_send ? "enabled" : "disabled");
@@ -51,7 +64,7 @@ void show_help(struct ts *ts) {
 	printf("                   | - When PID filter is enabled only PAT/PMT/SDT/data\n");
 	printf("                   | - packets are left in the output.\n");
 	printf("\n");
-	printf("    -D debug_level | Message debug level. Bigger levels includes the levels bellow.\n");
+	printf("    -D debug_level | Message debug level.\n");
 	printf("                   |    0 - default messages\n");
 	printf("                   |    1 - show PSI tables\n");
 	printf("                   |    2 - show EMMs\n");
@@ -60,9 +73,32 @@ void show_help(struct ts *ts) {
 	printf("\n");
 }
 
+static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_mode) {
+	io->type = WTF_IO;
+	char *p = strrchr(opt, ':');
+	if (!p) {
+		io->type = FILE_IO;
+		if (strcmp(opt, "-") != 0) {
+			io->fd = open(opt, open_flags, open_mode);
+			if (io->fd < 0) {
+				fprintf(stderr, "ERROR: Can not open file (%s): %s\n", opt, strerror(errno));
+				exit(1);
+			}
+		}
+		io->fname = strdup(opt);
+		return 0;
+	}
+	*p = 0x00;
+	io->type = NET_IO;
+	io->port = atoi(p + 1);
+	if (inet_aton(opt, &io->addr) == 0)
+		return 1;
+	return 0;
+}
+
 void parse_options(struct ts *ts, int argc, char **argv) {
-	int j, ca_err = 0, server_err = 1, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "cFs:o:i:t:U:P:epD:h")) != -1) {
+	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
+	while ((j = getopt(argc, argv, "cFs:I:O:i:t:U:P:epD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'c':
@@ -88,21 +124,21 @@ void parse_options(struct ts *ts, int argc, char **argv) {
 					server_err = 0;
 				break;
 
-			case 'o':
-				p = strrchr(optarg, ':');
-				if (p) {
-					*p = 0x00;
-					ts->output_port = atoi(p + 1);
-				}
-				if (inet_aton(optarg, &ts->output_addr) == 0)
-					output_addr_err = 1;
+			case 'I':
+				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
 				break;
+			case 'O':
+				output_addr_err = parse_io_param(&ts->output, optarg,
+					O_CREAT | O_WRONLY | O_TRUNC,
+					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+				break;
+
 			case 'i':
-				if (inet_aton(optarg, &ts->output_intf) == 0)
+				if (inet_aton(optarg, &ts->output.intf) == 0)
 					output_intf_err = 1;
 				break;
 			case 't':
-				ts->output_ttl = atoi(optarg);
+				ts->output.ttl = atoi(optarg);
 				break;
 
 			case 'U':
@@ -130,12 +166,14 @@ void parse_options(struct ts *ts, int argc, char **argv) {
 				exit(0);
 		}
 	}
-	if (ca_err || server_err) {
+	if (ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
 		show_help(ts);
 		if (ca_err)
 			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
 		if (server_err)
 			fprintf(stderr, "ERROR: Server IP address is not set or it is invalid.\n");
+		if (input_addr_err)
+			fprintf(stderr, "ERROR: Input IP address is invalid.\n");
 		if (output_addr_err)
 			fprintf(stderr, "ERROR: Output IP address is invalid.\n");
 		if (output_intf_err)
@@ -143,14 +181,21 @@ void parse_options(struct ts *ts, int argc, char **argv) {
 		exit(1);
 	}
 	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
-	ts_LOGf("Server addr: %s:%u\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
+	if (ts->input.type == NET_IO) {
+		ts_LOGf("Input addr : udp://%s:%u/\n", inet_ntoa(ts->input.addr), ts->input.port);
+	} else if (ts->input.type == FILE_IO) {
+		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
+	}
+	if (ts->output.type == NET_IO) {
+		ts_LOGf("Output addr: udp://%s:%u/\n", inet_ntoa(ts->output.addr), ts->output.port);
+		ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
+		ts_LOGf("Output ttl : %d\n", ts->output.ttl);
+	} else if (ts->output.type == FILE_IO) {
+		ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
+	}
+	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
-	if (ts->output_port) {
-		ts_LOGf("Output addr: %s:%u\n", inet_ntoa(ts->output_addr), ts->output_port);
-		ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output_intf));
-		ts_LOGf("Output ttl : %d\n", ts->output_ttl);
-	}
 	ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 }
@@ -228,9 +273,9 @@ void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		uint16_t pid = ts_packet_get_pid(ts_packet);
 		if (ts->pid_filter) {
 			if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
-				write(ts->output_fd, ts_packet, 188);
+				write(ts->output.fd, ts_packet, 188);
 		} else {
-			write(ts->output_fd, ts_packet, 188);
+			write(ts->output.fd, ts_packet, 188);
 		}
 	}
 }
@@ -249,12 +294,12 @@ int main(int argc, char **argv) {
 	parse_options(&ts, argc, argv);
 
 	camd35_connect(&ts.camd35);
-	if (ts.output_port)
-		if (udp_connect_output(&ts) < 1)
+	if (ts.output.type == NET_IO)
+		if (udp_connect_output(&ts.output) < 1)
 			goto EXIT;
 
 	do {
-		readen = read(ts.input_fd, ts_packet, FRAME_SIZE);
+		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 		if (readen > 0) {
 			ts_process_packets(&ts, ts_packet, readen);
 			ts_write_packets(&ts, ts_packet, readen);
