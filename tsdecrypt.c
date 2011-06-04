@@ -293,11 +293,12 @@ int main(int argc, char **argv) {
 
 	parse_options(&ts, argc, argv);
 
-	camd35_connect(&ts.camd35);
-	if (ts.output.type == NET_IO)
-		if (udp_connect_output(&ts.output) < 1)
-			goto EXIT;
+	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
+		goto EXIT;
+	if (ts.output.type == NET_IO && udp_connect_output(&ts.output) < 1)
+		goto EXIT;
 
+	camd35_connect(&ts.camd35);
 	do {
 		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 		if (readen > 0) {
