@@ -254,7 +254,8 @@ void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 				// scramble_idx 2 == even key
 				// scramble_idx 3 == odd key
 				ts_packet_set_not_scrambled(ts_packet);
-				dvbcsa_decrypt(ts->key.csakey[scramble_idx - 2], ts_packet + 4, 184);
+				uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
+				dvbcsa_decrypt(ts->key.csakey[scramble_idx - 2], ts_packet + payload_ofs, 188 - payload_ofs);
 			} else {
 				// Can't decrypt the packet just make it NULL packet
 				if (ts->pid_filter)
