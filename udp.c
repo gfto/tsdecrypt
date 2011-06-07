@@ -23,6 +23,10 @@ int udp_connect_input(struct io *io) {
 	int on = 1;
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
+	/* Set receive buffer size to ~2.3MB or 6Mb/s for half a second */
+	int bufsize = (6000000 / 1316) / 2;
+	setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (void *)&bufsize, sizeof(bufsize));
+
 	// subscribe to multicast group
 	if (IN_MULTICAST(ntohl(io->addr.s_addr))) {
 		struct ip_mreq mreq;
@@ -63,6 +67,10 @@ int udp_connect_output(struct io *io) {
 	int on = 1;
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 	set_sock_nonblock(sock);
+
+	/* Set receive buffer size to ~2.3MB or 6Mb/s for half a second */
+	int bufsize = (6000000 / 1316) / 2;
+	setsockopt(sock, SOL_SOCKET, SO_SNDBUF, (void *)&bufsize, sizeof(bufsize));
 
 	// subscribe to multicast group
 	if (IN_MULTICAST(ntohl(io->addr.s_addr))) {
