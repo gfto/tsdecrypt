@@ -19,11 +19,11 @@
 #include "camd.h"
 
 static int connect_to(struct in_addr ip, int port) {
-	ts_LOGf("Connecting to CAMD server %s:%d\n", inet_ntoa(ip), port);
+	ts_LOGf("CAM | Connecting to server %s:%d\n", inet_ntoa(ip), port);
 
 	int fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (fd < 0)	{
-		ts_LOGf("Could not create socket | %s\n", strerror(errno));
+		ts_LOGf("CAM | Could not create socket | %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -32,11 +32,11 @@ static int connect_to(struct in_addr ip, int port) {
 	sock.sin_port = htons(port);
 	sock.sin_addr = ip;
 	if (do_connect(fd, (struct sockaddr *)&sock, sizeof(sock), 1000) < 0) {
-		ts_LOGf("Could not connect to CAMD server %s:%d | %s\n", inet_ntoa(ip), port, strerror(errno));
+		ts_LOGf("CAM | Could not connect to server %s:%d | %s\n", inet_ntoa(ip), port, strerror(errno));
 		return -1;
 	}
 
-	ts_LOGf("Connected with CAMD server, fd:%d\n", fd);
+	ts_LOGf("CAM | Connected to fd:%d\n", fd);
 	return fd;
 }
 
