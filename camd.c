@@ -33,6 +33,7 @@ static int connect_to(struct in_addr ip, int port) {
 	sock.sin_addr = ip;
 	if (do_connect(fd, (struct sockaddr *)&sock, sizeof(sock), 1000) < 0) {
 		ts_LOGf("CAM | Could not connect to server %s:%d | %s\n", inet_ntoa(ip), port, strerror(errno));
+		close(fd);
 		return -1;
 	}
 
