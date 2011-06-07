@@ -68,6 +68,11 @@ static void camd35_disconnect(struct ts *ts) {
 	shutdown_fd(&c->server_fd);
 }
 
+static int camd35_reconnect(struct ts *ts) {
+	camd35_disconnect(ts);
+	return camd35_connect(ts);
+}
+
 static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 	int i;
 
@@ -89,34 +94,43 @@ static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 	return *data_len;
 }
 
-#define ERR(x) do { ts_LOGf("%s\n", x); return NULL; } while (0)
-
-
 static int camd35_recv_cw(struct ts *ts) {
 	struct camd35 *c = &ts->camd35;
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint8_t *data = c->buf;
 	int data_len = 0;
+	int ret = 0;
 
-NEXT:
-	if (camd35_recv(c, data, &data_len) < 0)
-		ERR("No data!");
-
-	if (data[0] == 0x05) {
-		// ts_LOGf("Received EMM request, ignoring it.\n");
-		goto NEXT;
+READ:
+	ret = camd35_recv(c, data, &data_len);
+	if (ret < 0) {
+		ts_LOGf("CW   | No CW has been received (ret = %d)\n", ret);
+		camd35_reconnect(ts);
+		return ret;
 	}
+
+	// EMM request, ignore it. Sometimes OSCAM sends two EMM requests after CW
+	if (data[0] == 0x05)
+		goto READ;
 
 	if (data[0] != 0x01) {
-		ts_LOGf("Not valid CW response, skipping it. cmd = 0x%02x\n", data[0]);
-		goto NEXT;
+		ts_LOGf("CW  | Unxpected server response, skipping it (data[0] == 0x%02x /%s/)\n",
+			data[0],
+			data[0] == 0x08 ? "No card" : "Unknown");
+		c->key->is_valid_cw = 0;
+		memcpy(c->key->cw, invalid_cw, 16);
+		return 0;
 	}
 
-	if (data_len < 48)
-		ERR("len mismatch != 48");
+	if (data_len < 48) {
+		ts_LOGf("CW  | data_len (%d) mismatch != 48\n", data_len);
+		return 0;
+	}
 
-	if (data[1] < 0x10)
-		ERR("CW len mismatch != 0x10");
+	if (data[1] < 0x10) {
+		ts_LOGf("CW  | CW len (%d) mismatch != 16\n", data[1]);
+		return 0;
+	}
 
 	uint16_t ca_id = (data[10] << 8) | data[11];
 	uint16_t idx   = (data[16] << 8) | data[17];
@@ -180,12 +194,23 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 	// OSCAM do not like it if ECM's are comming too fast
 	// It thinks they are part of a single packet and ignores
 	// the data at the end. The usleep() is a hack but works
-	usleep(1000);
+	usleep(10000);
 
-	camd35_send_buf(c, to_send);
+	int ret = camd35_send_buf(ts, to_send);
+	if (ret <= 0) {
+		ts_LOGf("ECM | Error sending packet.\n");
+		ts->is_cw_error = 1;
+		camd35_reconnect(ts);
+		return ret;
+	}
 
-	camd35_recv_cw(c);
-	return 0;
+	ret = camd35_recv_cw(ts);
+	if (ret < 48) {
+		ts->is_cw_error = 1;
+		return 0;
+	}
+
+	return ret;
 }
 
 static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
@@ -202,9 +227,14 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 	// OSCAM do not like it if EMM's are comming too fast
 	// It thinks they are part of a single packet and ignores
 	// the data at the end. The usleep() is a hack but works
-	usleep(1000);
+	usleep(10000);
 
-	return camd35_send_buf(c, to_send);
+	int ret = camd35_send_buf(ts, to_send);
+	if (ret <= 0) {
+		ts_LOGf("EMM | Error sending packet.\n");
+		camd35_reconnect(ts);
+	}
+	return ret;
 }
 
 static void camd_do_msg(struct camd_msg *msg) {
