@@ -41,7 +41,8 @@ static int connect_to(struct in_addr ip, int port) {
 	return fd;
 }
 
-static void camd35_init_auth(struct camd35 *c) {
+static void camd35_init_auth(struct ts *ts) {
+	struct camd35 *c = &ts->camd35;
 	unsigned char dump[16];
 
 	if (c->auth_token)
@@ -55,13 +56,15 @@ static void camd35_init_auth(struct camd35 *c) {
 	AES_set_decrypt_key(dump, 128, &c->aes_decrypt_key);
 }
 
-static int camd35_connect(struct camd35 *c) {
+static int camd35_connect(struct ts *ts) {
+	struct camd35 *c = &ts->camd35;
 	if (c->server_fd < 0)
 		c->server_fd = connect_to(c->server_addr, c->server_port);
 	return c->server_fd;
 }
 
-static void camd35_disconnect(struct camd35 *c) {
+static void camd35_disconnect(struct ts *ts) {
+	struct camd35 *c = &ts->camd35;
 	shutdown_fd(&c->server_fd);
 }
 
@@ -89,7 +92,8 @@ static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 #define ERR(x) do { ts_LOGf("%s\n", x); return NULL; } while (0)
 
 
-static uint8_t *camd35_recv_cw(struct camd35 *c) {
+static int camd35_recv_cw(struct ts *ts) {
+	struct camd35 *c = &ts->camd35;
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint8_t *data = c->buf;
 	int data_len = 0;
@@ -127,18 +131,19 @@ NEXT:
 	dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
 	dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
 
-	return NULL;
+	return ret;
 }
 
 #undef ERR
 
 
-static int camd35_send_buf(struct camd35 *c, int data_len) {
+static int camd35_send_buf(struct ts *ts, int data_len) {
+	struct camd35 *c = &ts->camd35;
 	int i;
 	uint8_t *bdata = c->buf + 4; // Leave space for auth token
 
-	camd35_connect(c);
-	camd35_init_auth(c);
+	camd35_connect(ts);
+	camd35_init_auth(ts);
 
 	memmove(bdata, c->buf, data_len); // Move data
 	init_4b(c->auth_token, c->buf); // Put authentication token
@@ -146,8 +151,7 @@ static int camd35_send_buf(struct camd35 *c, int data_len) {
 	for (i = 0; i < data_len; i += 16) // Encrypt payload
 		AES_encrypt(bdata + i, bdata + i, &c->aes_encrypt_key);
 
-	int written = fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
-	return written;
+	return fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
 }
 
 static void camd35_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
@@ -158,7 +162,8 @@ static void camd35_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
 	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
-static int camd35_send_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+	struct camd35 *c = &ts->camd35;
 	uint32_t provider_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -183,7 +188,8 @@ static int camd35_send_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id
 	return 0;
 }
 
-static int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+	struct camd35 *c = &ts->camd35;
 	uint32_t prov_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -203,9 +209,9 @@ static int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint
 
 static void camd_do_msg(struct camd_msg *msg) {
 	if (msg->type == EMM_MSG)
-		camd35_send_emm(&msg->ts->camd35, msg->ca_id, msg->data, msg->data_len);
+		camd35_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len);
 	if (msg->type == ECM_MSG)
-		camd35_send_ecm(&msg->ts->camd35, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
+		camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
 	camd_msg_free(&msg);
 }
 
@@ -257,7 +263,7 @@ void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
 }
 
 void camd_start(struct ts *ts) {
-	camd35_connect(&ts->camd35);
+	camd35_connect(ts);
 	// The input is not file, process messages using async thread
 	if (!(ts->input.type == FILE_IO && ts->input.fd != 0)) {
 		ts->camd35.queue = queue_new();
@@ -273,5 +279,5 @@ void camd_stop(struct ts *ts) {
 		queue_free(&ts->camd35.queue);
 		ts->camd35.thread = 0;
 	}
-	camd35_disconnect(&ts->camd35);
+	camd35_disconnect(ts);
 }
