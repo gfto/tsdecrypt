@@ -3,10 +3,12 @@
 
 #include "data.h"
 
-int camd35_connect		(struct camd35 *c);
-void camd35_disconnect	(struct camd35 *c);
+struct camd_msg *		camd_msg_alloc_emm	(uint16_t ca_id, uint8_t *emm_data, uint8_t emm_data_len);
+struct camd_msg *		camd_msg_alloc_ecm	(uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *ecm_data, uint8_t ecm_data_len);
+void					camd_msg_free   	(struct camd_msg **pmsg);
 
-int camd35_send_ecm		(struct camd35 *c, uint16_t service_id, uint16_t ca_id, uint16_t idx, uint8_t *data, uint8_t data_len);
-int camd35_send_emm		(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
+void					camd_start			(struct ts *ts);
+void					camd_stop			(struct ts *ts);
+void					camd_msg_process	(struct ts *ts, struct camd_msg *msg);
 
 #endif

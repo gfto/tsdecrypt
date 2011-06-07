@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 	if (ts.output.type == NET_IO && udp_connect_output(&ts.output) < 1)
 		goto EXIT;
 
-	camd35_connect(&ts.camd35);
+	camd_start(&ts);
 	do {
 		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 		if (readen > 0) {
@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
 		}
 	} while (readen > 0);
 EXIT:
-	camd35_disconnect(&ts.camd35);
+	camd_stop(&ts);
 
 	data_free(&ts);
 

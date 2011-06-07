@@ -1,11 +1,14 @@
 #ifndef DATA_H
 #define DATA_H
 
+#include <pthread.h>
+
 #include <openssl/aes.h>
 #include <openssl/md5.h>
 
 #include <dvbcsa/dvbcsa.h>
 
+#include "libfuncs/libfuncs.h"
 #include "libts/tsfuncs.h"
 
 struct key {
@@ -33,6 +36,9 @@ struct camd35 {
 	uint32_t		auth_token;
 
 	struct key		*key;
+
+	pthread_t		thread;
+	QUEUE			*queue;
 };
 
 enum io_type {
@@ -80,6 +86,20 @@ struct ts {
 	struct io			output;
 
 	int					debug_level;
+
+	int					camd_stop;
+};
+
+enum msg_type { EMM_MSG, ECM_MSG };
+
+struct camd_msg {
+	enum msg_type	type;
+	uint16_t		idx;
+	uint16_t		ca_id;
+	uint16_t		service_id;
+	uint8_t			data_len;
+	uint8_t			data[255];
+	struct ts		*ts;
 };
 
 void data_init(struct ts *ts);

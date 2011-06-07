@@ -1,8 +1,7 @@
+#include <stdlib.h>
 #include <unistd.h>
-
 #include <string.h>
 #include <sys/errno.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -55,13 +54,13 @@ static void camd35_init_auth(struct camd35 *c) {
 	AES_set_decrypt_key(dump, 128, &c->aes_decrypt_key);
 }
 
-int camd35_connect(struct camd35 *c) {
+static int camd35_connect(struct camd35 *c) {
 	if (c->server_fd < 0)
 		c->server_fd = connect_to(c->server_addr, c->server_port);
 	return c->server_fd;
 }
 
-void camd35_disconnect(struct camd35 *c) {
+static void camd35_disconnect(struct camd35 *c) {
 	shutdown_fd(&c->server_fd);
 }
 
@@ -158,7 +157,7 @@ static void camd35_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
 	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
-int camd35_send_ecm(struct camd35 *c, uint16_t service_id, uint16_t ca_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+static int camd35_send_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
 	uint32_t provider_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -183,7 +182,7 @@ int camd35_send_ecm(struct camd35 *c, uint16_t service_id, uint16_t ca_id, uint1
 	return 0;
 }
 
-int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+static int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	uint32_t prov_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -199,4 +198,79 @@ int camd35_send_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t dat
 	usleep(1000);
 
 	return camd35_send_buf(c, to_send);
+}
+
+static void camd_do_msg(struct camd_msg *msg) {
+	if (msg->type == EMM_MSG)
+		camd35_send_emm(&msg->ts->camd35, msg->ca_id, msg->data, msg->data_len);
+	if (msg->type == ECM_MSG)
+		camd35_send_ecm(&msg->ts->camd35, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
+	camd_msg_free(&msg);
+}
+
+struct camd_msg *camd_msg_alloc_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
+	c->type       = EMM_MSG;
+	c->ca_id      = ca_id;
+	c->data_len   = data_len;
+	memcpy(c->data, data, data_len);
+	return c;
+}
+
+struct camd_msg *camd_msg_alloc_ecm(uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
+	c->type       = ECM_MSG;
+	c->idx        = idx;
+	c->ca_id      = ca_id;
+	c->service_id = service_id;
+	c->data_len   = data_len;
+	memcpy(c->data, data, data_len);
+	return c;
+}
+
+void camd_msg_free(struct camd_msg **pmsg) {
+	struct camd_msg *m = *pmsg;
+	if (m) {
+		FREE(*pmsg);
+	}
+}
+
+static void *camd_thread(void *in_ts) {
+	struct ts *ts = in_ts;
+	while (1) {
+		struct camd_msg *msg = queue_get(ts->camd35.queue); // Waits...
+		if (!msg || ts->camd_stop)
+			break;
+		camd_do_msg(msg);
+	}
+	pthread_exit(0);
+}
+
+void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
+	msg->ts = ts;
+	if (ts->camd35.thread) {
+		queue_add(ts->camd35.queue, msg);
+	} else {
+		camd_do_msg(msg);
+	}
+}
+
+void camd_start(struct ts *ts) {
+	camd35_connect(&ts->camd35);
+	// The input is not file, process messages using async thread
+	if (!(ts->input.type == FILE_IO && ts->input.fd != 0)) {
+		ts->camd35.queue = queue_new();
+		pthread_create(&ts->camd35.thread, NULL , &camd_thread, ts);
+	}
+}
+
+void camd_stop(struct ts *ts) {
+	ts->camd_stop = 1;
+	if (ts->camd35.thread) {
+		queue_wakeup(ts->camd35.queue);
+		pthread_join(ts->camd35.thread, NULL);
+		queue_free(&ts->camd35.queue);
+		ts->camd35.thread = 0;
+	}
+	camd35_disconnect(&ts->camd35);
 }

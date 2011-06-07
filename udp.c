@@ -12,12 +12,6 @@
 
 #include "udp.h"
 
-static void set_sock_nonblock(int sockfd) {
-	int arg = fcntl(sockfd, F_GETFL, NULL);
-	arg |= O_NONBLOCK;
-	fcntl(sockfd, F_SETFL, arg);
-}
-
 int udp_connect_input(struct io *io) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
