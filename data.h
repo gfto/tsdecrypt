@@ -88,6 +88,7 @@ struct ts {
 	int					debug_level;
 
 	int					camd_stop;
+	int					is_cw_error;
 };
 
 enum msg_type { EMM_MSG, ECM_MSG };

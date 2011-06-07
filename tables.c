@@ -123,7 +123,7 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	struct ts_header *th = &ts->ecm->ts_header;
 	struct ts_section_header *sec = ts->ecm->section_header;
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
-	if (!duplicate) {
+	if (!duplicate || ts->is_cw_error) {
 		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: %s..\n",
 			ts->ecm_caid,
@@ -132,6 +132,9 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			ts->ecm_counter,
 			dump);
+		if (ts->is_cw_error)
+			ts->ecm_counter--;
+		ts->is_cw_error = 0;
 		camd_msg_process(ts, camd_msg_alloc_ecm(ts->ecm_caid, ts->service_id, ts->ecm_counter++, sec->section_data, sec->section_data_len));
 	} else if (ts->debug_level >= 3) {
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
