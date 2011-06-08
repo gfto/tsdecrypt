@@ -145,6 +145,9 @@ READ:
 	dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
 	dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
 
+	dvbcsa_bs_key_set(c->key->cw    , c->key->bs_csakey[0]);
+	dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
+
 	return ret;
 }
 

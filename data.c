@@ -29,6 +29,9 @@ void data_init(struct ts *ts) {
 	ts->key.csakey[0] = dvbcsa_key_alloc();
 	ts->key.csakey[1] = dvbcsa_key_alloc();
 
+	ts->key.bs_csakey[0] = dvbcsa_bs_key_alloc();
+	ts->key.bs_csakey[1] = dvbcsa_bs_key_alloc();
+
 	// CAMD
 	memset(&ts->camd35, 0, sizeof(ts->camd35));
 	ts->camd35.server_fd    = -1;
@@ -65,6 +68,9 @@ void data_free(struct ts *ts) {
 
 	dvbcsa_key_free(ts->key.csakey[0]);
 	dvbcsa_key_free(ts->key.csakey[1]);
+
+	dvbcsa_bs_key_free(ts->key.bs_csakey[0]);
+	dvbcsa_bs_key_free(ts->key.bs_csakey[1]);
 
 	FREE(ts->input.fname);
 	FREE(ts->output.fname);

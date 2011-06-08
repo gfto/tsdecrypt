@@ -15,6 +15,7 @@ struct key {
 	uint8_t				cw[16];
 	int					is_valid_cw;
 	struct dvbcsa_key_s	*csakey[2];
+	struct dvbcsa_bs_key_s	*bs_csakey[2];
 };
 
 // 4 auth header, 20 header size, 256 max data size, 16 potential padding
