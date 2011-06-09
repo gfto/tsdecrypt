@@ -52,6 +52,9 @@ void data_init(struct ts *ts) {
 	ts->output.fd   = 1; // STDOUT
 	ts->output.type = FILE_IO;
 	ts->output.ttl  = 1;
+
+	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 2, "decode");
+	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 2, "write");
 }
 
 void data_free(struct ts *ts) {
@@ -71,6 +74,9 @@ void data_free(struct ts *ts) {
 
 	dvbcsa_bs_key_free(ts->key.bs_csakey[0]);
 	dvbcsa_bs_key_free(ts->key.bs_csakey[1]);
+
+	cbuf_free(&ts->decode_buf);
+	cbuf_free(&ts->write_buf);
 
 	FREE(ts->input.fname);
 	FREE(ts->output.fname);

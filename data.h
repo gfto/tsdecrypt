@@ -11,6 +11,8 @@
 #include "libfuncs/libfuncs.h"
 #include "libts/tsfuncs.h"
 
+#include "cbuf.h"
+
 struct key {
 	uint8_t				cw[16];
 	int					is_valid_cw;
@@ -90,6 +92,16 @@ struct ts {
 
 	int					camd_stop;
 	int					is_cw_error;
+
+	int					threaded;
+
+	int					decode_stop;
+	pthread_t			decode_thread;
+	CBUF				*decode_buf;
+
+	int					write_stop;
+	pthread_t			write_thread;
+	CBUF				*write_buf;
 };
 
 enum msg_type { EMM_MSG, ECM_MSG };
