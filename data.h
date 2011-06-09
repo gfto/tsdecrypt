@@ -13,6 +13,9 @@
 
 #include "cbuf.h"
 
+// 7 * 188
+#define FRAME_SIZE 1316
+
 struct key {
 	uint8_t				cw[16];
 	int					is_valid_cw;

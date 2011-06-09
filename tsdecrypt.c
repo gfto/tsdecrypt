@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -7,18 +6,13 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <dvbcsa/dvbcsa.h>
-
-#include "libfuncs/libfuncs.h"
-#include "libts/tsfuncs.h"
-
 #include "data.h"
 #include "util.h"
 #include "camd.h"
-#include "tables.h"
+#include "process.h"
 #include "udp.h"
 
-void LOG_func(const char *msg) {
+static void LOG_func(const char *msg) {
 	char date[64];
 	struct tm tm;
 	time_t now;
@@ -28,7 +22,7 @@ void LOG_func(const char *msg) {
 	fprintf(stderr, "%s | %s", date, msg);
 }
 
-void show_help(struct ts *ts) {
+static void show_help(struct ts *ts) {
 	printf("tsdecrypt v1.0\n");
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
@@ -96,7 +90,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 	return 0;
 }
 
-void parse_options(struct ts *ts, int argc, char **argv) {
+static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
 	while ((j = getopt(argc, argv, "cFs:I:O:i:t:U:P:epD:h")) != -1) {
 		char *p = NULL;
@@ -200,89 +194,6 @@ void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 }
 
-
-static unsigned long ts_pack;
-static int ts_pack_shown;
-
-void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
-	char cw1_dump[8 * 6];
-	char cw2_dump[8 * 6];
-	if (ts->debug_level >= 4) {
-		if (ts_pack_shown)
-			return;
-		int stype = ts_packet_get_scrambled(ts_packet);
-		ts_hex_dump_buf(cw1_dump, 8 * 6, ts->key.cw    , 8, 0);
-		ts_hex_dump_buf(cw2_dump, 8 * 6, ts->key.cw + 8, 8, 0);
-		fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
-			stype == 0 ? "------" :
-			stype == 2 ? "even 0" :
-			stype == 3 ? "odd  1" : "??????",
-			wtf,
-			pid,
-			ts_pack, ts_pack * 188,
-			cw1_dump, cw2_dump, extra ? extra : wtf);
-	}
-}
-
-void dump_ts_pack(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
-	if (pid == 0x010)		show_ts_pack(ts, pid, "nit", NULL, ts_packet);
-	else if (pid == 0x11)	show_ts_pack(ts, pid, "sdt", NULL, ts_packet);
-	else if (pid == 0x12)	show_ts_pack(ts, pid, "epg", NULL, ts_packet);
-	else					show_ts_pack(ts, pid, "---", NULL, ts_packet);
-}
-
-void ts_process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
-	ssize_t i;
-	for (i=0; i<data_len; i += 188) {
-		uint8_t *ts_packet = data + i;
-		uint16_t pid = ts_packet_get_pid(ts_packet);
-
-		ts_pack_shown = 0;
-
-		process_pat(ts, pid, ts_packet);
-		process_cat(ts, pid, ts_packet);
-		process_pmt(ts, pid, ts_packet);
-		process_emm(ts, pid, ts_packet);
-		process_ecm(ts, pid, ts_packet);
-
-		if (!ts_pack_shown)
-			dump_ts_pack(ts, pid, ts_packet);
-
-		int scramble_idx = ts_packet_get_scrambled(ts_packet);
-		if (scramble_idx > 1) {
-			if (ts->key.is_valid_cw) {
-				// scramble_idx 2 == even key
-				// scramble_idx 3 == odd key
-				ts_packet_set_not_scrambled(ts_packet);
-				uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
-				dvbcsa_decrypt(ts->key.csakey[scramble_idx - 2], ts_packet + payload_ofs, 188 - payload_ofs);
-			} else {
-				// Can't decrypt the packet just make it NULL packet
-				if (ts->pid_filter)
-					ts_packet_set_pid(ts_packet, 0x1fff);
-			}
-		}
-
-		ts_pack++;
-	}
-}
-
-void ts_write_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
-	ssize_t i;
-	for (i=0; i<data_len; i += 188) {
-		uint8_t *ts_packet = data + i;
-		uint16_t pid = ts_packet_get_pid(ts_packet);
-		if (ts->pid_filter) {
-			if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
-				write(ts->output.fd, ts_packet, 188);
-		} else {
-			write(ts->output.fd, ts_packet, 188);
-		}
-	}
-}
-
-#define FRAME_SIZE (188 * 7)
-
 int main(int argc, char **argv) {
 	ssize_t readen;
 	uint8_t ts_packet[FRAME_SIZE];
@@ -299,16 +210,29 @@ int main(int argc, char **argv) {
 	if (ts.output.type == NET_IO && udp_connect_output(&ts.output) < 1)
 		goto EXIT;
 
+	ts.threaded = !(ts.input.type == FILE_IO && ts.input.fd != 0);
+
+	if (&ts.threaded) {
+		pthread_create(&ts.decode_thread, NULL, &decode_thread, &ts);
+		pthread_create(&ts.write_thread, NULL , &write_thread , &ts);
+	}
+
 	camd_start(&ts);
 	do {
 		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
-		if (readen > 0) {
-			ts_process_packets(&ts, ts_packet, readen);
-			ts_write_packets(&ts, ts_packet, readen);
-		}
+		if (readen > 0)
+			process_packets(&ts, ts_packet, readen);
 	} while (readen > 0);
 EXIT:
 	camd_stop(&ts);
+
+	if (ts.threaded) {
+		ts.decode_stop = 1;
+		ts.write_stop = 1;
+
+		pthread_join(ts.decode_thread, NULL);
+		pthread_join(ts.write_thread, NULL);
+	}
 
 	data_free(&ts);
 
