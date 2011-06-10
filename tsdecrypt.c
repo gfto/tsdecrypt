@@ -192,6 +192,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
 	ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
+	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
+	ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 }
 
 int main(int argc, char **argv) {
@@ -209,8 +211,6 @@ int main(int argc, char **argv) {
 		goto EXIT;
 	if (ts.output.type == NET_IO && udp_connect_output(&ts.output) < 1)
 		goto EXIT;
-
-	ts.threaded = !(ts.input.type == FILE_IO && ts.input.fd != 0);
 
 	if (&ts.threaded) {
 		pthread_create(&ts.decode_thread, NULL, &decode_thread, &ts);
