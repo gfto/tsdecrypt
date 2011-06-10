@@ -35,6 +35,7 @@ static void show_help(struct ts *ts) {
 	printf("                   |    -I -              (read from STDIN, the default)\n");
 	printf("\n");
 	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+	printf("    -z             | Detect discontinuty errors in input stream (default: %s).\n", ts->ts_discont ? "report" : "ignore");
 	printf("\n");
 	printf("  Output options:\n");
 	printf("    -O output      | Where to send output. Supports files and multicast\n");
@@ -92,7 +93,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "cFs:I:O:i:t:U:P:epD:h")) != -1) {
+	while ((j = getopt(argc, argv, "cFs:I:O:i:t:U:P:ezpD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'c':
@@ -144,6 +145,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->camd35.pass[sizeof(ts->camd35.pass) - 1] = 0;
 				break;
 
+			case 'z':
+				ts->ts_discont = !ts->ts_discont;
+				break;
 			case 'e':
 				ts->emm_send = !ts->emm_send;
 				break;
@@ -192,6 +196,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
 	ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
+	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
 	ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 }

@@ -1,10 +1,52 @@
 #include <unistd.h>
+#include <string.h>
 
 #include "data.h"
 #include "tables.h"
 
 static unsigned long ts_pack;
 static int ts_pack_shown;
+
+static char *get_pid_desc(struct ts *ts, uint16_t pid) {
+	int i;
+	uint16_t nitpid = 0x0010, pmtpid = 0xffff, pcrpid = 0xffff;
+
+	if (ts->pat->initialized) {
+		for (i=0;i<ts->pat->programs_num;i++) {
+			struct ts_pat_program *prg = ts->pat->programs[i];
+			if (prg->pid) {
+				if (prg->program == 0)
+					nitpid = prg->pid;
+			}
+		}
+	}
+
+	if (ts->pmt->initialized) {
+		pmtpid = ts->pmt->ts_header.pid;
+		pcrpid = ts->pmt->PCR_pid;
+		for (i=0;i<ts->pmt->streams_num;i++) {
+			struct ts_pmt_stream *stream = ts->pmt->streams[i];
+			if (pid == stream->pid)
+				return h222_stream_type_desc(stream->stream_type);
+		}
+	}
+
+	switch (pid) {
+		case 0x0000: return "PAT"; break;
+		case 0x0001: return "CAT"; break;
+		case 0x0011: return "SDT"; break;
+		case 0x0012: return "EPG"; break;
+		case 0x0014: return "TDT/TOT"; break;
+	}
+
+	if (pid == nitpid)		return "NIT";
+	else if (pid == pmtpid)	return "PMT";
+	else if (pid == pcrpid)	return "PCR";
+	else if (pid == ts->emm_pid)	return "EMM";
+	else if (pid == ts->ecm_pid)	return "ECM";
+
+	return "Unknown";
+}
 
 void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
 	char cw1_dump[8 * 6];
@@ -160,6 +202,36 @@ void *write_thread(void *_ts) {
 	return NULL;
 }
 
+static void detect_discontinuity(struct ts *ts, uint8_t *ts_packet) {
+	uint16_t pid;
+	uint8_t cur_cc, last_cc;
+
+	if (!ts->ts_discont)
+		return;
+
+	pid = ts_packet_get_pid(ts_packet);
+	cur_cc = ts_packet_get_cont(ts_packet);
+
+	if (!pidmap_get(&ts->pid_seen, pid)) {
+		if (strcmp(get_pid_desc(ts, pid), "Unknown") == 0)
+			return;
+
+		pidmap_set(&ts->pid_seen, pid);
+		pidmap_set_val(&ts->cc, pid, cur_cc);
+		ts_LOGf("Input PID 0x%03x appeared (%s)\n",
+				pid, get_pid_desc(ts, pid));
+		return;
+	}
+
+	last_cc = pidmap_get(&ts->cc, pid);
+	if (last_cc != cur_cc && ((last_cc + 1) & 0x0f) != cur_cc)
+		ts_LOGf("Input discontinuity (expected %2d got %2d) PID 0x%03x (%s)\n",
+				((last_cc + 1) & 0x0f), cur_cc,
+				pid,
+				get_pid_desc(ts, pid));
+	pidmap_set_val(&ts->cc, pid, cur_cc);
+}
+
 void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 	ssize_t i;
 	for (i=0; i<data_len; i += 188) {
@@ -173,6 +245,8 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		process_pmt(ts, pid, ts_packet);
 		process_emm(ts, pid, ts_packet);
 		process_ecm(ts, pid, ts_packet);
+
+		detect_discontinuity(ts, ts_packet);
 
 		if (!ts_pack_shown)
 			dump_ts_pack(ts, pid, ts_packet);

@@ -81,6 +81,8 @@ struct ts {
 	uint16_t			ecm_caid, ecm_pid;
 	uint16_t			ecm_counter;
 	pidmap_t			pidmap;
+	pidmap_t			cc; // Continuity counters
+	pidmap_t			pid_seen;
 
 	// CAMD handling
 	struct key			key;
@@ -96,6 +98,7 @@ struct ts {
 	struct io			output;
 
 	int					debug_level;
+	int					ts_discont;
 
 	int					camd_stop;
 	int					is_cw_error;

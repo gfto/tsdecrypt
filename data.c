@@ -23,6 +23,8 @@ void data_init(struct ts *ts) {
 	ts->last_ecm = ts_privsec_alloc();
 
 	pidmap_clear(&ts->pidmap);
+	pidmap_clear(&ts->cc);
+	pidmap_clear(&ts->pid_seen);
 
 	// Key
 	memset(&ts->key, 0, sizeof(ts->key));
@@ -41,6 +43,8 @@ void data_init(struct ts *ts) {
 	strcpy(ts->camd35.pass, "pass");
 
 	// Config
+	ts->ts_discont  = 1;
+
 	ts->debug_level = 0;
 	ts->req_CA_sys  = CA_CONNAX;
 	ts->emm_send    = 1;
