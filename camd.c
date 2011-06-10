@@ -141,6 +141,7 @@ READ:
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
 	ts_LOGf("CW  | CAID: 0x%04x ---------------------------------- IDX: 0x%04x Data: %s\n", ca_id, idx, cw_dump);
 
+	c->key->ts = time(NULL);
 	c->key->is_valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
 	dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
 	dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
@@ -210,6 +211,8 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 	ret = camd35_recv_cw(ts);
 	if (ret < 48) {
 		ts->is_cw_error = 1;
+		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME)
+			c->key->is_valid_cw = 0;
 		return 0;
 	}
 
