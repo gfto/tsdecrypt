@@ -23,7 +23,7 @@ static void LOG_func(const char *msg) {
 }
 
 static void show_help(struct ts *ts) {
-	printf("tsdecrypt v1.0\n");
+	printf("tsdecrypt v1.0 (git %s) (build date %s)\n", GIT_VER, BUILD_ID);
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
 	printf("	Usage: tsdecrypt [opts]\n");

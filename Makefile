@@ -1,6 +1,8 @@
 CC = $(CROSS)$(TARGET)gcc
 STRIP = $(CROSS)$(TARGET)strip
-CFLAGS = -ggdb -Wall -Wextra -Wshadow -Wformat-security -Wno-strict-aliasing -O2 -D_GNU_SOURCE
+BUILD_ID = $(shell date +%F_%R)
+GIT_VER = $(shell git describe --tags --dirty --always)
+CFLAGS = -ggdb -Wall -Wextra -Wshadow -Wformat-security -Wno-strict-aliasing -O2 -D_GNU_SOURCE -DBUILD_ID=\"$(BUILD_ID)\" -DGIT_VER=\"$(GIT_VER)\"
 RM = /bin/rm -f
 Q = @
 
