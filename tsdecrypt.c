@@ -93,7 +93,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "cFs:I:O:o:t:U:P:ezpD:h")) != -1) {
+	while ((j = getopt(argc, argv, "c:s:I:O:o:t:U:P:ezpD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'c':
