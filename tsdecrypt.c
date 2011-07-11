@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -14,6 +15,7 @@
 
 const char *program_name    = "tsdecrypt";
 const char *program_version = "v1.1";
+static int keep_running = 1;
 
 static void LOG_func(const char *msg) {
 	char date[64];
@@ -251,6 +253,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 }
 
+void signal_quit(int sig) {
+	if (!keep_running)
+		raise(sig);
+	keep_running = 0;
+	ts_LOGf("Killed %s %s (git %s) (build date %s) with signal %d\n", program_name, program_version, GIT_VER, BUILD_ID, sig);
+	signal(sig, SIG_DFL);
+}
+
 int main(int argc, char **argv) {
 	ssize_t readen;
 	uint8_t ts_packet[FRAME_SIZE];
@@ -268,13 +278,20 @@ int main(int argc, char **argv) {
 	} else {
 		ts_set_log_func(LOG);
 		log_init(ts.ident, ts.syslog_active, ts.daemonize != 1, ts.syslog_host, ts.syslog_port);
-		ts_LOGf("Start %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
 	}
+
+	ts_LOGf("Start %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
 
 	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
 		goto EXIT;
 	if (ts.output.type == NET_IO && udp_connect_output(&ts.output) < 1)
 		goto EXIT;
+
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGPIPE, SIG_IGN);
+
+	signal(SIGINT , signal_quit);
+	signal(SIGTERM, signal_quit);
 
 	if (&ts.threaded) {
 		pthread_create(&ts.decode_thread, NULL, &decode_thread, &ts);
@@ -286,6 +303,8 @@ int main(int argc, char **argv) {
 		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 		if (readen > 0)
 			process_packets(&ts, ts_packet, readen);
+		if (!keep_running)
+			break;
 	} while (readen > 0);
 EXIT:
 	camd_stop(&ts);
@@ -299,6 +318,14 @@ EXIT:
 	}
 
 	data_free(&ts);
+
+	ts_LOGf("Stop %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
+
+	if (ts.syslog_active)
+		log_close();
+
+	if (ts.daemonize)
+		unlink(ts.pidfile);
 
 	exit(0);
 }
