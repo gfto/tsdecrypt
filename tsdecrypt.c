@@ -43,7 +43,7 @@ static void show_help(struct ts *ts) {
 	printf("                   |    -O file.ts        (write to file)\n");
 	printf("                   |    -O -              (write to STDOUT, the default)\n");
 	printf("\n");
-	printf("    -i output_intf | default: %s\n", inet_ntoa(ts->output.intf));
+	printf("    -o output_intf | default: %s\n", inet_ntoa(ts->output.intf));
 	printf("    -t output_ttl  | default: %d\n", ts->output.ttl);
 	printf("\n");
 	printf("  CAMD35 server options:\n");
@@ -93,7 +93,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "cFs:I:O:i:t:U:P:ezpD:h")) != -1) {
+	while ((j = getopt(argc, argv, "cFs:I:O:o:t:U:P:ezpD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'c':
@@ -128,7 +128,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 				break;
 
-			case 'i':
+			case 'o':
 				if (inet_aton(optarg, &ts->output.intf) == 0)
 					output_intf_err = 1;
 				break;
