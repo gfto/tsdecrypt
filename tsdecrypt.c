@@ -12,6 +12,9 @@
 #include "process.h"
 #include "udp.h"
 
+const char *program_name    = "tsdecrypt";
+const char *program_version = "v1.1";
+
 static void LOG_func(const char *msg) {
 	char date[64];
 	struct tm tm;
@@ -23,10 +26,16 @@ static void LOG_func(const char *msg) {
 }
 
 static void show_help(struct ts *ts) {
-	printf("tsdecrypt v1.0 (git %s) (build date %s)\n", GIT_VER, BUILD_ID);
+	printf("%s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
-	printf("	Usage: tsdecrypt [opts]\n");
+	printf("	Usage: %s [opts]\n", program_name);
+	printf("\n");
+	printf("  Daemon options:\n");
+	printf("    -i server_ident | Format PROVIDER/CHANNEL (default: %s)\n", ts->ident);
+	printf("    -d pidfile      | Daemonize %s and write pid file. (default: do not daemonize)\n", program_name);
+	printf("    -l syslog host  | Where is the syslog server (default: disabled)\n");
+	printf("    -L Syslog port  | What is the syslog server port (default: %d)\n", ts->syslog_port);
 	printf("\n");
 	printf("  Input options:\n");
 	printf("    -I input       | Where to read from. Supports files and multicast\n");
@@ -92,10 +101,28 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 }
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
-	int j, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0;
-	while ((j = getopt(argc, argv, "c:s:I:O:o:t:U:P:ezpD:h")) != -1) {
+	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:ezpD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
+			case 'i':
+				strncpy(ts->ident, optarg, sizeof(ts->ident) - 1);
+				ts->ident[sizeof(ts->ident) - 1] = 0;
+				break;
+			case 'd':
+				strncpy(ts->pidfile, optarg, sizeof(ts->pidfile) - 1);
+				ts->pidfile[sizeof(ts->pidfile) - 1] = 0;
+				ts->daemonize = 1;
+				break;
+			case 'l':
+				strncpy(ts->syslog_host, optarg, sizeof(ts->syslog_host) - 1);
+				ts->syslog_host[sizeof(ts->syslog_host) - 1] = 0;
+				ts->syslog_active = 1;
+				break;
+			case 'L':
+				ts->syslog_port = atoi(optarg);
+				break;
+
 			case 'c':
 				if (strcasecmp("IRDETO", optarg) == 0)
 					ts->req_CA_sys = CA_IRDETO;
@@ -164,8 +191,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				exit(0);
 		}
 	}
-	if (ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
+	if (ts->syslog_active && !ts->ident[0])
+		ident_err = 1;
+	if (ident_err || ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
 		show_help(ts);
+		if (ident_err)
+			fprintf(stderr, "ERROR: Syslog is enabled but ident was not set.\n");
 		if (ca_err)
 			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
 		if (server_err)
@@ -178,6 +209,18 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
 		exit(1);
 	}
+	if (ts->ident[0])
+		ts_LOGf("Ident      : %s\n", ts->ident);
+	else
+		ts_LOGf("Ident      : *NOT SET*\n");
+	if (ts->pidfile[0])
+		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
+	else
+		ts_LOGf("Daemonize  : no daemon\n");
+	if (ts->syslog_active)
+		ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
+	else
+		ts_LOGf("Syslog     : disabled\n");
 	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
 	if (ts->input.type == NET_IO) {
 		ts_LOGf("Input addr : udp://%s:%u/\n", inet_ntoa(ts->input.addr), ts->input.port);
@@ -199,6 +242,13 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
 	ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+
+	for (i=0; i<(int)sizeof(ts->ident); i++) {
+		if (!ts->ident[i])
+			break;
+		if (ts->ident[i] == '/')
+			ts->ident[i] = '-';
+	}
 }
 
 int main(int argc, char **argv) {
@@ -206,11 +256,20 @@ int main(int argc, char **argv) {
 	uint8_t ts_packet[FRAME_SIZE];
 	struct ts ts;
 
-	ts_set_log_func(LOG_func);
-
 	data_init(&ts);
 
 	parse_options(&ts, argc, argv);
+
+	if (ts.pidfile[0])
+		daemonize(ts.pidfile);
+
+	if (!ts.syslog_active) {
+		ts_set_log_func(LOG_func);
+	} else {
+		ts_set_log_func(LOG);
+		log_init(ts.ident, ts.syslog_active, ts.daemonize != 1, ts.syslog_host, ts.syslog_port);
+		ts_LOGf("Start %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
+	}
 
 	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
 		goto EXIT;

@@ -89,6 +89,14 @@ struct ts {
 	struct camd35		camd35;
 
 	// Config
+	char				ident[128];
+	char				syslog_host[128];
+	int					syslog_port;
+	int					syslog_active;
+
+	int					daemonize;
+	char				pidfile[PATH_MAX];
+
 	enum CA_system		req_CA_sys;
 
 	int					emm_send;

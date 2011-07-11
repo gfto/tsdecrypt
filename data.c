@@ -43,6 +43,8 @@ void data_init(struct ts *ts) {
 	strcpy(ts->camd35.pass, "pass");
 
 	// Config
+	ts->syslog_port = 514;
+
 	ts->ts_discont  = 1;
 
 	ts->debug_level = 0;
