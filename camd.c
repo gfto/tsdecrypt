@@ -239,15 +239,25 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 	if (ret <= 0) {
 		ts_LOGf("EMM | Error sending packet.\n");
 		camd35_reconnect(ts);
+	} else {
+		c->emm_count++;
 	}
 	return ret;
 }
 
 static void camd_do_msg(struct camd_msg *msg) {
+	struct camd35 *c = &msg->ts->camd35;
 	if (msg->type == EMM_MSG)
 		camd35_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len);
 	if (msg->type == ECM_MSG)
 		camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
+
+	if (msg->ts->emm_send && c->emm_count_last_report + c->emm_count_report_interval <= time(NULL)) {
+		ts_LOGf("EMM | Send %d messages in %d seconds.\n", c->emm_count, c->emm_count_report_interval);
+		c->emm_count = 0;
+		c->emm_count_last_report = time(NULL);
+	}
+
 	camd_msg_free(&msg);
 }
 

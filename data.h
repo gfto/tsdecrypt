@@ -40,6 +40,10 @@ struct camd35 {
 	char			user[64];
 	char			pass[64];
 
+	int				emm_count;
+	int				emm_count_report_interval;
+	time_t			emm_count_last_report;
+
 	AES_KEY			aes_encrypt_key;
 	AES_KEY			aes_decrypt_key;
 

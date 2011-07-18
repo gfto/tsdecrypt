@@ -41,6 +41,8 @@ void data_init(struct ts *ts) {
 	ts->camd35.key          = &ts->key;
 	strcpy(ts->camd35.user, "user");
 	strcpy(ts->camd35.pass, "pass");
+	ts->camd35.emm_count_report_interval = 60;
+	ts->camd35.emm_count_last_report     = time(NULL);
 
 	// Config
 	ts->syslog_port = 514;
