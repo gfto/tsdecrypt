@@ -51,7 +51,7 @@ void data_init(struct ts *ts) {
 
 	ts->debug_level = 0;
 	ts->req_CA_sys  = CA_CONNAX;
-	ts->emm_send    = 1;
+	ts->emm_send    = 0;
 	ts->pid_filter  = 1;
 
 	ts->input.fd    = 0; // STDIN
