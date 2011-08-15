@@ -13,8 +13,9 @@
 #include "process.h"
 #include "udp.h"
 
-const char *program_name    = "tsdecrypt";
-const char *program_version = "v1.1";
+#define PROGRAM_NAME "tsdecrypt"
+static const char *program_id = PROGRAM_NAME " " GIT_VER " build " BUILD_ID;
+
 static int keep_running = 1;
 
 static void LOG_func(const char *msg) {
@@ -28,14 +29,14 @@ static void LOG_func(const char *msg) {
 }
 
 static void show_help(struct ts *ts) {
-	printf("%s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
+	printf("%s\n", program_id);
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
-	printf("	Usage: %s [opts]\n", program_name);
+	printf("	Usage: " PROGRAM_NAME " [opts]\n");
 	printf("\n");
 	printf("  Daemon options:\n");
 	printf("    -i server_ident | Format PROVIDER/CHANNEL (default: %s)\n", ts->ident);
-	printf("    -d pidfile      | Daemonize %s and write pid file. (default: do not daemonize)\n", program_name);
+	printf("    -d pidfile      | Daemonize program with pid file. (default: do not daemonize)\n");
 	printf("    -l syslog host  | Where is the syslog server (default: disabled)\n");
 	printf("    -L Syslog port  | What is the syslog server port (default: %d)\n", ts->syslog_port);
 	printf("\n");
@@ -265,7 +266,7 @@ void signal_quit(int sig) {
 	if (!keep_running)
 		raise(sig);
 	keep_running = 0;
-	ts_LOGf("Killed %s %s (git %s) (build date %s) with signal %d\n", program_name, program_version, GIT_VER, BUILD_ID, sig);
+	ts_LOGf("Killed %s with signal %d\n", program_id, sig);
 	signal(sig, SIG_DFL);
 }
 
@@ -288,7 +289,7 @@ int main(int argc, char **argv) {
 		log_init(ts.ident, ts.syslog_active, ts.daemonize != 1, ts.syslog_host, ts.syslog_port);
 	}
 
-	ts_LOGf("Start %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
+	ts_LOGf("Start %s\n", program_id);
 
 	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
 		goto EXIT;
@@ -327,7 +328,7 @@ EXIT:
 
 	data_free(&ts);
 
-	ts_LOGf("Stop %s %s (git %s) (build date %s)\n", program_name, program_version, GIT_VER, BUILD_ID);
+	ts_LOGf("Stop %s\n", program_id);
 
 	if (ts.syslog_active)
 		log_close();
