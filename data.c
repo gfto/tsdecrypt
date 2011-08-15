@@ -54,6 +54,8 @@ void data_init(struct ts *ts) {
 	ts->emm_send    = 0;
 	ts->pid_filter  = 1;
 
+	ts->packet_delay = 0;
+
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;
 

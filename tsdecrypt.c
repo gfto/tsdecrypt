@@ -61,6 +61,7 @@ static void show_help(struct ts *ts) {
 	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
 	printf("    -U server_user | default: %s\n", ts->camd35.user);
 	printf("    -P server_pass | default: %s\n", ts->camd35.pass);
+	printf("    -y usec_delay  | Sleep X usec between sending ECM/EMM packets to OSCAM. default: %d\n", ts->packet_delay);
 	printf("\n");
 	printf("  Filtering options:\n");
 	printf("    -e             | EMM send (default: %s).\n", ts->emm_send ? "enabled" : "disabled");
@@ -104,7 +105,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:ezpD:h")) != -1) {
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:ezpD:h")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -173,6 +174,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				strncpy(ts->camd35.pass, optarg, sizeof(ts->camd35.pass) - 1);
 				ts->camd35.pass[sizeof(ts->camd35.pass) - 1] = 0;
 				break;
+			case 'y':
+				ts->packet_delay = atoi(optarg);
+				if (ts->packet_delay < 0 || ts->packet_delay > 1000000)
+					ts->packet_delay = 0;
+				break;
 
 			case 'z':
 				ts->ts_discont = !ts->ts_discont;
@@ -239,6 +245,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
+	if (ts->packet_delay)
+		ts_LOGf("Pkt sleep  : %d us (%d ms)\n", ts->packet_delay, ts->packet_delay / 1000);
 	ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");

@@ -198,7 +198,8 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 	// OSCAM do not like it if ECM's are comming too fast
 	// It thinks they are part of a single packet and ignores
 	// the data at the end. The usleep() is a hack but works
-	usleep(10000);
+	if (ts->packet_delay)
+		usleep(ts->packet_delay);
 
 	int ret = camd35_send_buf(ts, to_send);
 	if (ret <= 0) {
@@ -233,7 +234,8 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 	// OSCAM do not like it if EMM's are comming too fast
 	// It thinks they are part of a single packet and ignores
 	// the data at the end. The usleep() is a hack but works
-	usleep(10000);
+	if (ts->packet_delay)
+		usleep(ts->packet_delay);
 
 	int ret = camd35_send_buf(ts, to_send);
 	if (ret <= 0) {

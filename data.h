@@ -117,6 +117,8 @@ struct ts {
 
 	int					threaded;
 
+	int					packet_delay;
+
 	int					decode_stop;
 	pthread_t			decode_thread;
 	CBUF				*decode_buf;
