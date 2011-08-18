@@ -23,8 +23,8 @@ int udp_connect_input(struct io *io) {
 	int on = 1;
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
-	/* Set receive buffer size to ~2.3MB or 6Mb/s for half a second */
-	int bufsize = (6000000 / 1316) / 2;
+	/* Set receive buffer size to ~2.0MB */
+	int bufsize = (2000000 / 1316) * 1316;
 	setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (void *)&bufsize, sizeof(bufsize));
 
 	// subscribe to multicast group
@@ -68,8 +68,8 @@ int udp_connect_output(struct io *io) {
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 	set_sock_nonblock(sock);
 
-	/* Set receive buffer size to ~2.3MB or 6Mb/s for half a second */
-	int bufsize = (6000000 / 1316) / 2;
+	/* Set receive buffer size to ~2.0MB */
+	int bufsize = (2000000 / 1316) * 1316;
 	setsockopt(sock, SOL_SOCKET, SO_SNDBUF, (void *)&bufsize, sizeof(bufsize));
 
 	// subscribe to multicast group
