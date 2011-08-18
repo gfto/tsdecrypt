@@ -309,7 +309,10 @@ int main(int argc, char **argv) {
 
 	camd_start(&ts);
 	do {
-		readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
+		if (ts.input.type == NET_IO)
+			readen = fdread_ex(ts.input.fd, (char *)ts_packet, FRAME_SIZE, 250, 4, 1);
+		else
+			readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 		if (readen > 0)
 			process_packets(&ts, ts_packet, readen);
 		if (!keep_running)
