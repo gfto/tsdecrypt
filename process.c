@@ -218,16 +218,17 @@ static void detect_discontinuity(struct ts *ts, uint8_t *ts_packet) {
 
 		pidmap_set(&ts->pid_seen, pid);
 		pidmap_set_val(&ts->cc, pid, cur_cc);
-		ts_LOGf("Input PID 0x%03x appeared (%s)\n",
+		ts_LOGf("NEW | Input PID 0x%04x appeared (%s)\n",
 				pid, get_pid_desc(ts, pid));
 		return;
 	}
 
 	last_cc = pidmap_get(&ts->cc, pid);
 	if (last_cc != cur_cc && ((last_cc + 1) & 0x0f) != cur_cc)
-		ts_LOGf("Input discontinuity (expected %2d got %2d) PID 0x%03x (%s)\n",
-				((last_cc + 1) & 0x0f), cur_cc,
+		ts_LOGf("--- | TS discontinuity on PID 0x%04x expected %2d got %2d /%d/ (%s)\n",
 				pid,
+				((last_cc + 1) & 0x0f), cur_cc,
+				(cur_cc - ((last_cc + 1) & 0x0f)) & 0x0f,
 				get_pid_desc(ts, pid));
 	pidmap_set_val(&ts->cc, pid, cur_cc);
 }
