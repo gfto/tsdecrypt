@@ -106,6 +106,8 @@ struct ts {
 	int					emm_send;
 	int					pid_filter;
 
+	int					rtp_input;
+
 	struct io			input;
 	struct io			output;
 

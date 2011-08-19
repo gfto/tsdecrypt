@@ -45,6 +45,7 @@ static void show_help(struct ts *ts) {
 	printf("                   |    -I 224.0.0.1:5000 (multicast receive)\n");
 	printf("                   |    -I file.ts        (read from file)\n");
 	printf("                   |    -I -              (read from STDIN, the default)\n");
+	printf("    -R             | Enable RTP input\n");
 	printf("\n");
 	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
 	printf("    -z             | Detect discontinuty errors in input stream (default: %s).\n", ts->ts_discont ? "report" : "ignore");
@@ -106,7 +107,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:ezpD:h")) != -1) {
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:ezpD:hR")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -152,6 +153,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 			case 'I':
 				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
+				break;
+			case 'R':
+				ts->rtp_input = !ts->rtp_input;
 				break;
 			case 'O':
 				output_addr_err = parse_io_param(&ts->output, optarg,
@@ -232,7 +236,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Syslog     : disabled\n");
 	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
 	if (ts->input.type == NET_IO) {
-		ts_LOGf("Input addr : udp://%s:%u/\n", inet_ntoa(ts->input.addr), ts->input.port);
+		ts_LOGf("Input addr : %s://%s:%u/\n",
+			ts->rtp_input ? "rtp" : "udp",
+			inet_ntoa(ts->input.addr), ts->input.port);
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}
@@ -270,10 +276,17 @@ void signal_quit(int sig) {
 	signal(sig, SIG_DFL);
 }
 
+#define RTP_HDR_SZ  12
+
 int main(int argc, char **argv) {
 	ssize_t readen;
-	uint8_t ts_packet[FRAME_SIZE];
+	uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
+	uint8_t rtp_hdr[2][RTP_HDR_SZ];
+	int rtp_hdr_pos = 0, num_packets = 0;
 	struct ts ts;
+
+	memset(rtp_hdr[0], 0, RTP_HDR_SZ);
+	memset(rtp_hdr[1], 0, RTP_HDR_SZ);
 
 	data_init(&ts);
 
@@ -309,10 +322,28 @@ int main(int argc, char **argv) {
 
 	camd_start(&ts);
 	do {
-		if (ts.input.type == NET_IO)
-			readen = fdread_ex(ts.input.fd, (char *)ts_packet, FRAME_SIZE, 250, 4, 1);
-		else
+		if (ts.input.type == NET_IO) {
+			if (!ts.rtp_input) {
+				readen = fdread_ex(ts.input.fd, (char *)ts_packet, FRAME_SIZE, 250, 4, 1);
+			} else {
+				readen = fdread_ex(ts.input.fd, (char *)ts_packet, FRAME_SIZE + RTP_HDR_SZ, 250, 4, 1);
+				if (readen > RTP_HDR_SZ) {
+					memcpy(rtp_hdr[rtp_hdr_pos], ts_packet, RTP_HDR_SZ);
+					memmove(ts_packet, ts_packet + RTP_HDR_SZ, FRAME_SIZE);
+					readen -= RTP_HDR_SZ;
+					uint16_t ssrc  = (rtp_hdr[rtp_hdr_pos][2] << 8) | rtp_hdr[rtp_hdr_pos][3];
+					uint16_t pssrc = (rtp_hdr[!rtp_hdr_pos][2] << 8) | rtp_hdr[!rtp_hdr_pos][3];
+					rtp_hdr_pos = !rtp_hdr_pos;
+					if (pssrc + 1 != ssrc && (ssrc != 0 && pssrc != 0xffff) && num_packets > 2)
+						if (ts.ts_discont)
+							ts_LOGf("--- | RTP discontinuity last_ssrc %5d, curr_ssrc %5d, lost %d packet\n",
+								pssrc, ssrc, ((ssrc - pssrc)-1) & 0xffff);
+					num_packets++;
+				}
+			}
+		} else {
 			readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
+		}
 		if (readen > 0)
 			process_packets(&ts, ts_packet, readen);
 		if (!keep_running)
