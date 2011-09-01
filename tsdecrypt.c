@@ -67,6 +67,8 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("  EMM options:\n");
 	printf("    -E             | Process only EMMs without decoding input stream. Default: %s\n", ts->emm_only ? "true" : "false");
+	printf("    -f <seconds>   | Report how much EMMs has been send for processing each X seconds.\n");
+	printf("                   | each <seconds> seconds. Set to 0 to disable reporting. Default: %d\n", ts->camd35.emm_count_report_interval);
 	printf("\n");
 	printf("  Filtering options:\n");
 	printf("    -e             | EMM send (default: %s).\n", ts->emm_send ? "enabled" : "disabled");
@@ -110,7 +112,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:eEzpD:hR")) != -1) {
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:f:eEzpD:hR")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -191,6 +193,13 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'z':
 				ts->ts_discont = !ts->ts_discont;
 				break;
+			case 'f':
+				ts->camd35.emm_count_report_interval = atoi(optarg);
+				if (ts->camd35.emm_count_report_interval < 0)
+					ts->camd35.emm_count_report_interval = 0;
+				if (ts->camd35.emm_count_report_interval > 86400)
+					ts->camd35.emm_count_report_interval = 86400;
+				break;
 			case 'e':
 				ts->emm_send = !ts->emm_send;
 				break;
@@ -266,6 +275,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Pkt sleep  : %d us (%d ms)\n", ts->packet_delay, ts->packet_delay / 1000);
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
+	if (ts->emm_send && ts->camd35.emm_count_report_interval)
+		ts_LOGf("EMM report : %d sec\n", ts->camd35.emm_count_report_interval);
+	if (ts->emm_send && ts->camd35.emm_count_report_interval == 0)
+		ts_LOGf("EMM report : disabled\n");
 	if (ts->emm_only) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
 	} else {

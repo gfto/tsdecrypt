@@ -254,7 +254,8 @@ static void camd_do_msg(struct camd_msg *msg) {
 	if (msg->type == ECM_MSG)
 		camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
 
-	if (msg->ts->emm_send && c->emm_count_last_report + c->emm_count_report_interval <= time(NULL)) {
+	if (msg->ts->emm_send && c->emm_count_report_interval && c->emm_count_last_report + c->emm_count_report_interval <= time(NULL))
+	{
 		ts_LOGf("EMM | Send %d messages in %d seconds.\n", c->emm_count, c->emm_count_report_interval);
 		c->emm_count = 0;
 		c->emm_count_last_report = time(NULL);
