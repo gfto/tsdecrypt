@@ -113,6 +113,10 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	char dump[dump_buf_sz];
+
+	if (ts->emm_only)
+		return;
+
 	if (!ts->ecm_pid || ts->ecm_pid != pid)
 		return;
 

@@ -63,7 +63,10 @@ static void show_help(struct ts *ts) {
 	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
 	printf("    -U server_user | default: %s\n", ts->camd35.user);
 	printf("    -P server_pass | default: %s\n", ts->camd35.pass);
-	printf("    -y usec_delay  | Sleep X usec between sending ECM/EMM packets to OSCAM. default: %d\n", ts->packet_delay);
+	printf("    -y usec_delay  | Sleep X usec between sending ECM/EMM packets to OSCAM. Default: %d\n", ts->packet_delay);
+	printf("\n");
+	printf("  EMM options:\n");
+	printf("    -E             | Process only EMMs without decoding input stream. Default: %s\n", ts->emm_only ? "true" : "false");
 	printf("\n");
 	printf("  Filtering options:\n");
 	printf("    -e             | EMM send (default: %s).\n", ts->emm_send ? "enabled" : "disabled");
@@ -107,7 +110,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:ezpD:hR")) != -1) {
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:eEzpD:hR")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -191,6 +194,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'e':
 				ts->emm_send = !ts->emm_send;
 				break;
+			case 'E':
+				ts->emm_only = 1;
+				ts->emm_send = 1;
+				break;
 			case 'p':
 				ts->pid_filter = !ts->pid_filter;
 				break;
@@ -242,23 +249,30 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}
-	if (ts->output.type == NET_IO) {
-		ts_LOGf("Output addr: udp://%s:%u/\n", inet_ntoa(ts->output.addr), ts->output.port);
-		ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
-		ts_LOGf("Output ttl : %d\n", ts->output.ttl);
-	} else if (ts->output.type == FILE_IO) {
-		ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
+	if (!ts->emm_only)
+	{
+		if (ts->output.type == NET_IO) {
+			ts_LOGf("Output addr: udp://%s:%u/\n", inet_ntoa(ts->output.addr), ts->output.port);
+			ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
+			ts_LOGf("Output ttl : %d\n", ts->output.ttl);
+		} else if (ts->output.type == FILE_IO) {
+			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
+		}
 	}
 	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
 	if (ts->packet_delay)
 		ts_LOGf("Pkt sleep  : %d us (%d ms)\n", ts->packet_delay, ts->packet_delay / 1000);
-	ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
-	ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
-	ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+	if (ts->emm_only) {
+		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
+	} else {
+		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
+		ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
+		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+	}
 
 	for (i=0; i<(int)sizeof(ts->ident); i++) {
 		if (!ts->ident[i])

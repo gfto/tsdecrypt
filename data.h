@@ -104,6 +104,7 @@ struct ts {
 	enum CA_system		req_CA_sys;
 
 	int					emm_send;
+	int					emm_only;
 	int					pid_filter;
 
 	int					rtp_input;
