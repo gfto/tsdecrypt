@@ -81,10 +81,8 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 #define dump_sz      (16)
 #define dump_buf_sz  (dump_sz * 6)
 
-void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	char dump[dump_buf_sz];
-	if (!ts->emm_pid || ts->emm_pid != pid)
-		return;
 
 	show_ts_pack(ts, pid, "emm", NULL, ts_packet);
 
@@ -111,18 +109,20 @@ void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	ts_privsec_clear(ts->emm);
 }
 
-void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	char dump[dump_buf_sz];
-
-	if (ts->emm_only)
-		return;
-
-	if (!ts->ecm_pid || ts->ecm_pid != pid)
-		return;
 
 	ts->ecm = ts_privsec_push_packet(ts->ecm, ts_packet);
 	if (!ts->ecm->initialized)
 		return;
+
+	if (ts->req_CA_sys == CA_IRDETO) {
+		int type = ts->ecm->section_header->section_data[4];
+		if (type != ts->irdeto_ecm) {
+			ts_privsec_clear(ts->ecm);
+			return;
+		}
+	}
 
 	struct ts_header *th = &ts->ecm->ts_header;
 	struct ts_section_header *sec = ts->ecm->section_header;
@@ -152,4 +152,66 @@ void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	ts_privsec_clear(ts->ecm);
 
 	show_ts_pack(ts, pid, !duplicate ? "ecm" : "ec+", NULL, ts_packet);
+}
+
+// There are cryptosystems that are puting more than one PSI table
+// in TS packet. IRDETO is such example. Because libtsfuncs assumes
+// that one ts packet can produce maximum 1 PSI table, the following
+// workaround is used for EMM/ECM private sections. Basically we detect
+// if after the section there is something else than 0xff (filler) and
+// if there is something change ts_packet pointer field to point to
+// start of the potential section and reparse section.
+void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	int section_end;
+
+	if (ts->emm_only)
+		return;
+
+	if (!ts->ecm_pid || ts->ecm_pid != pid)
+		return;
+
+process_psi:
+	ts->tmp_ecm = ts_privsec_push_packet(ts->tmp_ecm, ts_packet);
+	if (!ts->tmp_ecm->initialized) {
+		__process_ecm(ts, pid, ts_packet);
+		return;
+	}
+
+	section_end = ts->tmp_ecm->section_header->pointer_field + ts->tmp_ecm->section_header->section_length + 3 + 4 + 1;
+	if (section_end < 188 && ts_packet[section_end] != 0xff) {
+		__process_ecm(ts, pid, ts_packet);
+		ts_packet[4] = ts_packet[4] + ts->tmp_ecm->section_header->section_length + 3;
+		ts_privsec_clear(ts->tmp_ecm);
+		goto process_psi;
+	} else {
+		__process_ecm(ts, pid, ts_packet);
+	}
+
+	ts_privsec_clear(ts->tmp_ecm);
+}
+
+void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	int section_end;
+
+	if (!ts->emm_pid || ts->emm_pid != pid)
+		return;
+
+process_psi:
+	ts->tmp_emm = ts_privsec_push_packet(ts->tmp_emm, ts_packet);
+	if (!ts->tmp_emm->initialized) {
+		__process_emm(ts, pid, ts_packet);
+		return;
+	}
+
+	section_end = ts->tmp_emm->section_header->pointer_field + ts->tmp_emm->section_header->section_length + 3 + 4 + 1;
+	if (section_end < 188 && ts_packet[section_end] != 0xff) {
+		__process_emm(ts, pid, ts_packet);
+		ts_packet[4] = ts_packet[4] + ts->tmp_emm->section_header->section_length + 3;
+		ts_privsec_clear(ts->tmp_emm);
+		goto process_psi;
+	} else {
+		__process_emm(ts, pid, ts_packet);
+	}
+
+	ts_privsec_clear(ts->tmp_emm);
 }

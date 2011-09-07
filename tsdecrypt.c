@@ -65,6 +65,9 @@ static void show_help(struct ts *ts) {
 	printf("    -P server_pass | default: %s\n", ts->camd35.pass);
 	printf("    -y usec_delay  | Sleep X usec between sending ECM/EMM packets to OSCAM. Default: %d\n", ts->packet_delay);
 	printf("\n");
+	printf("  ECM options:\n");
+	printf("    -G ecm_type    | IRDETO: Process only ECMs with selected type (0,1,2,3). Default: %d\n", ts->irdeto_ecm);
+	printf("\n");
 	printf("  EMM options:\n");
 	printf("    -E             | Process only EMMs without decoding input stream. Default: %s\n", ts->emm_only ? "true" : "false");
 	printf("    -f <seconds>   | Report how much EMMs has been send for processing each X seconds.\n");
@@ -112,7 +115,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:f:eEzpD:hR")) != -1) {
+	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:f:eEzpD:hRG:")) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -174,6 +177,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 't':
 				ts->output.ttl = atoi(optarg);
+				break;
+
+			case 'G':
+				ts->irdeto_ecm = atoi(optarg);
 				break;
 
 			case 'U':
@@ -258,6 +265,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}
+	if (ts->req_CA_sys == CA_IRDETO)
+		ts_LOGf("Irdeto ECM : %d\n", ts->irdeto_ecm);
+
 	if (!ts->emm_only)
 	{
 		if (ts->output.type == NET_IO) {

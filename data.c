@@ -18,9 +18,11 @@ void data_init(struct ts *ts) {
 
 	ts->emm      = ts_privsec_alloc();
 	ts->last_emm = ts_privsec_alloc();
+	ts->tmp_emm  = ts_privsec_alloc();
 
 	ts->ecm      = ts_privsec_alloc();
 	ts->last_ecm = ts_privsec_alloc();
+	ts->tmp_ecm  = ts_privsec_alloc();
 
 	pidmap_clear(&ts->pidmap);
 	pidmap_clear(&ts->cc);
@@ -76,8 +78,10 @@ void data_free(struct ts *ts) {
 	ts_pmt_free(&ts->curpmt);
 	ts_privsec_free(&ts->emm);
 	ts_privsec_free(&ts->last_emm);
+	ts_privsec_free(&ts->tmp_emm);
 	ts_privsec_free(&ts->ecm);
 	ts_privsec_free(&ts->last_ecm);
+	ts_privsec_free(&ts->tmp_ecm);
 
 	dvbcsa_key_free(ts->key.csakey[0]);
 	dvbcsa_key_free(ts->key.csakey[1]);

@@ -79,6 +79,8 @@ struct ts {
 	struct ts_pmt		*pmt, *curpmt;
 	struct ts_privsec	*emm, *last_emm;
 	struct ts_privsec	*ecm, *last_ecm;
+	struct ts_privsec	*tmp_emm;
+	struct ts_privsec	*tmp_ecm;
 	uint16_t			pmt_pid;
 	uint16_t			service_id;
 	uint16_t			emm_caid, emm_pid;
@@ -106,6 +108,8 @@ struct ts {
 	int					emm_send;
 	int					emm_only;
 	int					pid_filter;
+
+	uint8_t				irdeto_ecm;
 
 	int					rtp_input;
 
