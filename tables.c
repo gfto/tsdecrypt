@@ -49,6 +49,13 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	handle_table_changes(cat);
 
 	ts_get_emm_info(ts->cat, ts->req_CA_sys, &ts->emm_caid, &ts->emm_pid);
+	if (ts->emm_caid) {
+		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(ts->emm_caid));
+		ts_LOGf("--- | EMM CAID: 0x%04x (%s)\n", ts->emm_caid, CA_sys);
+		ts_LOGf("--- | EMM pid : 0x%04x (%s)\n", ts->emm_pid, CA_sys);
+	} else {
+		ts_LOGf("*** | ERROR: Can't detect EMM pid.\n");
+	}
 }
 
 void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
