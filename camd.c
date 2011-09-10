@@ -96,11 +96,13 @@ static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 
 static int camd35_recv_cw(struct ts *ts) {
 	struct camd35 *c = &ts->camd35;
+	struct timeval tv1, tv2;
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint8_t *data = c->buf;
 	int data_len = 0;
 	int ret = 0;
 
+	gettimeofday(&tv1, NULL);
 READ:
 	ret = camd35_recv(c, data, &data_len);
 	if (ret < 0) {
@@ -131,6 +133,7 @@ READ:
 		ts_LOGf("CW  | CW len (%d) mismatch != 16\n", data[1]);
 		return 0;
 	}
+	gettimeofday(&tv2, NULL);
 
 	uint16_t ca_id = (data[10] << 8) | data[11];
 	uint16_t idx   = (data[16] << 8) | data[17];
@@ -139,7 +142,8 @@ READ:
 
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
-	ts_LOGf("CW  | CAID: 0x%04x ---------------------------------- IDX: 0x%04x Data: %s\n", ca_id, idx, cw_dump);
+	ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] --------------------- IDX: 0x%04x Data: %s\n",
+		ca_id, timeval_diff_msec(&tv1, &tv2), idx, cw_dump );
 
 	c->key->ts = time(NULL);
 	c->key->is_valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
