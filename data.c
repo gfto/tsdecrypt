@@ -36,6 +36,8 @@ void data_init(struct ts *ts) {
 	ts->key.bs_csakey[0] = dvbcsa_bs_key_alloc();
 	ts->key.bs_csakey[1] = dvbcsa_bs_key_alloc();
 
+	gettimeofday(&ts->key.ts_keyset, NULL);
+
 	// CAMD
 	memset(&ts->camd35, 0, sizeof(ts->camd35));
 	ts->camd35.server_fd    = -1;

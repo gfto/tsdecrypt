@@ -24,7 +24,8 @@ struct key {
 	int					is_valid_cw;
 	struct dvbcsa_key_s	*csakey[2];
 	struct dvbcsa_bs_key_s	*bs_csakey[2];
-	time_t				ts;	// At what time the key is set
+	time_t					ts;				// At what time the key is set
+	struct timeval			ts_keyset;		// At what time the key is set
 };
 
 // 4 auth header, 20 header size, 256 max data size, 16 potential padding

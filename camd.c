@@ -96,7 +96,7 @@ static int camd35_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 
 static int camd35_recv_cw(struct ts *ts) {
 	struct camd35 *c = &ts->camd35;
-	struct timeval tv1, tv2;
+	struct timeval tv1, tv2, last_ts_keyset;
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint8_t *data = c->buf;
 	int data_len = 0;
@@ -142,16 +142,26 @@ READ:
 
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
-	ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] --------------------- IDX: 0x%04x Data: %s\n",
-		ca_id, timeval_diff_msec(&tv1, &tv2), idx, cw_dump );
 
-	c->key->ts = time(NULL);
 	c->key->is_valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
-	dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
-	dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
 
-	dvbcsa_bs_key_set(c->key->cw    , c->key->bs_csakey[0]);
-	dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
+	// At first ts_keyset is not initialized
+	last_ts_keyset = c->key->ts_keyset;
+	if (c->key->is_valid_cw) {
+		gettimeofday(&c->key->ts_keyset, NULL);
+		c->key->ts = c->key->ts_keyset.tv_sec;
+
+		dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
+		dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
+
+		dvbcsa_bs_key_set(c->key->cw    , c->key->bs_csakey[0]);
+		dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
+	}
+
+	ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------- IDX: 0x%04x Data: %s\n",
+		ca_id, timeval_diff_msec(&tv1, &tv2),
+		timeval_diff_msec(&last_ts_keyset, &tv2),
+		idx, cw_dump );
 
 	return ret;
 }
