@@ -47,7 +47,7 @@ static void show_help(struct ts *ts) {
 	printf("                   |    -I -              (read from STDIN, the default)\n");
 	printf("    -R             | Enable RTP input\n");
 	printf("\n");
-	printf("    -c ca_system   | default: %s valid: IRDETO, CONNAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+	printf("    -c ca_system   | default: %s valid: IRDETO, CONAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
 	printf("    -z             | Detect discontinuty errors in input stream (default: %s).\n", ts->ts_discont ? "report" : "ignore");
 	printf("\n");
 	printf("  Output options:\n");
@@ -139,8 +139,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'c':
 				if (strcasecmp("IRDETO", optarg) == 0)
 					ts->req_CA_sys = CA_IRDETO;
-				else if (strcasecmp("CONNAX", optarg) == 0)
-					ts->req_CA_sys = CA_CONNAX;
+				else if (strcasecmp("CONNAX", optarg) == 0 || strcasecmp("CONAX", optarg) == 0)
+					ts->req_CA_sys = CA_CONAX;
 				else if (strcasecmp("CRYPTOWORKS", optarg) == 0)
 					ts->req_CA_sys = CA_CRYPTOWORKS;
 				else
