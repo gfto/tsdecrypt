@@ -1,0 +1,82 @@
+tsdecrypt
+=========
+tsdecrypt reads decrypts incoming mpeg transport stream over UDP/RTP and
+then decrypts it using libdvbcsa and keys obtained from OSCAM or similar cam
+server. Currently supported and tested cryptosystems are Conax, Cryptoworks
+and Irdeto. tsdecrypt communicates with camd using camd35 over tcp protocol
+also known as cs378x.
+
+Installation
+============
+tsdecrypt depends on two two external libraries - openssl and libdvbcsa.
+You probably already have openssl installed, libdvbcsa can be downloaded
+from http://www.videolan.org/developers/libdvbcsa.html
+
+Documentation
+=============
+tsdecrypt is controlled using command line parameters. Run tsdecrypt to
+see all of the parameters and explanation what every one of them does.
+
+Development
+===========
+The development is tracked using git. The repository is hosted at github
+to get it, run the following command:
+
+   git clone git://github.com/gfto/libtsfuncs.git
+   git submodule init
+   git submodule update
+
+Compiling
+=========
+Clone git repository, initialize submodules and the run make.
+
+   git clone git://github.com/gfto/tsdecrypt.git
+   git submodule init
+   git submodule update
+   make
+
+Examples
+========
+To get a quick start here are some example command lines (the default
+CA is set to CONAX, you can change it using -c CONAX|CRYPTOWORK|IRDETO):
+
+   # Decrypt multicast stream from 239.0.50.11:5000 using 10.0.1.1:2233
+   # as camd server and output decrypted result to 239.78.78.78:5000
+   tsdecrypt -s 10.0.1.1 -I 239.0.50.11:5000 -O 239.78.78.78:5000
+
+   # Same as above but enable EMM processing (-e)
+   tsdecrypt -e -s 10.0.1.1 -I 239.0.50.11:5000 -O 239.78.78.78:5000
+
+   # Same as above but do not filter output stream (-p) thus allowing
+   # EIT/TOT/NIT, etc tables to passthrough
+   tsdecrypt -p -e -s 10.0.1.1 -I 239.0.50.11:5000 -O 239.78.78.78:5000
+
+OSCAM configuration
+===================
+In order for tsdecrypt to communicate with OSCAM, OSCAM must have user
+added in oscam.user file and cs378x protocol must be enabled.
+
+Example oscam.user file:
+[account]
+user     = user
+pwd      = pass
+group    = 1
+au       = 1
+uniq     = 0
+monlevel = 4
+
+Example part of oscam.conf file:
+[cs378x]
+port    = 2233
+
+Releases
+========
+Official releases can be downloaded from tsdecrypt home page which is
+
+   http://georgi.unixsol.org/programs/tsdecrypt/
+
+Contact
+=======
+For patches, bug reports, complaints and so on send e-mail to
+
+   Georgi Chorbadzhiyski <georgi@unixsol.org>
