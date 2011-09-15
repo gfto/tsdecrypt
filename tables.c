@@ -19,7 +19,7 @@
 #include "tables.h"
 #include "camd.h"
 
-#include "libts/tsfuncs.h"
+#include "libtsfuncs/tsfuncs.h"
 #include "libfuncs/libfuncs.h"
 
 extern void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet);

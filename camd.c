@@ -29,7 +29,7 @@
 #include <dvbcsa/dvbcsa.h>
 
 #include "libfuncs/libfuncs.h"
-#include "libts/tsfuncs.h"
+#include "libtsfuncs/tsfuncs.h"
 
 #include "data.h"
 #include "util.h"

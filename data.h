@@ -26,7 +26,7 @@
 #include <dvbcsa/dvbcsa.h>
 
 #include "libfuncs/libfuncs.h"
-#include "libts/tsfuncs.h"
+#include "libtsfuncs/tsfuncs.h"
 
 // 7 * 188
 #define FRAME_SIZE 1316

@@ -9,8 +9,8 @@ Q = @
 FUNCS_DIR = libfuncs
 FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
 
-TS_DIR = libts
-TS_LIB = $(TS_DIR)/libts.a
+TS_DIR = libtsfuncs
+TS_LIB = $(TS_DIR)/libtsfuncs.a
 
 tsdecrypt_OBJS = data.o udp.o util.o camd.o process.o tables.o tsdecrypt.o $(FUNCS_LIB) $(TS_LIB)
 tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread

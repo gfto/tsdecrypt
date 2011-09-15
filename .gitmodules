@@ -1,6 +1,6 @@
-[submodule "libts"]
-	path = libts
-	url = git@git:libts.git
+[submodule "libtsfuncs"]
+	path = libtsfuncs
+	url = git://github.com/gfto/libtsfuncs.git
 [submodule "libfuncs"]
 	path = libfuncs
-	url = git@git:libfuncs.git
+	url = git://github.com/gfto/libfuncs.git
