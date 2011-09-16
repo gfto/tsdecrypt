@@ -1,10 +1,9 @@
 tsdecrypt
 =========
-tsdecrypt reads decrypts incoming mpeg transport stream over UDP/RTP and
-then decrypts it using libdvbcsa and keys obtained from OSCAM or similar cam
-server. Currently supported and tested cryptosystems are Conax, Cryptoworks
-and Irdeto. tsdecrypt communicates with camd using camd35 over tcp protocol
-also known as cs378x.
+tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then decrypts it
+using libdvbcsa and keys obtained from OSCAM or similar cam server. Currently
+supported and tested cryptosystems are Conax, Cryptoworks and Irdeto. tsdecrypt
+communicates with camd using camd35 over tcp protocol also known as cs378x.
 
 Installation
 ============
