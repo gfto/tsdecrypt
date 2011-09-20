@@ -17,6 +17,7 @@
  */
 #include <stdlib.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,65 +46,93 @@ static void LOG_func(const char *msg) {
 	fprintf(stderr, "%s | %s", date, msg);
 }
 
+static const struct option long_options[] = {
+	{ "ident",				required_argument, NULL, 'i' },
+	{ "daemon",				required_argument, NULL, 'd' },
+	{ "syslog-host",		required_argument, NULL, 'l' },
+	{ "syslog-port",		required_argument, NULL, 'L' },
+
+	{ "input",				required_argument, NULL, 'I' },
+	{ "input-rtp",			no_argument,       NULL, 'R' },
+	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
+
+	{ "output",				required_argument, NULL, 'O' },
+	{ "output-intf",		required_argument, NULL, 'o' },
+	{ "output-ttl",			required_argument, NULL, 't' },
+	{ "output-filter",		no_argument,       NULL, 'p' },
+
+	{ "ca-system",			required_argument, NULL, 'c' },
+	{ "camd-server",		required_argument, NULL, 's' },
+	{ "camd-user",			required_argument, NULL, 'U' },
+	{ "camd-pass",			required_argument, NULL, 'P' },
+	{ "camd-pkt-delay",		required_argument, NULL, 'y' },
+
+	{ "emm",				no_argument,       NULL, 'e' },
+	{ "emm-only",			no_argument,       NULL, 'E' },
+	{ "emm-report-time",	required_argument, NULL, 'f' },
+
+	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
+
+	{ "debug",				required_argument, NULL, 'D' },
+	{ "help",				no_argument,       NULL, 'h' },
+
+	{ 0, 0, 0, 0 }
+};
+
 static void show_help(struct ts *ts) {
 	printf("%s\n", program_id);
 	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
 	printf("\n");
 	printf("	Usage: " PROGRAM_NAME " [opts]\n");
 	printf("\n");
-	printf("  Daemon options:\n");
-	printf("    -i server_ident | Format PROVIDER/CHANNEL (default: %s)\n", ts->ident);
-	printf("    -d pidfile      | Daemonize program with pid file. (default: do not daemonize)\n");
-	printf("    -l syslog host  | Where is the syslog server (default: disabled)\n");
-	printf("    -L Syslog port  | What is the syslog server port (default: %d)\n", ts->syslog_port);
+	printf("Daemon options:\n");
+	printf(" -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty\n");
+	printf(" -d --daemon <pidfile>      | Daemonize program with pid file. Default: do not daemonize\n");
+	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
+	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
 	printf("\n");
-	printf("  Input options:\n");
-	printf("    -I input       | Where to read from. Supports files and multicast\n");
-	printf("                   |    -I 224.0.0.1:5000 (multicast receive)\n");
-	printf("                   |    -I file.ts        (read from file)\n");
-	printf("                   |    -I -              (read from STDIN, the default)\n");
-	printf("    -R             | Enable RTP input\n");
+	printf("Input options:\n");
+	printf(" -I --input <source>        | Where to read from. Supports files and multicast. Default: stdin\n");
+	printf("                            |    -I 224.0.0.1:5000 (multicast receive)\n");
+	printf("                            |    -I file.ts        (read from file)\n");
+	printf("                            |    -I -              (read from STDIN)\n");
+	printf(" -R --input-rtp             | Enable RTP input\n");
+	printf(" -z --input-ignore-disc     | Report discontinuty errors in input stream. Default: %s\n", ts->ts_discont ? "enabled" : "disabled");
 	printf("\n");
-	printf("    -c ca_system   | default: %s valid: IRDETO, CONAX, CRYPTOWORKS\n", ts_get_CA_sys_txt(ts->req_CA_sys));
-	printf("    -z             | Detect discontinuty errors in input stream (default: %s).\n", ts->ts_discont ? "report" : "ignore");
+	printf("Output options:\n");
+	printf(" -O --output <dest>         | Where to send output. Supports files and multicast. Default: stdout\n");
+	printf("                            |    -O 239.0.0.1:5000 (multicast send)\n");
+	printf("                            |    -O file.ts        (write to file)\n");
+	printf("                            |    -O -              (write to STDOUT)\n");
+	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
+	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
+	printf(" -p --output-filter         | Output filter. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
+	printf("                            | - When output filter is enabled only PAT/PMT/SDT and data\n");
+	printf("                            | - packets are left in the output. Everything else (NIT, EIT,\n");
+	printf("                            | - TDT, etc.) is removed.\n");
 	printf("\n");
-	printf("  Output options:\n");
-	printf("    -O output      | Where to send output. Supports files and multicast\n");
-	printf("                   |    -O 239.0.0.1:5000 (multicast send)\n");
-	printf("                   |    -O file.ts        (write to file)\n");
-	printf("                   |    -O -              (write to STDOUT, the default)\n");
+	printf("CAMD server options:\n");
+	printf(" -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>. Default: %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+	printf("                            | Valid idents are: CONAX, CRYPTOWORKS and IRDETO\n");
+	printf(" -s --camd-server <addr>    | CAMD server address and port. Example: 1.2.3.4:2233. Default: not set\n");
+	printf(" -U --camd-user <user>      | CAMD server user. Default: %s\n", ts->camd35.user);
+	printf(" -P --camd-pass <pass>      | CAMD server password. Default: %s\n", ts->camd35.pass);
+	printf(" -y --camd-pkt-delay <us>   | Sleep <us> usec between sending ECM/EMM packets to CAMD. Default: %d\n", ts->packet_delay);
 	printf("\n");
-	printf("    -o output_intf | default: %s\n", inet_ntoa(ts->output.intf));
-	printf("    -t output_ttl  | default: %d\n", ts->output.ttl);
+	printf("EMM options:\n");
+	printf(" -e --emm                   | Enable sending EMM's to CAMD for processing. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
+	printf(" -E --emm-only              | Send only EMMs to CAMD, without decoding input stream. Default: %s\n", ts->emm_only ? "enabled" : "disabled");
+	printf(" -f --emm-report-time <sec> | Report how much EMMs has been send for processing each <sec> seconds.\n");
+	printf("                            | Set <sec> to 0 to disable reporting. Default: %d\n", ts->camd35.emm_count_report_interval);
 	printf("\n");
-	printf("  CAMD35 server options:\n");
-	printf("    -s server_addr | default: disabled (format 1.2.3.4:2233)\n");
-	printf("    -U server_user | default: %s\n", ts->camd35.user);
-	printf("    -P server_pass | default: %s\n", ts->camd35.pass);
-	printf("    -y usec_delay  | Sleep X usec between sending ECM/EMM packets to OSCAM. Default: %d\n", ts->packet_delay);
+	printf("ECM options:\n");
+	printf(" -G --ecm-irdeto-type <int> | Process only IRDETO ECMs with selected type (0,1,2,3). Default: %d\n", ts->irdeto_ecm);
 	printf("\n");
-	printf("  ECM options:\n");
-	printf("    -G ecm_type    | IRDETO: Process only ECMs with selected type (0,1,2,3). Default: %d\n", ts->irdeto_ecm);
-	printf("\n");
-	printf("  EMM options:\n");
-	printf("    -E             | Process only EMMs without decoding input stream. Default: %s\n", ts->emm_only ? "true" : "false");
-	printf("    -f <seconds>   | Report how much EMMs has been send for processing each X seconds.\n");
-	printf("                   | each <seconds> seconds. Set to 0 to disable reporting. Default: %d\n", ts->camd35.emm_count_report_interval);
-	printf("\n");
-	printf("  Filtering options:\n");
-	printf("    -e             | EMM send (default: %s).\n", ts->emm_send ? "enabled" : "disabled");
-	printf("                   | - Send EMMs to CAMD server for processing.\n");
-	printf("\n");
-	printf("    -p             | Output PID filter (default: %s).\n", ts->pid_filter ? "enabled" : "disabled");
-	printf("                   | - When PID filter is enabled only PAT/PMT/SDT/data\n");
-	printf("                   | - packets are left in the output.\n");
-	printf("\n");
-	printf("    -D debug_level | Message debug level.\n");
-	printf("                   |    0 - default messages\n");
-	printf("                   |    1 - show PSI tables\n");
-	printf("                   |    2 - show EMMs\n");
-	printf("                   |    3 - show duplicate ECMs\n");
-	printf("                   |    4 - packet debug\n");
+	printf("Misc options:\n");
+	printf(" -D --debug <level>         | Message debug level. Higher levels includes the levels bellow.\n");
+	printf("                            |    0 = default messages, 1 = show PSI tables, 2 = show EMMs\n");
+	printf("                            |    3 = show duplicate ECMs, 4 = packet debug\n");
+	printf(" -h --help                  | Show help screen.\n");
 	printf("\n");
 }
 
@@ -132,7 +161,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ((j = getopt(argc, argv, "i:d:l:L:c:s:I:O:o:t:U:P:y:f:eEzpD:hRG:")) != -1) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eEf:G:D:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -153,6 +182,33 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->syslog_port = atoi(optarg);
 				break;
 
+
+			case 'I':
+				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
+				break;
+			case 'R':
+				ts->rtp_input = !ts->rtp_input;
+				break;
+			case 'z':
+				ts->ts_discont = !ts->ts_discont;
+				break;
+
+			case 'O':
+				output_addr_err = parse_io_param(&ts->output, optarg,
+					O_CREAT | O_WRONLY | O_TRUNC,
+					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+				break;
+			case 'o':
+				if (inet_aton(optarg, &ts->output.intf) == 0)
+					output_intf_err = 1;
+				break;
+			case 't':
+				ts->output.ttl = atoi(optarg);
+				break;
+			case 'p':
+				ts->pid_filter = !ts->pid_filter;
+				break;
+
 			case 'c':
 				if (strcasecmp("IRDETO", optarg) == 0)
 					ts->req_CA_sys = CA_IRDETO;
@@ -163,7 +219,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				else
 					ca_err = 1;
 				break;
-
 			case 's':
 				p = strrchr(optarg, ':');
 				if (p) {
@@ -175,31 +230,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				else
 					server_err = 0;
 				break;
-
-			case 'I':
-				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
-				break;
-			case 'R':
-				ts->rtp_input = !ts->rtp_input;
-				break;
-			case 'O':
-				output_addr_err = parse_io_param(&ts->output, optarg,
-					O_CREAT | O_WRONLY | O_TRUNC,
-					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-				break;
-
-			case 'o':
-				if (inet_aton(optarg, &ts->output.intf) == 0)
-					output_intf_err = 1;
-				break;
-			case 't':
-				ts->output.ttl = atoi(optarg);
-				break;
-
-			case 'G':
-				ts->irdeto_ecm = atoi(optarg);
-				break;
-
 			case 'U':
 				strncpy(ts->camd35.user, optarg, sizeof(ts->camd35.user) - 1);
 				ts->camd35.user[sizeof(ts->camd35.user) - 1] = 0;
@@ -214,8 +244,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->packet_delay = 0;
 				break;
 
-			case 'z':
-				ts->ts_discont = !ts->ts_discont;
+			case 'e':
+				ts->emm_send = !ts->emm_send;
+				break;
+			case 'E':
+				ts->emm_only = 1;
+				ts->emm_send = 1;
 				break;
 			case 'f':
 				ts->camd35.emm_count_report_interval = atoi(optarg);
@@ -224,15 +258,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				if (ts->camd35.emm_count_report_interval > 86400)
 					ts->camd35.emm_count_report_interval = 86400;
 				break;
-			case 'e':
-				ts->emm_send = !ts->emm_send;
-				break;
-			case 'E':
-				ts->emm_only = 1;
-				ts->emm_send = 1;
-				break;
-			case 'p':
-				ts->pid_filter = !ts->pid_filter;
+
+			case 'G':
+				ts->irdeto_ecm = atoi(optarg);
 				break;
 
 			case 'D':
@@ -253,7 +281,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		if (ca_err)
 			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
 		if (server_err)
-			fprintf(stderr, "ERROR: Server IP address is not set or it is invalid.\n");
+			fprintf(stderr, "ERROR: CAMD server IP address is not set or it is invalid.\n");
 		if (input_addr_err)
 			fprintf(stderr, "ERROR: Input IP address is invalid.\n");
 		if (output_addr_err)
@@ -294,6 +322,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		} else if (ts->output.type == FILE_IO) {
 			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}
+		ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 	}
 	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);
@@ -310,7 +339,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
 	} else {
 		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
-		ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
 		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 	}
 

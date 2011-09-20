@@ -1,4 +1,3 @@
-- Add long options using getopt_long.
 - Write man page.
 - Make camd comm code modular in order to add more protocols.
 - Allow to working with unknown CA's (set CAID as command line parameter).
