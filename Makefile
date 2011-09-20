@@ -13,6 +13,11 @@ endif
 RM = /bin/rm -f
 Q = @
 
+PREFIX ?= /usr/local
+
+INSTALL = tsdecrypt
+INSTALL_BIN = $(subst //,/,$(DESTDIR)/$(PREFIX)/bin)
+
 FUNCS_DIR = libfuncs
 FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
 
@@ -25,6 +30,9 @@ tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
 CLEAN_OBJS = tsdecrypt $(tsdecrypt_OBJS) *~
 
 PROGS = tsdecrypt
+
+.PHONY: distclean clean install uninstall
+
 all: $(PROGS)
 
 $(FUNCS_LIB):
@@ -54,3 +62,14 @@ clean:
 distclean: clean
 	$(Q)$(MAKE) -s -C $(TS_DIR) clean
 	$(Q)$(MAKE) -s -C $(FUNCS_DIR) clean
+
+install: all strip
+	@install -d "$(INSTALL_BIN)"
+	@echo "INSTALL $(INSTALL) -> $(INSTALL_BIN)"
+	$(Q)install $(INSTALL) "$(INSTALL_BIN)"
+
+uninstall:
+	@-for FILE in $(INSTALL); do \
+		echo "RM       $(INSTALL_BIN)/$$FILE"; \
+		rm "$(INSTALL_BIN)/$$FILE"; \
+	done
