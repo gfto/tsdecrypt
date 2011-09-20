@@ -113,7 +113,8 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("CAMD server options:\n");
 	printf(" -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>. Default: %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
-	printf("                            | Valid idents are: CONAX, CRYPTOWORKS and IRDETO\n");
+	printf("                            | Valid idents are: CONAX, CRYPTOWORKS, IRDETO, SECA (MEDIAGUARD),\n");
+	printf("                            |                   VIACCESS, VIDEOGUARD (NDS), NAGRA and DRECRYPT.\n");
 	printf(" -s --camd-server <addr>    | CAMD server address and port. Example: 1.2.3.4:2233. Default: not set\n");
 	printf(" -U --camd-user <user>      | CAMD server user. Default: %s\n", ts->camd35.user);
 	printf(" -P --camd-pass <pass>      | CAMD server password. Default: %s\n", ts->camd35.pass);
@@ -216,6 +217,16 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->req_CA_sys = CA_CONAX;
 				else if (strcasecmp("CRYPTOWORKS", optarg) == 0)
 					ts->req_CA_sys = CA_CRYPTOWORKS;
+				else if (strcasecmp("SECA", optarg) == 0 || strcasecmp("MEDIAGUARD", optarg) == 0)
+					ts->req_CA_sys = CA_SECA;
+				else if (strcasecmp("VIACCESS", optarg) == 0)
+					ts->req_CA_sys = CA_VIACCESS;
+				else if (strcasecmp("VIDEOGUARD", optarg) == 0 || strcasecmp("NDS", optarg) == 0)
+					ts->req_CA_sys = CA_VIDEOGUARD;
+				else if (strcasecmp("NAGRA", optarg) == 0)
+					ts->req_CA_sys = CA_NAGRA;
+				else if (strcasecmp("DRE-CRYPT", optarg) == 0 || strcasecmp("DRECRYPT", optarg) == 0)
+					ts->req_CA_sys = CA_DRECRYPT;
 				else
 					ca_err = 1;
 				break;

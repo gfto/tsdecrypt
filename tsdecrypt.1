@@ -6,9 +6,8 @@ tsdecrypt - Decrypt mpegts stream.
 [\fIoptions\fR]
 .SH DESCRIPTION
 tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then decrypts it
-using libdvbcsa and keys obtained from OSCAM or similar cam server. Currently
-supported and tested crypto systems are Conax, Cryptoworks and Irdeto. tsdecrypt
-communicates with camd using camd35 over tcp protocol also known as cs378x.
+using libdvbcsa and keys obtained from OSCAM or similar cam server. tsdecrypt
+communicates with CAM server using camd35 over tcp protocol also known as cs378x.
 .SH OPTIONS
 .TP
 .SH MAIN OPTIONS
@@ -76,8 +75,10 @@ in PMT like NIT, EIT, TDT tables and unknown pids is removed.
 .TP
 \fB\-c\fR, \fB\-\-ca\-system\fR <ca_sys>
 Process input EMM/ECM from <ca_sys>. Currently tested and working CA systems
-are \fBCONAX\fR, \fBCRYPTOWORKS\fR and \fBIRDETO\fR. The default <ca_sys> is
-\fBCONAX\fR.
+are \fBCONAX\fR, \fBCRYPTOWORKS\fR and \fBIRDETO\fR. Other supported CA
+systems that you can choose but are not tested are \fBSECA\fR
+(\fBMEDIAGUARD\fR), \fBVIACCESS\fR, \fBVIDEOGUARD\fR (\fBNDS\fR), \fBNAGRA\fR
+and \fBDRECRYPT\fR. The default <ca_sys> is \fBCONAX\fR.
 .TP
 \fB\-s\fR, \fB\-\-camd\-server\fR <addr[:port]>
 Set CAMD server ip and port (10.0.1.1:2233). Is not set default port is
