@@ -19,6 +19,7 @@
 #define DATA_H
 
 #include <pthread.h>
+#include <limits.h>
 
 #include <openssl/aes.h>
 #include <openssl/md5.h>
