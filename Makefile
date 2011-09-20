@@ -15,8 +15,11 @@ Q = @
 
 PREFIX ?= /usr/local
 
-INSTALL = tsdecrypt
-INSTALL_BIN = $(subst //,/,$(DESTDIR)/$(PREFIX)/bin)
+INSTALL_PRG = tsdecrypt
+INSTALL_PRG_DIR = $(subst //,/,$(DESTDIR)/$(PREFIX)/bin)
+
+INSTALL_DOC = tsdecrypt.1
+INSTALL_DOC_DIR = $(subst //,/,$(DESTDIR)/$(PREFIX)/man/man1)
 
 FUNCS_DIR = libfuncs
 FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
@@ -64,12 +67,19 @@ distclean: clean
 	$(Q)$(MAKE) -s -C $(FUNCS_DIR) clean
 
 install: all strip
-	@install -d "$(INSTALL_BIN)"
-	@echo "INSTALL $(INSTALL) -> $(INSTALL_BIN)"
-	$(Q)install $(INSTALL) "$(INSTALL_BIN)"
+	@install -d "$(INSTALL_PRG_DIR)"
+	@install -d "$(INSTALL_DOC_DIR)"
+	@echo "INSTALL $(INSTALL_PRG) -> $(INSTALL_PRG_DIR)"
+	$(Q)-install $(INSTALL_PRG) "$(INSTALL_PRG_DIR)"
+	@echo "INSTALL $(INSTALL_DOC) -> $(INSTALL_DOC_DIR)"
+	$(Q)-install --mode 0644 $(INSTALL_DOC) "$(INSTALL_DOC_DIR)"
 
 uninstall:
-	@-for FILE in $(INSTALL); do \
-		echo "RM       $(INSTALL_BIN)/$$FILE"; \
-		rm "$(INSTALL_BIN)/$$FILE"; \
+	@-for FILE in $(INSTALL_PRG); do \
+		echo "RM       $(INSTALL_PRG_DIR)/$$FILE"; \
+		rm "$(INSTALL_PRG_DIR)/$$FILE"; \
+	done
+	@-for FILE in $(INSTALL_DOC); do \
+		echo "RM       $(INSTALL_DOC_DIR)/$$FILE"; \
+		rm "$(INSTALL_DOC_DIR)/$$FILE"; \
 	done

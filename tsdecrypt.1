@@ -1,0 +1,134 @@
+.TH TSDECRYPT "1" "September 2011" "tsdecrypt 2.0" "User Commands"
+.SH NAME
+tsdecrypt - Decrypt mpegts stream.
+.SH SYNOPSIS
+.B tsdecrypt
+[\fIoptions\fR]
+.SH DESCRIPTION
+tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then decrypts it
+using libdvbcsa and keys obtained from OSCAM or similar cam server. Currently
+supported and tested crypto systems are Conax, Cryptoworks and Irdeto. tsdecrypt
+communicates with camd using camd35 over tcp protocol also known as cs378x.
+.SH OPTIONS
+.TP
+.SH MAIN OPTIONS
+.PP
+.TP
+\fB\-i\fR, \fB\-\-ident\fR <ident>
+Set ident that will be used when logging to syslog. The prefered format
+for the ident is PROVIDER/CHANNEL.
+.TP
+\fB\-d\fR, \fB\-\-daemon\fR <pidfile>
+When started become a daemon and write pid file to <pidfile>.
+.TP
+\fB\-l\fR, \fB\-\-syslog\-host\fR <addr>
+Set syslog host. tsdecrypt sends messages to this host over tcp in
+syslog compatible format. syslog-ng was tested as receiving syslog server.
+.TP
+\fB\-L\fR, \fB\-\-syslog\-port\fR <port>
+Syslog server port. The default value is \fB514\fR.
+.TP
+\fB\-D\fR, \fB\-\-debug\fR <level>
+Set message debug level. Currently there are five message levels.
+0 = default messages, 1 = show PSI tables, 2 = show EMMs 3 = show
+duplicate ECMs, 4 = packet debug. Setting higher level enables the
+levels bellow.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Show program help.
+.TP
+.SH INPUT OPTIONS
+.PP
+.TP
+\fB\-I\fR, \fB\-\-input\fR <source>
+Where to read from. tsdecrypt supports input from files (-I file.ts or -I -)
+or multicast (-I 224.0.0.1:5000). By default tsdecrypt reads from \fBstdin\fR.
+.TP
+\fB\-R\fR, \fB\-\-input\-rtp\fR
+When reading from multicast assume the input is RTP stream. NOTE: No RTP
+processing/reordering of packets is done. The 12 byte RTP header is just
+stripped out and the stream is then processed as normal mpegts over UDP
+multicast.
+.TP
+\fB\-z\fR, \fB\-\-input\-ignore\-disc\fR
+Do not report input discontinuity or RTP discontinuity errors.
+.TP
+.SH OUTPUT OPTIONS
+.PP
+.TP
+\fB\-O\fR, \fB\-\-output\fR <dest>
+Output decrypted stream to <dest>. Destination can be multicast address
+(-O 239.0.0.1:5000) or a file (-O file.ts). The default output is \fBstdout\fR.
+.TP
+\fB\-o\fR, \fB\-\-output\-intf\fR <addr>
+Set multicast output interface.
+.TP
+\fB\-t\fR, \fB\-\-output\-ttl\fR
+Set multicast ttl. The default value is \fB1\fR.
+.TP
+\fB\-p\fR, \fB\-\-output\-filter\fR
+Enable output filtering. When output filter is enabled only PAT/PMT/SDT
+and data packets are left in the output. Everything else not mentioned
+in PMT like NIT, EIT, TDT tables and unknown pids is removed.
+.TP
+.SH CAMD OPTIONS
+.PP
+.TP
+\fB\-c\fR, \fB\-\-ca\-system\fR <ca_sys>
+Process input EMM/ECM from <ca_sys>. Currently tested and working CA systems
+are \fBCONAX\fR, \fBCRYPTOWORKS\fR and \fBIRDETO\fR. The default <ca_sys> is
+\fBCONAX\fR.
+.TP
+\fB\-s\fR, \fB\-\-camd\-server\fR <addr[:port]>
+Set CAMD server ip and port (10.0.1.1:2233). Is not set default port is
+\fB2233\fR. tsdecrypt is tested and working with OSCAM using cs378x protocol
+(camd35 over tcp).
+.TP
+\fB\-U\fR, \fB\-\-camd\-user\fR <username>
+Set CAMD user name. The default is \fBuser\fR.
+.TP
+\fB\-P\fR, \fB\-\-camd\-pass\fR <password>
+Set CAMD user password. The default is \fBpass\fR.
+.TP
+\fB\-y\fR, \fB\-\-camd\-pkt\-delay\fR <usec>
+Sleep <usec> microseconds between sending ECM/EMM packets to CAMD. This
+is workaround for camd35 OSCAM protocol processing. The default sleep time is
+\fB0\fR (workaround is disabled).
+.TP
+.SH EMM OPTIONS
+.PP
+.TP
+\fB\-e\fR, \fB\-\-emm\fR
+Enable sending EMM's to CAMD for processing. By default EMM processing
+is \fBdisabled\fR and only ECM are processed.
+.TP
+\fB\-E\fR, \fB\-\-emm\-only\fR <hierarchy>
+Disable ECM processing and stream output. This option is useful if the EMM
+stream has very high rate and is interfering with ECM processing. Using
+--emm-only you can run special tsdecrypt dedicated only to card auto update.
+.TP
+\fB\-f\fR, \fB\-\-emm\-report\-time\fR <seconds>
+Set interval for EMM totals report message. The default is \fB60\fR seconds.
+Set to \fB0\fR to disable EMM reporting.
+.TP
+.SH ECM OPTIONS
+.PP
+.TP
+\fB\-G\fR, \fB\-\-ecm\-irdeto\-type\fR <type>
+Set ECM IRDETO type. IRDETO CA send ECMs with different id mixed
+into one stream. Only one of the IDs are valid in given time. This
+option lets you choose which stream to process. The default stream
+type is \fB0\fR.
+.SH SEE ALSO
+See the README file for more information. If you have questions, remarks,
+problems or you just want to contact the developer, write to:
+  \fIgeorgi@unixsol.org\fP
+.TP
+For more info, see the website at
+.I http://georgi.unixsol.org/programs/tsdecrypt/
+.SH AUTHORS
+Writen by Georgi Chorbadzhiyski <\fBgeorgi@unixsol.org\fR>
+.SH LICENCE
+This program is free software; you can redistribute it and/or modify it under
+the terms of version 2 of the GNU General Public License as published by the
+Free Software Foundation.
