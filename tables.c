@@ -101,10 +101,18 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 
 	ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
+	if (!ts->ecm_caid && ts->forced_ecm_pid)
+		ts->ecm_caid = 0xffff;
 	if (ts->ecm_caid) {
 		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(ts->ecm_caid));
 		ts_LOGf("--- | ECM CAID: 0x%04x (%s)\n", ts->ecm_caid, CA_sys);
-		ts_LOGf("--- | ECM pid : 0x%04x (%s)\n", ts->ecm_pid, CA_sys);
+		if (!ts->forced_ecm_pid) {
+			ts_LOGf("--- | ECM pid : 0x%04x (%s)\n", ts->ecm_pid, CA_sys);
+		} else {
+			ts_LOGf("--- | ECM pid : 0x%04x (%s) (forced: 0x%04x)\n",
+				ts->ecm_pid, CA_sys, ts->forced_ecm_pid);
+			ts->ecm_pid = ts->forced_ecm_pid;
+		}
 	} else {
 		ts_LOGf("*** | ERROR: Can't detect ECM pid.\n");
 	}

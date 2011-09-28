@@ -103,6 +103,7 @@ struct ts {
 	uint16_t			emm_caid, emm_pid;
 	uint16_t			ecm_caid, ecm_pid;
 	uint16_t			forced_emm_pid;
+	uint16_t			forced_ecm_pid;
 	uint16_t			ecm_counter;
 	pidmap_t			pidmap;
 	pidmap_t			cc; // Continuity counters

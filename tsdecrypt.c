@@ -72,6 +72,7 @@ static const struct option long_options[] = {
 	{ "emm-only",			no_argument,       NULL, 'E' },
 	{ "emm-report-time",	required_argument, NULL, 'f' },
 
+	{ "ecm-pid",			required_argument, NULL, 'X' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
 
 	{ "debug",				required_argument, NULL, 'D' },
@@ -129,6 +130,7 @@ static void show_help(struct ts *ts) {
 	printf("                            | Set <sec> to 0 to disable reporting. Default: %d\n", ts->camd35.emm_count_report_interval);
 	printf("\n");
 	printf("ECM options:\n");
+	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
 	printf(" -G --ecm-irdeto-type <int> | Process only IRDETO ECMs with selected type (0,1,2,3). Default: %d\n", ts->irdeto_ecm);
 	printf("\n");
 	printf("Misc options:\n");
@@ -164,7 +166,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:G:D:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:D:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -275,6 +277,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->camd35.emm_count_report_interval = 86400;
 				break;
 
+			case 'X':
+				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
+				break;
 			case 'G':
 				ts->irdeto_ecm = atoi(optarg);
 				break;
@@ -331,6 +336,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 	if (ts->forced_emm_pid)
 		ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
+
+	if (ts->forced_ecm_pid)
+		ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
 
 	if (!ts->emm_only)
 	{
