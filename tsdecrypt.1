@@ -104,6 +104,11 @@ is workaround for camd35 OSCAM protocol processing. The default sleep time is
 Enable sending EMM's to CAMD for processing. By default EMM processing
 is \fBdisabled\fR and only ECM are processed.
 .TP
+\fB\-Z\fR, \fB\-\-emm\-pid\fR <pid>
+Set EMM pid manually. This option is useful for services that have
+couple of EMM streams from one CA system. Without this option tsdecrypt
+always chooses the first stream from the chosen CA system.
+.TP
 \fB\-E\fR, \fB\-\-emm\-only\fR <hierarchy>
 Disable ECM processing and stream output. This option is useful if the EMM
 stream has very high rate and is interfering with ECM processing. Using

@@ -68,6 +68,7 @@ static const struct option long_options[] = {
 	{ "camd-pkt-delay",		required_argument, NULL, 'y' },
 
 	{ "emm",				no_argument,       NULL, 'e' },
+	{ "emm-pid",			required_argument, NULL, 'Z' },
 	{ "emm-only",			no_argument,       NULL, 'E' },
 	{ "emm-report-time",	required_argument, NULL, 'f' },
 
@@ -123,6 +124,7 @@ static void show_help(struct ts *ts) {
 	printf("EMM options:\n");
 	printf(" -e --emm                   | Enable sending EMM's to CAMD for processing. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
 	printf(" -E --emm-only              | Send only EMMs to CAMD, without decoding input stream. Default: %s\n", ts->emm_only ? "enabled" : "disabled");
+	printf(" -Z --emm-pid <pid>         | Force EMM pid. Default: none\n");
 	printf(" -f --emm-report-time <sec> | Report how much EMMs has been send for processing each <sec> seconds.\n");
 	printf("                            | Set <sec> to 0 to disable reporting. Default: %d\n", ts->camd35.emm_count_report_interval);
 	printf("\n");
@@ -162,7 +164,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eEf:G:D:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:G:D:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -258,6 +260,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'e':
 				ts->emm_send = !ts->emm_send;
 				break;
+			case 'Z':
+				ts->forced_emm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
+				break;
 			case 'E':
 				ts->emm_only = 1;
 				ts->emm_send = 1;
@@ -323,6 +328,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 	if (ts->req_CA_sys == CA_IRDETO)
 		ts_LOGf("Irdeto ECM : %d\n", ts->irdeto_ecm);
+
+	if (ts->forced_emm_pid)
+		ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
 
 	if (!ts->emm_only)
 	{
