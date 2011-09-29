@@ -31,6 +31,8 @@
 #include "process.h"
 #include "udp.h"
 
+#define FIRST_REPORT_SEC 3
+
 #define PROGRAM_NAME "tsdecrypt"
 static const char *program_id = PROGRAM_NAME " " GIT_VER " build " BUILD_ID;
 
@@ -400,30 +402,48 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 }
 
+static void report_emms(struct ts *ts, time_t now) {
+	ts_LOGf("EMM | Received %u and processed %u in %lu seconds.\n",
+		ts->emm_seen_count,
+		ts->emm_processed_count,
+		now - ts->emm_last_report);
+	ts->emm_last_report = now;
+	ts->emm_seen_count = 0;
+	ts->emm_processed_count = 0;
+}
+
+static void report_ecms(struct ts *ts, time_t now) {
+	ts_LOGf("ECM | Received %u (%u dup) and processed %u in %lu seconds.\n",
+		ts->ecm_seen_count,
+		ts->ecm_duplicate_count,
+		ts->ecm_processed_count,
+		now - ts->ecm_last_report);
+	ts->ecm_last_report = now;
+	ts->ecm_seen_count = 0;
+	ts->ecm_duplicate_count = 0;
+	ts->ecm_processed_count = 0;
+}
+
 static void do_reports(struct ts *ts) {
+	static int first_emm_report = 1;
+	static int first_ecm_report = 1;
 	time_t now = time(NULL);
 	if (ts->emm_send && ts->emm_report_interval) {
-		if ((time_t)(ts->emm_last_report + ts->emm_report_interval) <= now) {
-			ts->emm_last_report = now;
-			ts_LOGf("EMM | Received %u and processed %u in %u seconds.\n",
-				ts->emm_seen_count,
-				ts->emm_processed_count,
-				ts->emm_report_interval);
-			ts->emm_seen_count = 0;
-			ts->emm_processed_count = 0;
+		if (first_emm_report && now >= ts->emm_last_report) {
+			first_emm_report = 0;
+			ts->emm_last_report -= FIRST_REPORT_SEC;
+			report_emms(ts, now);
+		} else if ((time_t)(ts->emm_last_report + ts->emm_report_interval) <= now) {
+			report_emms(ts, now);
 		}
 	}
 	if (!ts->emm_only && ts->ecm_report_interval) {
-		if ((time_t)(ts->ecm_last_report + ts->ecm_report_interval) <= now) {
-			ts->ecm_last_report = now;
-			ts_LOGf("ECM | Received %u (%u dup) and processed %u in %u seconds.\n",
-				ts->ecm_seen_count,
-				ts->ecm_duplicate_count,
-				ts->ecm_processed_count,
-				ts->ecm_report_interval);
-			ts->ecm_seen_count = 0;
-			ts->ecm_duplicate_count = 0;
-			ts->ecm_processed_count = 0;
+		if (first_ecm_report && now >= ts->ecm_last_report) {
+			first_ecm_report = 0;
+			ts->ecm_last_report -= FIRST_REPORT_SEC;
+			report_ecms(ts, now);
+		} else if ((time_t)(ts->ecm_last_report + ts->ecm_report_interval) <= now) {
+			report_ecms(ts, now);
 		}
 	}
 }
@@ -481,6 +501,8 @@ int main(int argc, char **argv) {
 		pthread_create(&ts.write_thread, NULL , &write_thread , &ts);
 	}
 
+	ts.emm_last_report = time(NULL) + FIRST_REPORT_SEC;
+	ts.ecm_last_report = time(NULL) + FIRST_REPORT_SEC;
 	camd_start(&ts);
 	do {
 		do_reports(&ts);
