@@ -74,6 +74,7 @@ static const struct option long_options[] = {
 
 	{ "ecm-pid",			required_argument, NULL, 'X' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
+	{ "ecm-no-log",			no_argument      , NULL, 'K' },
 
 	{ "debug",				required_argument, NULL, 'D' },
 	{ "help",				no_argument,       NULL, 'h' },
@@ -133,6 +134,7 @@ static void show_help(struct ts *ts) {
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
 	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: %d\n", ts->irdeto_ecm);
+	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
 	printf("\n");
 	printf("Misc options:\n");
 	printf(" -D --debug <level>         | Message debug level.\n");
@@ -170,7 +172,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:D:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:KD:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -287,6 +289,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'G':
 				ts->irdeto_ecm = atoi(optarg);
 				break;
+			case 'K':
+				ts->ecm_cw_log = 0;
+				break;
 
 			case 'D':
 				ts->debug_level = atoi(optarg);
@@ -372,6 +377,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 	}
+
+	if (!ts->ecm_cw_log)
+		ts_LOGf("ECM/CW log : disabled\n");
 
 	for (i=0; i<(int)sizeof(ts->ident); i++) {
 		if (!ts->ident[i])

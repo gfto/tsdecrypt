@@ -129,6 +129,7 @@ struct ts {
 	int					pid_filter;
 
 	uint8_t				irdeto_ecm;
+	int					ecm_cw_log;
 
 	int					rtp_input;
 

@@ -124,7 +124,7 @@ static int camd35_recv_cw(struct ts *ts) {
 READ:
 	ret = camd35_recv(c, data, &data_len);
 	if (ret < 0) {
-		ts_LOGf("CW   | No CW has been received (ret = %d)\n", ret);
+		ts_LOGf("CW  | No CW has been received (ret = %d)\n", ret);
 		camd35_reconnect(ts);
 		return ret;
 	}
@@ -176,10 +176,12 @@ READ:
 		dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
 	}
 
-	ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------- IDX: 0x%04x Data: %s\n",
-		ca_id, timeval_diff_msec(&tv1, &tv2),
-		timeval_diff_msec(&last_ts_keyset, &tv2),
-		idx, cw_dump );
+	if (ts->ecm_cw_log) {
+		ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------- IDX: 0x%04x Data: %s\n",
+			ca_id, timeval_diff_msec(&tv1, &tv2),
+			timeval_diff_msec(&last_ts_keyset, &tv2),
+			idx, cw_dump );
+	}
 
 	return ret;
 }

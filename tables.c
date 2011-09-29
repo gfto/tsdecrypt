@@ -168,14 +168,16 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	struct ts_section_header *sec = ts->ecm->section_header;
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
 	if (!duplicate || ts->is_cw_error) {
-		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
-		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: %s..\n",
-			ts->ecm_caid,
-			th->pid,
-			sec->table_id,
-			sec->section_data_len,
-			ts->ecm_counter,
-			dump);
+		if (ts->ecm_cw_log) {
+			ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
+			ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: %s..\n",
+				ts->ecm_caid,
+				th->pid,
+				sec->table_id,
+				sec->section_data_len,
+				ts->ecm_counter,
+				dump);
+		}
 		if (ts->is_cw_error)
 			ts->ecm_counter--;
 		ts->is_cw_error = 0;

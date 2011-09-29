@@ -69,6 +69,7 @@ void data_init(struct ts *ts) {
 	ts->syslog_port = 514;
 
 	ts->ts_discont  = 1;
+	ts->ecm_cw_log  = 1;
 
 	ts->debug_level = 0;
 	ts->req_CA_sys  = CA_CONAX;
