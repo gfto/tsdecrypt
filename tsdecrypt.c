@@ -389,6 +389,7 @@ void signal_quit(int sig) {
 
 int main(int argc, char **argv) {
 	ssize_t readen;
+	int have_data = 1;
 	uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
 	uint8_t rtp_hdr[2][RTP_HDR_SZ];
 	int rtp_hdr_pos = 0, num_packets = 0;
@@ -432,6 +433,7 @@ int main(int argc, char **argv) {
 	camd_start(&ts);
 	do {
 		if (ts.input.type == NET_IO) {
+			set_log_io_errors(0);
 			if (!ts.rtp_input) {
 				readen = fdread_ex(ts.input.fd, (char *)ts_packet, FRAME_SIZE, 250, 4, 1);
 			} else {
@@ -450,14 +452,18 @@ int main(int argc, char **argv) {
 					num_packets++;
 				}
 			}
+			set_log_io_errors(1);
+			if (readen < 0)
+				ts_LOGf("--- | Input read timeout.\n");
 		} else {
 			readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
+			have_data = !(readen <= 0);
 		}
 		if (readen > 0)
 			process_packets(&ts, ts_packet, readen);
 		if (!keep_running)
 			break;
-	} while (readen > 0);
+	} while (have_data);
 EXIT:
 	camd_stop(&ts);
 
