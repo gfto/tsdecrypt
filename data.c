@@ -91,7 +91,7 @@ void data_init(struct ts *ts) {
 	ts->output.type = FILE_IO;
 	ts->output.ttl  = 1;
 
-	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 2, "decode");
+	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 4, "decode");
 	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 2, "write");
 }
 
