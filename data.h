@@ -116,6 +116,9 @@ struct ts {
 	unsigned int		ecm_report_interval;
 	time_t				ecm_last_report;
 
+	unsigned int		cw_warn_sec;
+	time_t				cw_last_warn;
+
 	// CAMD handling
 	struct key			key;
 	struct camd35		camd35;

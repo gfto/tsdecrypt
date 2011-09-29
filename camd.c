@@ -161,13 +161,18 @@ READ:
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, cw, 16, 0);
 
-	c->key->is_valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
+	int valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
+	if (!c->key->is_valid_cw && valid_cw) {
+		ts_LOGf("CW  | +++ OK: Valid CW was received.");
+	}
+	c->key->is_valid_cw = valid_cw;
 
 	// At first ts_keyset is not initialized
 	last_ts_keyset = c->key->ts_keyset;
 	if (c->key->is_valid_cw) {
 		gettimeofday(&c->key->ts_keyset, NULL);
 		c->key->ts = c->key->ts_keyset.tv_sec;
+		ts->cw_last_warn = c->key->ts;
 
 		dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
 		dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);

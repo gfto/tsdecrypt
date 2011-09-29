@@ -78,6 +78,7 @@ static const struct option long_options[] = {
 	{ "ecm-report-time",	required_argument, NULL, 'H' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
 	{ "ecm-no-log",			no_argument      , NULL, 'K' },
+	{ "cw-warn-time",		required_argument, NULL, 'J' },
 
 	{ "debug",				required_argument, NULL, 'D' },
 	{ "help",				no_argument,       NULL, 'h' },
@@ -141,6 +142,8 @@ static void show_help(struct ts *ts) {
 	printf("                            . the reports. Default: %d sec\n", ts->ecm_report_interval);
 	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: %d\n", ts->irdeto_ecm);
 	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
+	printf(" -J --cw-warn-time <sec>    | Warn if no valid code word has been received.\n");
+	printf("                            . Set <sec> to 0 to disable. Default: %d sec\n", ts->cw_warn_sec);
 	printf("\n");
 	printf("Misc options:\n");
 	printf(" -D --debug <level>         | Message debug level.\n");
@@ -178,7 +181,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:KD:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:KJ:D:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -301,6 +304,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'K':
 				ts->ecm_cw_log = 0;
 				break;
+			case 'J':
+				ts->cw_warn_sec = strtoul(optarg, NULL, 10);
+				if (ts->cw_warn_sec > 86400)
+					ts->cw_warn_sec = 86400;
+				break;
 
 			case 'D':
 				ts->debug_level = atoi(optarg);
@@ -391,6 +399,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (!ts->emm_only && ts->ecm_report_interval == 0)
 		ts_LOGf("ECM report : disabled\n");
 
+	if (!ts->emm_only && ts->cw_warn_sec)
+		ts_LOGf("CW warning : %d sec\n", ts->cw_warn_sec);
+	if (!ts->emm_only && ts->cw_warn_sec)
+		ts_LOGf("CW warning : disabled\n");
+
 	if (!ts->ecm_cw_log)
 		ts_LOGf("ECM/CW log : disabled\n");
 
@@ -424,6 +437,11 @@ static void report_ecms(struct ts *ts, time_t now) {
 	ts->ecm_processed_count = 0;
 }
 
+static void report_cw_warn(struct ts *ts, time_t now) {
+	ts_LOGf("CW  | *** No valid CW was received for %lu seconds!\n", now - ts->cw_last_warn);
+	ts->cw_last_warn = now;
+}
+
 static void do_reports(struct ts *ts) {
 	static int first_emm_report = 1;
 	static int first_ecm_report = 1;
@@ -445,6 +463,10 @@ static void do_reports(struct ts *ts) {
 		} else if ((time_t)(ts->ecm_last_report + ts->ecm_report_interval) <= now) {
 			report_ecms(ts, now);
 		}
+	}
+
+	if (!ts->emm_only && !ts->key.is_valid_cw) {
+		report_cw_warn(ts, now);
 	}
 }
 
