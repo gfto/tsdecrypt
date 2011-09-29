@@ -163,7 +163,7 @@ READ:
 
 	int valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
 	if (!c->key->is_valid_cw && valid_cw) {
-		ts_LOGf("CW  | +++ OK: Valid CW was received.");
+		ts_LOGf("CW  | OK: Valid CW was received.\n");
 	}
 	c->key->is_valid_cw = valid_cw;
 
