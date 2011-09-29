@@ -466,7 +466,9 @@ static void do_reports(struct ts *ts) {
 	}
 
 	if (!ts->emm_only && !ts->key.is_valid_cw) {
-		report_cw_warn(ts, now);
+		if ((time_t)(ts->cw_last_warn + ts->cw_warn_sec) <= now) {
+			report_cw_warn(ts, now);
+		}
 	}
 }
 
