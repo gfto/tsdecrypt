@@ -174,11 +174,14 @@ READ:
 		c->key->ts = c->key->ts_keyset.tv_sec;
 		ts->cw_last_warn = c->key->ts;
 
-		dvbcsa_key_set(c->key->cw    , c->key->csakey[0]);
-		dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
-
-		dvbcsa_bs_key_set(c->key->cw    , c->key->bs_csakey[0]);
-		dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
+		if (memcmp(c->key->cw, invalid_cw, 8) != 0) {
+			dvbcsa_key_set   (c->key->cw, c->key->csakey[0]);
+			dvbcsa_bs_key_set(c->key->cw, c->key->bs_csakey[0]);
+		}
+		if (memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
+			dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
+			dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
+		}
 	}
 
 	if (ts->ecm_cw_log) {
