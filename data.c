@@ -62,8 +62,6 @@ void data_init(struct ts *ts) {
 	ts->camd35.key          = &ts->key;
 	strcpy(ts->camd35.user, "user");
 	strcpy(ts->camd35.pass, "pass");
-	ts->camd35.emm_count_report_interval = 60;
-	ts->camd35.emm_count_last_report     = time(NULL);
 
 	// Config
 	ts->syslog_port = 514;
@@ -77,6 +75,9 @@ void data_init(struct ts *ts) {
 	ts->pid_filter  = 1;
 
 	ts->packet_delay = 0;
+
+	ts->emm_report_interval = 60;
+	ts->emm_last_report     = time(NULL);
 
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;

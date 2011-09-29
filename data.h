@@ -56,11 +56,6 @@ struct camd35 {
 	unsigned int	server_port;
 	char			user[64];
 	char			pass[64];
-
-	int				emm_count;
-	int				emm_count_report_interval;
-	time_t			emm_count_last_report;
-
 	AES_KEY			aes_encrypt_key;
 	AES_KEY			aes_decrypt_key;
 
@@ -108,6 +103,12 @@ struct ts {
 	pidmap_t			pidmap;
 	pidmap_t			cc; // Continuity counters
 	pidmap_t			pid_seen;
+
+	// Stats
+	unsigned int		emm_seen_count;
+	unsigned int		emm_processed_count;
+	unsigned int		emm_report_interval;
+	time_t				emm_last_report;
 
 	// CAMD handling
 	struct key			key;

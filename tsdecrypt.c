@@ -127,9 +127,9 @@ static void show_help(struct ts *ts) {
 	printf(" -E --emm-only              | Send only EMMs to CAMD, skipping ECMs and without\n");
 	printf("                            . decoding the input stream.\n");
 	printf(" -Z --emm-pid <pid>         | Force EMM pid. Default: none\n");
-	printf(" -f --emm-report-time <sec> | Report how much EMMs has been send for processing\n");
-	printf("                            . each <sec> seconds. Set <sec> to 0 to disable\n");
-	printf("                            . reporting. Default: %d sec\n", ts->camd35.emm_count_report_interval);
+	printf(" -f --emm-report-time <sec> | Report each <sec> seconds how much EMMs have been\n");
+	printf("                            . received/processed. Set <sec> to 0 to disable\n");
+	printf("                            . the reports. Default: %d sec\n", ts->emm_report_interval);
 	printf("\n");
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
@@ -276,11 +276,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->emm_send = 1;
 				break;
 			case 'f':
-				ts->camd35.emm_count_report_interval = atoi(optarg);
-				if (ts->camd35.emm_count_report_interval < 0)
-					ts->camd35.emm_count_report_interval = 0;
-				if (ts->camd35.emm_count_report_interval > 86400)
-					ts->camd35.emm_count_report_interval = 86400;
+				ts->emm_report_interval = strtoul(optarg, NULL, 10);
+				if (ts->emm_report_interval > 86400)
+					ts->emm_report_interval = 86400;
 				break;
 
 			case 'X':
@@ -367,9 +365,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Pkt sleep  : %d us (%d ms)\n", ts->packet_delay, ts->packet_delay / 1000);
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
-	if (ts->emm_send && ts->camd35.emm_count_report_interval)
-		ts_LOGf("EMM report : %d sec\n", ts->camd35.emm_count_report_interval);
-	if (ts->emm_send && ts->camd35.emm_count_report_interval == 0)
+	if (ts->emm_send && ts->emm_report_interval)
+		ts_LOGf("EMM report : %d sec\n", ts->emm_report_interval);
+	if (ts->emm_send && ts->emm_report_interval == 0)
 		ts_LOGf("EMM report : disabled\n");
 	if (ts->emm_only) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
@@ -386,6 +384,21 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			break;
 		if (ts->ident[i] == '/')
 			ts->ident[i] = '-';
+	}
+}
+
+static void do_reports(struct ts *ts) {
+	time_t now = time(NULL);
+	if (ts->emm_send && ts->emm_report_interval) {
+		if ((time_t)(ts->emm_last_report + ts->emm_report_interval) <= now) {
+			ts->emm_last_report = now;
+			ts_LOGf("EMM | Received %u and processed %u in %u seconds.\n",
+				ts->emm_seen_count,
+				ts->emm_processed_count,
+				ts->emm_report_interval);
+			ts->emm_seen_count = 0;
+			ts->emm_processed_count = 0;
+		}
 	}
 }
 
@@ -444,6 +457,8 @@ int main(int argc, char **argv) {
 
 	camd_start(&ts);
 	do {
+		do_reports(&ts);
+
 		if (ts.input.type == NET_IO) {
 			set_log_io_errors(0);
 			if (!ts.rtp_input) {
