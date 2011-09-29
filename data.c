@@ -79,6 +79,9 @@ void data_init(struct ts *ts) {
 	ts->emm_report_interval = 60;
 	ts->emm_last_report     = time(NULL);
 
+	ts->ecm_report_interval = 60;
+	ts->ecm_last_report     = time(NULL);
+
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;
 

@@ -285,8 +285,11 @@ static void camd_do_msg(struct camd_msg *msg) {
 		if (camd35_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len) > 0)
 			msg->ts->emm_processed_count++;
 	}
-	if (msg->type == ECM_MSG)
-		camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len);
+	if (msg->type == ECM_MSG) {
+		msg->ts->ecm_seen_count++;
+		if (camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len) > 0)
+			msg->ts->ecm_processed_count++;
+	}
 
 	camd_msg_free(&msg);
 }

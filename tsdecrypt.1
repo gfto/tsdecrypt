@@ -128,6 +128,10 @@ always chooses the first stream from the chosen CA system. Run tsdecrypt
 with --debug 2 and look at CA descriptors in PMT to see what CA streams
 are available.
 .TP
+\fB\-H\fR, \fB\-\-ecm\-report\-time\fR <seconds>
+Set interval for ECM reports. The default is \fB60\fR seconds. Set to \fB0\fR
+to disable ECM reports.
+.TP
 \fB\-G\fR, \fB\-\-ecm\-irdeto\-type\fR <type>
 Set ECM IRDETO type. IRDETO CA send ECMs with different id mixed
 into one stream. Only one of the IDs are valid in given time. This

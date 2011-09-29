@@ -110,6 +110,12 @@ struct ts {
 	unsigned int		emm_report_interval;
 	time_t				emm_last_report;
 
+	unsigned int		ecm_seen_count;
+	unsigned int		ecm_processed_count;
+	unsigned int		ecm_duplicate_count;
+	unsigned int		ecm_report_interval;
+	time_t				ecm_last_report;
+
 	// CAMD handling
 	struct key			key;
 	struct camd35		camd35;

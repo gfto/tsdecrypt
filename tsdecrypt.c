@@ -73,6 +73,7 @@ static const struct option long_options[] = {
 	{ "emm-report-time",	required_argument, NULL, 'f' },
 
 	{ "ecm-pid",			required_argument, NULL, 'X' },
+	{ "ecm-report-time",	required_argument, NULL, 'H' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
 	{ "ecm-no-log",			no_argument      , NULL, 'K' },
 
@@ -133,6 +134,9 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
+	printf(" -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been\n");
+	printf("                            . processed/skipped. Set <sec> to 0 to disable\n");
+	printf("                            . the reports. Default: %d sec\n", ts->ecm_report_interval);
 	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: %d\n", ts->irdeto_ecm);
 	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
 	printf("\n");
@@ -284,6 +288,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'X':
 				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
+			case 'H':
+				ts->ecm_report_interval = strtoul(optarg, NULL, 10);
+				if (ts->ecm_report_interval > 86400)
+					ts->ecm_report_interval = 86400;
+				break;
 			case 'G':
 				ts->irdeto_ecm = atoi(optarg);
 				break;
@@ -375,6 +384,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 	}
+	if (!ts->emm_only && ts->ecm_report_interval)
+		ts_LOGf("ECM report : %d sec\n", ts->emm_report_interval);
+	if (!ts->emm_only && ts->ecm_report_interval == 0)
+		ts_LOGf("ECM report : disabled\n");
 
 	if (!ts->ecm_cw_log)
 		ts_LOGf("ECM/CW log : disabled\n");
@@ -398,6 +411,19 @@ static void do_reports(struct ts *ts) {
 				ts->emm_report_interval);
 			ts->emm_seen_count = 0;
 			ts->emm_processed_count = 0;
+		}
+	}
+	if (!ts->emm_only && ts->ecm_report_interval) {
+		if ((time_t)(ts->ecm_last_report + ts->ecm_report_interval) <= now) {
+			ts->ecm_last_report = now;
+			ts_LOGf("ECM | Received %u (%u dup) and processed %u in %u seconds.\n",
+				ts->ecm_seen_count,
+				ts->ecm_duplicate_count,
+				ts->ecm_processed_count,
+				ts->ecm_report_interval);
+			ts->ecm_seen_count = 0;
+			ts->ecm_duplicate_count = 0;
+			ts->ecm_processed_count = 0;
 		}
 	}
 }

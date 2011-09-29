@@ -167,6 +167,8 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	struct ts_header *th = &ts->ecm->ts_header;
 	struct ts_section_header *sec = ts->ecm->section_header;
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
+	if (duplicate && !ts->is_cw_error)
+		ts->ecm_duplicate_count++;
 	if (!duplicate || ts->is_cw_error) {
 		if (ts->ecm_cw_log) {
 			ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
