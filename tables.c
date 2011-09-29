@@ -65,9 +65,16 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	handle_table_changes(cat);
 
-	ts_get_emm_info(ts->cat, ts->req_CA_sys, &ts->emm_caid, &ts->emm_pid);
-	if (!ts->emm_caid && ts->forced_emm_pid)
-		ts->emm_caid = 0xffff;
+	if (ts->forced_caid) {
+		ts->emm_caid = ts->forced_caid;
+		ts_get_emm_info_by_caid(ts->cat, ts->emm_caid, &ts->emm_pid);
+	} else {
+		ts_get_emm_info(ts->cat, ts->req_CA_sys, &ts->emm_caid, &ts->emm_pid);
+	}
+
+	if (ts->forced_emm_pid)
+		ts_get_emm_info_by_pid(ts->cat, &ts->emm_caid, ts->forced_emm_pid);
+
 	if (ts->emm_caid) {
 		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(ts->emm_caid));
 		ts_LOGf("--- | EMM CAID: 0x%04x (%s)\n", ts->emm_caid, CA_sys);
@@ -100,9 +107,16 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 		pidmap_set(&ts->pidmap, stream->pid); // Data
 	}
 
-	ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
-	if (!ts->ecm_caid && ts->forced_ecm_pid)
-		ts->ecm_caid = 0xffff;
+	if (ts->forced_caid) {
+		ts->ecm_caid = ts->forced_caid;
+		ts_get_ecm_info_by_caid(ts->pmt, ts->ecm_caid, &ts->ecm_pid);
+	} else {
+		ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
+	}
+
+	if (ts->forced_ecm_pid)
+		ts_get_ecm_info_by_pid(ts->pmt, &ts->ecm_caid, ts->forced_ecm_pid);
+
 	if (ts->ecm_caid) {
 		char *CA_sys = ts_get_CA_sys_txt(ts_get_CA_sys(ts->ecm_caid));
 		ts_LOGf("--- | ECM CAID: 0x%04x (%s)\n", ts->ecm_caid, CA_sys);

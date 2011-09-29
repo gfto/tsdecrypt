@@ -70,7 +70,7 @@ Enable output filtering. When output filter is enabled only PAT/PMT/SDT
 and data packets are left in the output. Everything else not mentioned
 in PMT like NIT, EIT, TDT tables and unknown pids is removed.
 .TP
-.SH CAMD OPTIONS
+.SH CA OPTIONS
 .PP
 .TP
 \fB\-c\fR, \fB\-\-ca\-system\fR <ca_sys>
@@ -80,6 +80,13 @@ supported CA systems that you can choose but are not tested (they are
 probably working) are \fBSECA\fR (\fBMEDIAGUARD\fR), \fBVIDEOGUARD\fR
 (\fBNDS\fR), \fBNAGRA\fR and \fBDRECRYPT\fR. The default <ca_sys>
 is \fBCONAX\fR.
+.TP
+\fB\-C\fR, \fB\-\-caid\fR <caid>
+Directly set CAID. This is useful if you have couple of CA streams from
+one CA but with different CAIDs.
+.TP
+.SH CAMD OPTIONS
+.PP
 .TP
 \fB\-s\fR, \fB\-\-camd\-server\fR <addr[:port]>
 Set CAMD server ip and port (10.0.1.1:2233). Is not set default port is

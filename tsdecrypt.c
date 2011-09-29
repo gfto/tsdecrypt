@@ -64,6 +64,7 @@ static const struct option long_options[] = {
 	{ "output-filter",		no_argument,       NULL, 'p' },
 
 	{ "ca-system",			required_argument, NULL, 'c' },
+	{ "caid",				required_argument, NULL, 'C' },
 	{ "camd-server",		required_argument, NULL, 's' },
 	{ "camd-user",			required_argument, NULL, 'U' },
 	{ "camd-pass",			required_argument, NULL, 'P' },
@@ -115,11 +116,14 @@ static void show_help(struct ts *ts) {
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
 	printf(" -p --output-filter         | Enable or disable output filter. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
 	printf("\n");
-	printf("CAMD server options:\n");
+	printf("CA options:\n");
 	printf(" -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.\n");
 	printf("                            | Valid systems are: CONAX (default), CRYPTOWORKS,\n");
 	printf("                            .   IRDETO, SECA (MEDIAGUARD), VIACCESS,\n");
 	printf("                            .   VIDEOGUARD (NDS), NAGRA and DRECRYPT.\n");
+	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
+	printf("\n");
+	printf("CAMD server options:\n");
 	printf(" -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd35.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd35.pass);
@@ -181,7 +185,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:s:U:P:y:eZ:Ef:X:G:KJ:D:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:G:KJ:D:h", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -249,6 +253,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				else
 					ca_err = 1;
 				break;
+			case 'C':
+				ts->forced_caid = strtoul(optarg, NULL, 0) & 0xffff;
+				break;
+
 			case 's':
 				p = strrchr(optarg, ':');
 				if (p) {
@@ -349,7 +357,16 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
 	else
 		ts_LOGf("Syslog     : disabled\n");
-	ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+
+	if (ts->forced_caid)
+		ts->req_CA_sys = ts_get_CA_sys(ts->forced_caid);
+	if (!ts->forced_caid)
+		ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+	else
+		ts_LOGf("CA System  : %s | CAID: 0x%04x (%d)\n",
+			ts_get_CA_sys_txt(ts->req_CA_sys),
+			ts->forced_caid, ts->forced_caid);
+
 	if (ts->input.type == NET_IO) {
 		ts_LOGf("Input addr : %s://%s:%u/\n",
 			ts->rtp_input ? "rtp" : "udp",
