@@ -360,12 +360,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (ts->req_CA_sys == CA_IRDETO)
 		ts_LOGf("Irdeto ECM : %d\n", ts->irdeto_ecm);
 
-	if (ts->forced_emm_pid)
-		ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
-
-	if (ts->forced_ecm_pid)
-		ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
-
 	if (!ts->emm_only)
 	{
 		if (ts->output.type == NET_IO) {
@@ -388,16 +382,21 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("EMM report : %d sec\n", ts->emm_report_interval);
 	if (ts->emm_send && ts->emm_report_interval == 0)
 		ts_LOGf("EMM report : disabled\n");
+	if (ts->forced_emm_pid)
+		ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
 	if (ts->emm_only) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
 	} else {
 		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 	}
+
 	if (!ts->emm_only && ts->ecm_report_interval)
 		ts_LOGf("ECM report : %d sec\n", ts->emm_report_interval);
 	if (!ts->emm_only && ts->ecm_report_interval == 0)
 		ts_LOGf("ECM report : disabled\n");
+	if (ts->forced_ecm_pid)
+		ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
 
 	if (!ts->emm_only && ts->cw_warn_sec)
 		ts_LOGf("CW warning : %d sec\n", ts->cw_warn_sec);
