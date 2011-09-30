@@ -83,6 +83,7 @@ void data_init(struct ts *ts) {
 	ts->ecm_last_report     = time(NULL);
 
 	ts->cw_warn_sec = 20;
+	ts->cw_last_warn= time(NULL);
 
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;
