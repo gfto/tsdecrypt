@@ -1,0 +1,20 @@
+2011-09-30 : Version 3.0
+ * Add man page.
+ * Add support for long command line options.
+ * Add make install/uninstall Makefile targets.
+ * Add support for compilation on OS X.
+ * Add tested support for Viaccess.
+ * Add tested support for Mediaguard (Seca).
+ * Add tested support for Videoguard (NDS).
+ * Add untested support for Nagra.
+ * Add untested support for DRE-Crypt.
+ * Add option to disable ECM and CW logging (--ecm-no-log).
+ * Add option to manually set EMM pid (--emm-pid).
+ * Add option to manually set ECM pid (--ecm-pid).
+ * Add option to manually set CAID (--caid).
+ * Add ECM reports (--ecm-report-time).
+ * Log warnings when there is no input data.
+ * Log warnings when code word become invalid.
+
+2011-09-15 : Version 2.0
+ * Initial public release.
