@@ -134,9 +134,10 @@ READ:
 		goto READ;
 
 	if (data[0] != 0x01) {
-		ts_LOGf("CW  | Unxpected server response, skipping it (data[0] == 0x%02x /%s/)\n",
+		ts_LOGf("CW  | Unexpected server response (returned data[0] == 0x%02x /ERR: %s/)\n",
 			data[0],
-			data[0] == 0x08 ? "No card" : "Unknown");
+			data[0] == 0x08 ? "No card" :
+			data[0] == 0x44 ? "No code word found" : "Unknown");
 		c->key->is_valid_cw = 0;
 		memcpy(c->key->cw, invalid_cw, 16);
 		return 0;
