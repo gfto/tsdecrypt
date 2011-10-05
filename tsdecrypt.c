@@ -83,6 +83,7 @@ static const struct option long_options[] = {
 
 	{ "debug",				required_argument, NULL, 'D' },
 	{ "help",				no_argument,       NULL, 'h' },
+	{ "version",			no_argument,       NULL, 'V' },
 
 	{ 0, 0, 0, 0 }
 };
@@ -157,6 +158,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
 	printf(" -h --help                  | Show help screen.\n");
+	printf(" -V --version               | Show program version.\n");
 	printf("\n");
 }
 
@@ -185,7 +187,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:G:KJ:D:h", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:G:KJ:D:hV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -324,6 +326,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 			case 'h':
 				show_help(ts);
+				exit(0);
+
+			case 'V':
+				printf("%s\n", program_id);
 				exit(0);
 		}
 	}
