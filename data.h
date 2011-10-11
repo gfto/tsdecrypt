@@ -64,7 +64,9 @@ struct camd35 {
 	struct key		*key;
 
 	pthread_t		thread;
-	QUEUE			*queue;
+	QUEUE			*req_queue;
+	QUEUE			*ecm_queue;
+	QUEUE			*emm_queue;
 };
 
 enum io_type {

@@ -333,8 +333,14 @@ void camd_msg_free(struct camd_msg **pmsg) {
 static void *camd_thread(void *in_ts) {
 	struct ts *ts = in_ts;
 	while (1) {
-		struct camd_msg *msg = queue_get(ts->camd35.queue); // Waits...
-		if (!msg || ts->camd_stop)
+		struct camd_msg *msg;
+		void *req = queue_get(ts->camd35.req_queue); // Waits...
+		if (!req || ts->camd_stop)
+			break;
+		msg = queue_get_nowait(ts->camd35.ecm_queue);
+		if (!msg)
+			msg = queue_get_nowait(ts->camd35.emm_queue);
+		if (!msg)
 			break;
 		camd_do_msg(msg);
 	}
@@ -344,7 +350,11 @@ static void *camd_thread(void *in_ts) {
 void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
 	msg->ts = ts;
 	if (ts->camd35.thread) {
-		queue_add(ts->camd35.queue, msg);
+		if (msg->type == EMM_MSG)
+			queue_add(ts->camd35.emm_queue, msg);
+		if (msg->type == ECM_MSG)
+			queue_add(ts->camd35.ecm_queue, msg);
+		queue_add(ts->camd35.req_queue, msg);
 	} else {
 		camd_do_msg(msg);
 	}
@@ -354,7 +364,9 @@ void camd_start(struct ts *ts) {
 	camd35_connect(ts);
 	// The input is not file, process messages using async thread
 	if (!(ts->input.type == FILE_IO && ts->input.fd != 0)) {
-		ts->camd35.queue = queue_new();
+		ts->camd35.req_queue = queue_new();
+		ts->camd35.ecm_queue = queue_new();
+		ts->camd35.emm_queue = queue_new();
 		pthread_create(&ts->camd35.thread, NULL , &camd_thread, ts);
 	}
 }
@@ -362,9 +374,11 @@ void camd_start(struct ts *ts) {
 void camd_stop(struct ts *ts) {
 	ts->camd_stop = 1;
 	if (ts->camd35.thread) {
-		queue_wakeup(ts->camd35.queue);
+		queue_wakeup(ts->camd35.req_queue);
 		pthread_join(ts->camd35.thread, NULL);
-		queue_free(&ts->camd35.queue);
+		queue_free(&ts->camd35.req_queue);
+		queue_free(&ts->camd35.ecm_queue);
+		queue_free(&ts->camd35.emm_queue);
 		ts->camd35.thread = 0;
 	}
 	camd35_disconnect(ts);
