@@ -1,3 +1,6 @@
+xxxx-xx-xx : Version -next
+ * Fix EMM/ECM parsing (this fixes ORF1 decoding on Astra 19.2).
+
 2011-09-30 : Version 3.0
  * Add man page.
  * Add support for long command line options.
