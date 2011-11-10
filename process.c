@@ -176,7 +176,7 @@ void *decode_thread(void *_ts) {
 	while (!ts->decode_stop) {
 		data = cbuf_peek(ts->decode_buf, req_size, &data_size);
 		if (data_size < req_size) {
-			usleep(10000);
+			usleep(1000);
 			continue;
 		}
 		data = cbuf_get(ts->decode_buf, req_size, &data_size);
