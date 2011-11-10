@@ -1,5 +1,6 @@
 CC = $(CROSS)$(TARGET)gcc
 STRIP = $(CROSS)$(TARGET)strip
+MKDEP = $(CROSS)$(TARGET)gcc -M -o $*.d $<
 
 BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
@@ -8,7 +9,8 @@ ifeq "$(GIT_VER)" ""
 GIT_VER = "release"
 endif
 
-CFLAGS  = -ggdb -Wall -Wextra -Wshadow -Wformat-security -Wno-strict-aliasing -O2 -D_GNU_SOURCE
+CFLAGS  = -O2 -ggdb
+CFLAGS += -Wall -Wextra -Wshadow -Wformat-security
 CFLAGS += -DBUILD_ID=\"$(BUILD_ID)\" -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 
 RM = /bin/rm -f
@@ -28,10 +30,11 @@ FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
 TS_DIR = libtsfuncs
 TS_LIB = $(TS_DIR)/libtsfuncs.a
 
-tsdecrypt_OBJS = data.o udp.o util.o camd.o process.o tables.o tsdecrypt.o $(FUNCS_LIB) $(TS_LIB)
+tsdecrypt_SRC  = data.c udp.c util.c camd.c process.c tables.c tsdecrypt.c
 tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
+tsdecrypt_OBJS = $(tsdecrypt_SRC:.c=.o) $(FUNCS_LIB) $(TS_LIB)
 
-CLEAN_OBJS = tsdecrypt $(tsdecrypt_OBJS) *~
+CLEAN_OBJS = tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
 
 PROGS = tsdecrypt
 
@@ -51,9 +54,12 @@ tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
 	$(Q)$(CC) $(CFLAGS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
-%.o: %.c RELEASE data.h
+%.o: %.c RELEASE
+	@$(MKDEP)
 	$(Q)echo "  CC	tsdecrypt	$<"
 	$(Q)$(CC) $(CFLAGS)  -c $<
+
+-include $(tsdecrypt_SRC:.c=.d)
 
 strip:
 	$(Q)echo "  STRIP	$(PROGS)"
