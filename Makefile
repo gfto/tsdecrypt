@@ -1,14 +1,15 @@
 CC = $(CROSS)$(TARGET)gcc
 STRIP = $(CROSS)$(TARGET)strip
+
 BUILD_ID = $(shell date +%F_%R)
-VERSION="v3.0"
+VERSION = $(shell cat RELEASE)
 GIT_VER = $(shell git describe --tags --dirty --always 2>/dev/null)
-CFLAGS = -ggdb -Wall -Wextra -Wshadow -Wformat-security -Wno-strict-aliasing -O2 -D_GNU_SOURCE -DBUILD_ID=\"$(BUILD_ID)\"
-ifneq "$(GIT_VER)" ""
-CFLAGS += -DGIT_VER=\"$(GIT_VER)\"
-else
-CFLAGS += -DGIT_VER=\"$(VERSION)\"
+ifeq "$(GIT_VER)" ""
+GIT_VER = "release"
 endif
+
+CFLAGS  = -ggdb -Wall -Wextra -Wshadow -Wformat-security -Wno-strict-aliasing -O2 -D_GNU_SOURCE
+CFLAGS += -DBUILD_ID=\"$(BUILD_ID)\" -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 
 RM = /bin/rm -f
 Q = @
@@ -50,7 +51,7 @@ tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
 	$(Q)$(CC) $(CFLAGS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
-%.o: %.c data.h
+%.o: %.c RELEASE data.h
 	$(Q)echo "  CC	tsdecrypt	$<"
 	$(Q)$(CC) $(CFLAGS)  -c $<
 
