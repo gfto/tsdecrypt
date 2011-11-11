@@ -1,9 +1,9 @@
-xxxx-xx-xx : Version -next
+2011-11-12 : Version 3.1
  * Add debug level 5 (full mpeg ts packet dump).
  * Fix PSI table gathering in invalid transport streams.
  * Fix EMM/ECM parsing (this fixes ORF1 decoding on Astra 19.2).
  * Process ECMs before EMMs, preventing the case where too much
-   incoming EMMs to interfere with decryption.
+   incoming EMMs interfere with decryption.
 
 2011-09-30 : Version 3.0
  * Add man page.
