@@ -1,4 +1,5 @@
 xxxx-xx-xx : Version -next
+ * Fix PSI table gathering in invalid transport streams.
  * Fix EMM/ECM parsing (this fixes ORF1 decoding on Astra 19.2).
  * Process ECMs before EMMs, preventing the case where too much
    incoming EMMs to interfere with decryption.
