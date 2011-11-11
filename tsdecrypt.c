@@ -157,6 +157,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    2 = show EMMs\n");
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
+	printf("                            .    5 = packet debug + packet dump\n");
 	printf(" -h --help                  | Show help screen.\n");
 	printf(" -V --version               | Show program version.\n");
 	printf("\n");

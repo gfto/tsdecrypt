@@ -66,22 +66,27 @@ static char *get_pid_desc(struct ts *ts, uint16_t pid) {
 }
 
 void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, uint8_t *ts_packet) {
+	char pdump[188 * 6];
 	char cw1_dump[8 * 6];
 	char cw2_dump[8 * 6];
 	if (ts->debug_level >= 4) {
 		if (ts_pack_shown)
 			return;
+		if (ts->debug_level >= 5)
+			ts_hex_dump_buf(pdump, 188 * 6, ts_packet, 188, 0);
+
 		int stype = ts_packet_get_scrambled(ts_packet);
 		ts_hex_dump_buf(cw1_dump, 8 * 6, ts->key.cw    , 8, 0);
 		ts_hex_dump_buf(cw2_dump, 8 * 6, ts->key.cw + 8, 8, 0);
-		fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s\n",
+		fprintf(stderr, "@ %s %s %03x %5ld %7ld | %s   %s | %s %s\n",
 			stype == 0 ? "------" :
 			stype == 2 ? "even 0" :
 			stype == 3 ? "odd  1" : "??????",
 			wtf,
 			pid,
 			ts_pack, ts_pack * 188,
-			cw1_dump, cw2_dump, extra ? extra : wtf);
+			cw1_dump, cw2_dump, extra ? extra : wtf,
+			ts->debug_level >= 5 ? pdump : "");
 	}
 }
 
