@@ -593,8 +593,10 @@ EXIT:
 		ts.decode_stop = 1;
 		ts.write_stop = 1;
 
-		pthread_join(ts.decode_thread, NULL);
-		pthread_join(ts.write_thread, NULL);
+		if (ts.decode_thread)
+			pthread_join(ts.decode_thread, NULL);
+		if (ts.write_thread)
+			pthread_join(ts.write_thread, NULL);
 	}
 
 	data_free(&ts);
