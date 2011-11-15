@@ -1,4 +1,5 @@
 xxxx-xx-xx : Version -next
+ * notify: Added start/stop events.
  * notify: Added option to execute external script on event.
 
 2011-11-14 : Version 3.2

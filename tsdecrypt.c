@@ -540,6 +540,7 @@ int main(int argc, char **argv) {
 	ts.notify = notify_alloc(&ts);
 
 	ts_LOGf("Start %s\n", program_id);
+	notify(&ts, "START", "Starting %s", program_id);
 
 	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
 		goto EXIT;
@@ -608,6 +609,7 @@ EXIT:
 			pthread_join(ts.write_thread, NULL);
 	}
 
+	notify(&ts, "STOP", "Stopping %s", program_id);
 	ts_LOGf("Stop %s\n", program_id);
 
 	if (ts.syslog_active)
