@@ -1,6 +1,6 @@
 .TH TSDECRYPT "1" "November 2011" "tsdecrypt 3.2" "User Commands"
 .SH NAME
-tsdecrypt - Decrypt mpegts stream.
+tsdecrypt - Decrypt mpeg transport stream.
 .SH SYNOPSIS
 .B tsdecrypt
 [\fIoptions\fR]
@@ -50,8 +50,8 @@ or multicast (-I 224.0.0.1:5000). By default tsdecrypt reads from \fBstdin\fR.
 \fB\-R\fR, \fB\-\-input\-rtp\fR
 When reading from multicast assume the input is RTP stream. NOTE: No RTP
 processing/reordering of packets is done. The 12 byte RTP header is just
-stripped out and the stream is then processed as normal mpegts over UDP
-multicast.
+stripped out and the stream is then processed as normal mpeg transport
+stream over UDP multicast.
 .TP
 \fB\-z\fR, \fB\-\-input\-ignore\-disc\fR
 Do not report input discontinuity or RTP discontinuity errors.
