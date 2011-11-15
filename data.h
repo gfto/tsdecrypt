@@ -35,6 +35,13 @@
 // How much seconds to assume the key is valid
 #define KEY_VALID_TIME 10
 
+struct notify {
+	pthread_t	thread;				/* Thread handle */
+	QUEUE		*notifications;		/* Notification queue */
+	char		ident[512];			/* tsdecrypt ident (set by -i) */
+	char		program[512];		/* What program to exec */
+};
+
 struct key {
 	uint8_t				cw[16];
 	int					is_valid_cw;
@@ -166,6 +173,9 @@ struct ts {
 	int					write_stop;
 	pthread_t			write_thread;
 	CBUF				*write_buf;
+
+	struct notify		*notify;
+	char				notify_program[512];
 };
 
 enum msg_type { EMM_MSG, ECM_MSG };

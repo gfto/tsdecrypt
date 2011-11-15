@@ -1,3 +1,6 @@
+xxxx-xx-xx : Version -next
+ * notify: Added option to execute external script on event.
+
 2011-11-14 : Version 3.2
  * Fixed bug that prevented tsdecrypt from working at all :(
 

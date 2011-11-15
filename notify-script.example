@@ -1,0 +1,63 @@
+#!/bin/sh
+# Example tsdecrypt notify script
+# Written by Georgi Chorbadzhiyski
+#
+# *** Released as PUBLIC DOMAIN ***
+# *** Do whatever you want with this code ***
+
+EMAIL_ENABLED="yes"
+EMAIL_TO="georgi@unixsol.org" # !!! Change this !!!
+EMAIL_FROM="georgi@unixsol.org" # !!! Change this !!!
+EMAIL_SUBJECT_PREFIX="[tsdecrypt]"
+EMAIL_PROGRAM="/usr/sbin/sendmail -t -i"
+
+LOG_ENABLED="yes"
+LOG_DIR="."
+LOG_FILE="$LOGDIR/notify.${_IDENT}.notify.log"
+
+# Environmental vars that are set by the calling process (tsdecrypt):
+#   _TS             Unix timestamp of the event.
+#   _IDENT          tsdecrypt ident (--ident parameter).
+#   _MESSAGE_ID     Event message id (For example START, STOP, etc...).
+#   _MESSAGE_TEXT   Event message text. Human readable event message.
+#   _MESSAGE_MSG    Event message id lower cased and "_" is replaced with " "
+
+export PATH="/bin:/usr/bin:/usr/local/bin"
+export LC_ALL=C
+
+if [ -z "${_IDENT}" -o -z "${_TS}" ]
+then
+	echo "This script must be run from tsdecrypt."
+	echo "In order for tsdecrypt to run this script use --ident and --notify-prg options."
+	echo
+	echo "Example:"
+	echo "   tsdecrypt --ident SOURCE/CHANNEL --notify-program ./notify-script.example --camd-server x.x.x.x"
+	echo
+	exit 1
+fi
+
+if [ "$LOG_ENABLED" = "yes" ]
+then
+	LOG_DATE="$(date +%F\ %T\ %z -d @${_TS})"
+	printf "%s | %s | %-16s | %s\n" \
+		"$LOG_DATE" \
+		"${_IDENT}" \
+		"${_MESSAGE_ID}" \
+		"${_MESSAGE_TEXT}" \
+		  >> $LOG_DIR/$LOG_FILE
+fi
+
+if [ "$EMAIL_ENABLED" = "yes" ]
+then
+	(
+		echo "To: <$EMAIL_TO>"
+		echo "From: <$EMAIL_FROM>"
+		echo "Return-Path: <$EMAIL_FROM>"
+		echo "Subject: $EMAIL_SUBJECT_PREFIX ${_IDENT} ${_MESSAGE_MSG}"
+		echo "X-IDENT: ${_IDENT}"
+		echo "X-MSG-ID: ${_MESSAGE_ID}"
+		echo "X-Mailer: tsdecrypt"
+		echo
+		echo "${_IDENT} ${_MESSAGE_TEXT}"
+	) | $EMAIL_PROGRAM
+fi

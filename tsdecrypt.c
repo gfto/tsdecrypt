@@ -30,6 +30,7 @@
 #include "camd.h"
 #include "process.h"
 #include "udp.h"
+#include "notify.h"
 
 #define FIRST_REPORT_SEC 3
 
@@ -53,6 +54,7 @@ static const struct option long_options[] = {
 	{ "daemon",				required_argument, NULL, 'd' },
 	{ "syslog-host",		required_argument, NULL, 'l' },
 	{ "syslog-port",		required_argument, NULL, 'L' },
+	{ "notify-program",		required_argument, NULL, 'N' },
 
 	{ "input",				required_argument, NULL, 'I' },
 	{ "input-rtp",			no_argument,       NULL, 'R' },
@@ -97,6 +99,8 @@ static void show_help(struct ts *ts) {
 	printf("Daemon options:\n");
 	printf(" -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty\n");
 	printf(" -d --daemon <pidfile>      | Daemonize program and write pid file.\n");
+	printf(" -N --notify-program <prg>  | Execute <prg> to report events. Default: empty\n");
+	printf("\n");
 	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
 	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
 	printf("\n");
@@ -188,7 +192,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -200,6 +204,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->pidfile[sizeof(ts->pidfile) - 1] = 0;
 				ts->daemonize = 1;
 				break;
+			case 'N':
+				strncpy(ts->notify_program, optarg, sizeof(ts->notify_program) - 1);
+				ts->notify_program[sizeof(ts->notify_program) - 1] = 0;
+				break;
+
 			case 'l':
 				strncpy(ts->syslog_host, optarg, sizeof(ts->syslog_host) - 1);
 				ts->syslog_host[sizeof(ts->syslog_host) - 1] = 0;
@@ -352,10 +361,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
 		exit(1);
 	}
-	if (ts->ident[0])
-		ts_LOGf("Ident      : %s\n", ts->ident);
-	else
-		ts_LOGf("Ident      : *NOT SET*\n");
+	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
+	ts_LOGf("Notify prog: %s\n", ts->notify_program[0] ? ts->notify_program : "*NOT SET*");
 	if (ts->pidfile[0])
 		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
 	else
@@ -530,6 +537,8 @@ int main(int argc, char **argv) {
 		log_init(ts.ident, ts.syslog_active, ts.daemonize != 1, ts.syslog_host, ts.syslog_port);
 	}
 
+	ts.notify = notify_alloc(&ts);
+
 	ts_LOGf("Start %s\n", program_id);
 
 	if (ts.input.type == NET_IO && udp_connect_input(&ts.input) < 1)
@@ -599,8 +608,6 @@ EXIT:
 			pthread_join(ts.write_thread, NULL);
 	}
 
-	data_free(&ts);
-
 	ts_LOGf("Stop %s\n", program_id);
 
 	if (ts.syslog_active)
@@ -608,6 +615,9 @@ EXIT:
 
 	if (ts.daemonize)
 		unlink(ts.pidfile);
+
+	notify_free(&ts.notify);
+	data_free(&ts);
 
 	exit(0);
 }

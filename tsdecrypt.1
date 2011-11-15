@@ -20,6 +20,13 @@ for the ident is PROVIDER/CHANNEL.
 \fB\-d\fR, \fB\-\-daemon\fR <pidfile>
 When started become a daemon and write pid file to <pidfile>.
 .TP
+\fB\-N\fR, \fB\-\-notify\-program\fR <program>
+Execute \fB<program>\fR when predefined events happen. In order for
+this option to work \fB\-\-ident\fR should also be used.
+
+You can use \fBnotify-script.example\fR file as notification program
+and an example on how to create your own notification script.
+.TP
 \fB\-l\fR, \fB\-\-syslog\-host\fR <addr>
 Set syslog host. tsdecrypt sends messages to this host over tcp in
 syslog compatible format. syslog-ng was tested as receiving syslog server.

@@ -30,7 +30,7 @@ FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
 TS_DIR = libtsfuncs
 TS_LIB = $(TS_DIR)/libtsfuncs.a
 
-tsdecrypt_SRC  = data.c udp.c util.c camd.c process.c tables.c tsdecrypt.c
+tsdecrypt_SRC  = data.c udp.c util.c camd.c process.c tables.c notify.c tsdecrypt.c
 tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
 tsdecrypt_OBJS = $(tsdecrypt_SRC:.c=.o) $(FUNCS_LIB) $(TS_LIB)
 
