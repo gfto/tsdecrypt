@@ -32,7 +32,7 @@
 int udp_connect_input(struct io *io) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
-		ts_LOGf("socket(SOCK_DGRAM): %s", strerror(errno));
+		ts_LOGf("socket(SOCK_DGRAM): %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -50,7 +50,7 @@ int udp_connect_input(struct io *io) {
 		memcpy(&mreq.imr_multiaddr, &io->addr, sizeof(struct in_addr));
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 		if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
-			ts_LOGf("setsockopt(IP_ADD_MEMBERSHIP %s): %s", inet_ntoa(io->addr), strerror(errno));
+			ts_LOGf("setsockopt(IP_ADD_MEMBERSHIP %s): %s\n", inet_ntoa(io->addr), strerror(errno));
 			return -1;
 		}
 	}
@@ -61,7 +61,7 @@ int udp_connect_input(struct io *io) {
 	receiving_from.sin_addr   = io->addr;
 	receiving_from.sin_port   = htons(io->port);
 	if (bind(sock, (struct sockaddr *) &receiving_from, sizeof(receiving_from)) < 0) {
-		ts_LOGf("bind(): %s", strerror(errno));
+		ts_LOGf("bind(): %s\n", strerror(errno));
 		return -1;
 	}
 
