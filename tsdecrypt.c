@@ -468,7 +468,10 @@ static void report_ecms(struct ts *ts, time_t now) {
 }
 
 static void report_cw_warn(struct ts *ts, time_t now) {
-	ts_LOGf("CW  | *** No valid CW was received for %lu seconds!\n", now - ts->cw_last_warn);
+	notify(ts, "NO_CODE_WORD", "No valid code word was received for %ld sec.",
+		now - ts->cw_last_warn);
+	ts_LOGf("CW  | *ERR* No valid code word was received for %ld seconds!\n",
+		now - ts->cw_last_warn);
 	ts->cw_last_warn = now;
 }
 

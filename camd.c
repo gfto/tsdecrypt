@@ -34,6 +34,7 @@
 #include "data.h"
 #include "util.h"
 #include "camd.h"
+#include "notify.h"
 
 static int connect_to(struct in_addr ip, int port) {
 	ts_LOGf("CAM | Connecting to server %s:%d\n", inet_ntoa(ip), port);
@@ -164,7 +165,8 @@ READ:
 
 	int valid_cw = memcmp(c->key->cw, invalid_cw, 16) != 0;
 	if (!c->key->is_valid_cw && valid_cw) {
-		ts_LOGf("CW  | OK: Valid CW was received.\n");
+		ts_LOGf("CW  | OK: Valid code word was received.\n");
+		notify(ts, "CODE_WORD_OK", "Valid code word was received.");
 	}
 	c->key->is_valid_cw = valid_cw;
 
@@ -255,8 +257,12 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 	ret = camd35_recv_cw(ts);
 	if (ret < 48) {
 		ts->is_cw_error = 1;
-		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME)
+		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME) {
+			if (c->key->is_valid_cw)
+				notify(ts, "NO_CODE_WORD", "No code word was set in %ld sec. Decryption is disabled.",
+					time(NULL) - ts->key.ts);
 			c->key->is_valid_cw = 0;
+		}
 		return 0;
 	}
 
