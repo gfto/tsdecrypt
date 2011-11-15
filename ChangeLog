@@ -1,4 +1,5 @@
 xxxx-xx-xx : Version -next
+ * notify: Added input_timeout/input_ok events.
  * notify: Added start/stop events.
  * notify: Added option to execute external script on event.
 

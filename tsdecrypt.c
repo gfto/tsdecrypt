@@ -515,6 +515,8 @@ void signal_quit(int sig) {
 int main(int argc, char **argv) {
 	ssize_t readen;
 	int have_data = 1;
+	int ntimeouts = 0;
+	time_t timeout_start = time(NULL);
 	uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
 	uint8_t rtp_hdr[2][RTP_HDR_SZ];
 	int rtp_hdr_pos = 0, num_packets = 0;
@@ -585,8 +587,24 @@ int main(int argc, char **argv) {
 				}
 			}
 			set_log_io_errors(1);
-			if (readen < 0)
+			if (readen < 0) {
 				ts_LOGf("--- | Input read timeout.\n");
+				if (!ntimeouts) {
+					timeout_start = time(NULL);
+					notify(&ts, "INPUT_TIMEOUT", "Read timeout on input %s://%s:%u/",
+							ts.rtp_input ? "rtp" : "udp",
+							inet_ntoa(ts.input.addr), ts.input.port);
+				}
+				ntimeouts++;
+			} else {
+				if (ntimeouts && readen > 0) {
+					notify(&ts, "INPUT_OK", "Data is available on input %s://%s:%u/ after %ld seconds timeout.",
+							ts.rtp_input ? "rtp" : "udp",
+							inet_ntoa(ts.input.addr), ts.input.port,
+							(time(NULL) - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
+					ntimeouts = 0;
+				}
+			}
 		} else {
 			readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 			have_data = !(readen <= 0);
