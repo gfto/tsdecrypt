@@ -33,6 +33,7 @@
 #include "libfuncs/queue.h"
 
 #include "notify.h"
+#include "util.h"
 
 struct npriv {
 	char	ident[512];
@@ -87,6 +88,8 @@ OUT:
 
 static void *notify_thread(void *data) {
 	struct notify *n = data;
+
+	set_thread_name("tsdec-notify");
 
 	while (1) {
 		struct npriv *np = queue_get(n->notifications); // Waits...

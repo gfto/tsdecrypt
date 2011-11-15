@@ -338,6 +338,9 @@ void camd_msg_free(struct camd_msg **pmsg) {
 
 static void *camd_thread(void *in_ts) {
 	struct ts *ts = in_ts;
+
+	set_thread_name("tsdec-camd");
+
 	while (1) {
 		struct camd_msg *msg;
 		void *req = queue_get(ts->camd35.req_queue); // Waits...

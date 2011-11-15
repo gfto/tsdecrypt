@@ -20,6 +20,7 @@
 
 #include "data.h"
 #include "tables.h"
+#include "util.h"
 
 static unsigned long ts_pack;
 static int ts_pack_shown;
@@ -178,6 +179,8 @@ void *decode_thread(void *_ts) {
 	int data_size;
 	int req_size = 188 * dvbcsa_bs_batch_size();
 
+	set_thread_name("tsdec-decode");
+
 	while (!ts->decode_stop) {
 		data = cbuf_peek(ts->decode_buf, req_size, &data_size);
 		if (data_size < req_size) {
@@ -202,6 +205,8 @@ void *write_thread(void *_ts) {
 	struct ts *ts = _ts;
 	uint8_t *data;
 	int data_size;
+
+	set_thread_name("tsdec-write");
 
 	while (!ts->write_stop) {
 		data_size = 0;

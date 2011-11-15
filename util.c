@@ -15,6 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  */
+
+#include <string.h>
+
 #include "util.h"
 
 static unsigned long crc_table[256] = {
@@ -118,3 +121,17 @@ uint8_t *init_2b(uint32_t val, uint8_t *b) {
 	b[1] = (val     ) & 0xff;
 	return b;
 }
+
+#ifdef __linux__
+#include <sys/prctl.h>
+
+void set_thread_name(char *thread_name) {
+	prctl(PR_SET_NAME, thread_name, NULL, NULL, NULL);
+}
+
+#else
+void set_thread_name(char *thread_name) {
+    (void)thread_name;
+}
+
+#endif
