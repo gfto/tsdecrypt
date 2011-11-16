@@ -91,25 +91,28 @@ Misc options:
 
 Development
 ===========
-The development is tracked using git. The repository is hosted at github
-to get it, run the following command:
+The development is done using git. tsdecrypt repository is hosted
+at http://github.com/gfto/tsdecrypt
 
-   git clone git://github.com/gfto/tsdecrypt.git
-   git submodule init
-   git submodule update
-
-The code is developed and tested under modern Linux. It is also
-compiled from time to time under OS X but is not tested there.
-
-Compiling
-=========
-Clone git repository, initialize submodules and the run make.
+To clone the repository issue the following commands:
 
    git clone git://github.com/gfto/tsdecrypt.git
    git submodule init
    git submodule update
    make
-   make install
+
+The code is developed and tested under modern Linux. It is also
+compiled from time to time under OS X but is not tested there.
+
+Updating the code
+=================
+To update cloned tsdecrypt, go to the directory where the repository
+is cloned and run the following commands:
+
+   git fetch origin
+   git merge origin/master
+   git submodule update
+   make distclean all
 
 Examples
 ========
