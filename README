@@ -17,9 +17,77 @@ from http://www.videolan.org/developers/libdvbcsa.html
 
 Documentation
 =============
-tsdecrypt is controlled using command line parameters. Run tsdecrypt to
-see all of the parameters and explanation what every one of them does.
-For more information read the man page.
+tsdecrypt is controlled using command line parameters. For more information
+about the parameters see the man page.
+
+Daemon options:
+ -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty
+ -d --daemon <pidfile>      | Daemonize program and write pid file.
+ -N --notify-program <prg>  | Execute <prg> to report events. Default: empty
+
+ -l --syslog-host <host>    | Syslog server address. Default: disabled
+ -L --syslog-port <port>    | Syslog server port. Default: 514
+
+Input options:
+ -I --input <source>        | Where to read from. File or multicast address.
+                            .    -I 224.0.0.1:5000 (multicast receive)
+                            .    -I file.ts        (read from file)
+                            .    -I -              (read from stdin) (default)
+ -R --input-rtp             | Enable RTP input
+ -z --input-ignore-disc     | Do not report discontinuty errors in input.
+
+Output options:
+ -O --output <dest>         | Where to send output. File or multicast address.
+                            .    -O 239.0.0.1:5000 (multicast send)
+                            .    -O file.ts        (write to file)
+                            .    -O -              (write to stdout) (default)
+ -o --output-intf <addr>    | Set multicast output interface. Default: 0.0.0.0
+ -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
+ -p --output-filter         | Enable or disable output filter. Default: enabled
+
+CA options:
+ -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.
+                            | Valid systems are: CONAX (default), CRYPTOWORKS,
+                            .   IRDETO, SECA (MEDIAGUARD), VIACCESS,
+                            .   VIDEOGUARD (NDS), NAGRA and DRECRYPT.
+ -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
+
+CAMD server options:
+ -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).
+ -U --camd-user <user>      | Set CAMD server user. Default: user
+ -P --camd-pass <pass>      | Set CAMD server password. Default: pass
+ -y --camd-pkt-delay <us>   | Sleep <us> usec between sending ECM/EMM
+                            .   packets to CAMD. Default: 0
+
+EMM options:
+ -e --emm                   | Enable sending EMM's to CAMD. Default: disabled
+ -E --emm-only              | Send only EMMs to CAMD, skipping ECMs and without
+                            .   decoding the input stream.
+ -Z --emm-pid <pid>         | Force EMM pid. Default: none
+ -f --emm-report-time <sec> | Report each <sec> seconds how much EMMs have been
+                            .   received/processed. Set <sec> to 0 to disable
+                            .   the reports. Default: 60 sec
+
+ECM options:
+ -X --ecm-pid <pid>         | Force ECM pid. Default: none
+ -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been
+                            .   processed/skipped. Set <sec> to 0 to disable
+                            .   the reports. Default: 60 sec
+ -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: 0
+ -K --ecm-no-log            | Disable ECM and code words logging.
+ -J --cw-warn-time <sec>    | Warn if no valid code word has been received.
+                            .   Set <sec> to 0 to disable. Default: 20 sec
+
+Misc options:
+ -D --debug <level>         | Message debug level.
+                            .    0 = default messages
+                            .    1 = show PSI tables
+                            .    2 = show EMMs
+                            .    3 = show duplicate ECMs
+                            .    4 = packet debug
+                            .    5 = packet debug + packet dump
+ -h --help                  | Show help screen.
+ -V --version               | Show program version.
 
 Development
 ===========
