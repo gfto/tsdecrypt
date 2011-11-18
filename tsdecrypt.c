@@ -218,7 +218,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->syslog_port = atoi(optarg);
 				break;
 
-
 			case 'I':
 				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
 				break;
@@ -343,12 +342,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				exit(0);
 		}
 	}
-	if (ts->syslog_active && !ts->ident[0])
-		ident_err = 1;
+	if (!ts->ident[0]) {
+		if (ts->syslog_active || ts->notify_program[0])
+			ident_err = 1;
+	}
 	if (ident_err || ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
 		show_help(ts);
 		if (ident_err)
-			fprintf(stderr, "ERROR: Syslog is enabled but ident was not set.\n");
+			fprintf(stderr, "ERROR: Ident is not set, please use --ident option.\n");
 		if (ca_err)
 			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
 		if (server_err)
