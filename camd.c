@@ -125,7 +125,7 @@ static int camd35_recv_cw(struct ts *ts) {
 READ:
 	ret = camd35_recv(c, data, &data_len);
 	if (ret < 0) {
-		ts_LOGf("CW  | No CW has been received (ret = %d)\n", ret);
+		ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
 		camd35_reconnect(ts);
 		return ret;
 	}
@@ -135,10 +135,10 @@ READ:
 		goto READ;
 
 	if (data[0] != 0x01) {
-		ts_LOGf("CW  | Unexpected server response (returned data[0] == 0x%02x /ERR: %s/)\n",
+		ts_LOGf("ERR | Unexpected server response on code word request (ret data[0] == 0x%02x /%s/)\n",
 			data[0],
 			data[0] == 0x08 ? "No card" :
-			data[0] == 0x44 ? "No code word found" : "Unknown");
+			data[0] == 0x44 ? "No code word found" : "Unknown err");
 		c->ecm_recv_errors++;
 		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
 			c->key->is_valid_cw = 0;
@@ -148,12 +148,12 @@ READ:
 	}
 
 	if (data_len < 48) {
-		ts_LOGf("CW  | data_len (%d) mismatch != 48\n", data_len);
+		ts_LOGf("ERR | Code word data_len (%d) mismatch != 48\n", data_len);
 		return 0;
 	}
 
 	if (data[1] < 0x10) {
-		ts_LOGf("CW  | CW len (%d) mismatch != 16\n", data[1]);
+		ts_LOGf("ERR | Code word len (%d) mismatch != 16\n", data[1]);
 		return 0;
 	}
 	gettimeofday(&tv2, NULL);
