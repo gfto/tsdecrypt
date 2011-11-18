@@ -55,6 +55,12 @@ struct key {
 #define CAMD35_HDR_LEN (20)
 #define CAMD35_BUF_LEN (4 + CAMD35_HDR_LEN + 256 + 16)
 
+// When this limit is reached invalid_cw flag is set.
+#define ECM_RECV_ERRORS_LIMIT 10
+
+// When this limit is reached camd_reconnect is called.
+#define EMM_RECV_ERRORS_LIMIT 10
+
 struct camd35 {
 	uint8_t			buf[CAMD35_BUF_LEN];
 
@@ -65,6 +71,9 @@ struct camd35 {
 	char			pass[64];
 	AES_KEY			aes_encrypt_key;
 	AES_KEY			aes_decrypt_key;
+
+	unsigned int	ecm_recv_errors; // Error counter, reset on successful send/recv
+	unsigned int	emm_recv_errors; // Error counter, reset on successful send/recv
 
 	uint32_t		auth_token;
 

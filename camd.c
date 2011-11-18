@@ -139,8 +139,11 @@ READ:
 			data[0],
 			data[0] == 0x08 ? "No card" :
 			data[0] == 0x44 ? "No code word found" : "Unknown");
-		c->key->is_valid_cw = 0;
-		memcpy(c->key->cw, invalid_cw, 16);
+		c->ecm_recv_errors++;
+		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
+			c->key->is_valid_cw = 0;
+			memcpy(c->key->cw, invalid_cw, 16);
+		}
 		return 0;
 	}
 
@@ -173,6 +176,8 @@ READ:
 	// At first ts_keyset is not initialized
 	last_ts_keyset = c->key->ts_keyset;
 	if (c->key->is_valid_cw) {
+		c->ecm_recv_errors = 0;
+
 		gettimeofday(&c->key->ts_keyset, NULL);
 		c->key->ts = c->key->ts_keyset.tv_sec;
 		ts->cw_last_warn = c->key->ts;
@@ -287,9 +292,17 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 		usleep(ts->packet_delay);
 
 	int ret = camd35_send_buf(ts, to_send);
-	if (ret <= 0) {
-		ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
-		camd35_reconnect(ts);
+	if (ret < 0) {
+		c->emm_recv_errors++;
+		if (c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
+			ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
+			camd35_reconnect(ts);
+			c->emm_recv_errors = 0;
+		} else {
+			ts_LOGf("ERR | Error sending emm packet (nerrors: %d).\n", c->emm_recv_errors);
+		}
+	} else {
+			c->emm_recv_errors = 0;
 	}
 	return ret;
 }
