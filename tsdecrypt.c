@@ -322,7 +322,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->irdeto_ecm = atoi(optarg);
 				break;
 			case 'K':
-				ts->ecm_cw_log = 0;
+				ts->ecm_cw_log = !ts->ecm_cw_log;
 				break;
 			case 'J':
 				ts->cw_warn_sec = strtoul(optarg, NULL, 10);
