@@ -1,4 +1,5 @@
 xxxx-xx-xx : Version -next
+ * Add --syslog parameter to enable local syslog logging.
  * Set thread names under Linux.
  * notify: Added no_code_word/code_word_ok events.
  * notify: Added input_timeout/input_ok events.

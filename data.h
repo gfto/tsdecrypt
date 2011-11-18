@@ -147,6 +147,7 @@ struct ts {
 	char				syslog_host[128];
 	int					syslog_port;
 	int					syslog_active;
+	int					syslog_remote;
 
 	int					daemonize;
 	char				pidfile[PATH_MAX];

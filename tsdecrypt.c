@@ -24,6 +24,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include "data.h"
 #include "util.h"
@@ -49,9 +50,14 @@ static void LOG_func(const char *msg) {
 	fprintf(stderr, "%s | %s", date, msg);
 }
 
+static void LOG_func_syslog(const char *msg) {
+	syslog(LOG_INFO, msg, strlen(msg));
+}
+
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
+	{ "syslog",				no_argument,       NULL, 'S' },
 	{ "syslog-host",		required_argument, NULL, 'l' },
 	{ "syslog-port",		required_argument, NULL, 'L' },
 	{ "notify-program",		required_argument, NULL, 'N' },
@@ -101,6 +107,7 @@ static void show_help(struct ts *ts) {
 	printf(" -d --daemon <pidfile>      | Daemonize program and write pid file.\n");
 	printf(" -N --notify-program <prg>  | Execute <prg> to report events. Default: empty\n");
 	printf("\n");
+	printf(" -S --syslog                | Log messages using syslog.\n");
 	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
 	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
 	printf("\n");
@@ -209,10 +216,15 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->notify_program[sizeof(ts->notify_program) - 1] = 0;
 				break;
 
+			case 'S':
+				ts->syslog_active = 1;
+				ts->syslog_remote = 0;
+				break;
 			case 'l':
 				strncpy(ts->syslog_host, optarg, sizeof(ts->syslog_host) - 1);
 				ts->syslog_host[sizeof(ts->syslog_host) - 1] = 0;
 				ts->syslog_active = 1;
+				ts->syslog_remote = 1;
 				break;
 			case 'L':
 				ts->syslog_port = atoi(optarg);
@@ -368,9 +380,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
 	else
 		ts_LOGf("Daemonize  : no daemon\n");
-	if (ts->syslog_active)
-		ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
-	else
+	if (ts->syslog_active) {
+		if (ts->syslog_remote)
+			ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
+		else
+			ts_LOGf("Syslog     : enabled\n");
+	} else
 		ts_LOGf("Syslog     : disabled\n");
 
 	if (ts->forced_caid)
@@ -539,8 +554,13 @@ int main(int argc, char **argv) {
 	if (!ts.syslog_active) {
 		ts_set_log_func(LOG_func);
 	} else {
-		ts_set_log_func(LOG);
-		log_init(ts.ident, ts.syslog_active, ts.daemonize != 1, ts.syslog_host, ts.syslog_port);
+		if (ts.syslog_remote) {
+			ts_set_log_func(LOG);
+			log_init(ts.ident, 1, 1, ts.syslog_host, ts.syslog_port);
+		} else {
+			openlog(ts.ident, LOG_NDELAY | LOG_PID, LOG_USER);
+			ts_set_log_func(LOG_func_syslog);
+		}
 	}
 
 	ts.notify = notify_alloc(&ts);
@@ -634,8 +654,12 @@ EXIT:
 	notify_sync(&ts, "STOP", "Stopping %s", program_id);
 	ts_LOGf("Stop %s\n", program_id);
 
-	if (ts.syslog_active)
-		log_close();
+	if (ts.syslog_active) {
+		if (ts.syslog_remote)
+			log_close();
+		else
+			closelog();
+	}
 
 	if (ts.daemonize)
 		unlink(ts.pidfile);
