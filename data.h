@@ -59,7 +59,7 @@ struct key {
 #define ECM_RECV_ERRORS_LIMIT 10
 
 // When this limit is reached camd_reconnect is called.
-#define EMM_RECV_ERRORS_LIMIT 10
+#define EMM_RECV_ERRORS_LIMIT 100
 
 struct camd35 {
 	uint8_t			buf[CAMD35_BUF_LEN];

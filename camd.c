@@ -298,8 +298,6 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 			ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
 			camd35_reconnect(ts);
 			c->emm_recv_errors = 0;
-		} else {
-			ts_LOGf("ERR | Error sending emm packet (nerrors: %d).\n", c->emm_recv_errors);
 		}
 	} else {
 			c->emm_recv_errors = 0;
