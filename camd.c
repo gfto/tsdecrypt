@@ -140,6 +140,7 @@ READ:
 			data[0] == 0x08 ? "No card" :
 			data[0] == 0x44 ? "No code word found" : "Unknown err");
 		c->ecm_recv_errors++;
+		usleep(10000);
 		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
 			c->key->is_valid_cw = 0;
 			memcpy(c->key->cw, invalid_cw, 16);
