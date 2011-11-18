@@ -1,4 +1,4 @@
-xxxx-xx-xx : Version -next
+2011-11-18 : Version 4.0
  * Add --syslog parameter to enable local syslog logging.
  * Set thread names under Linux.
  * notify: Added no_code_word/code_word_ok events.
