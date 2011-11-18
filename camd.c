@@ -21,6 +21,7 @@
 #include <sys/errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 
 #include <openssl/aes.h>
@@ -55,6 +56,9 @@ static int connect_to(struct in_addr ip, int port) {
 		sleep(1);
 		return -1;
 	}
+
+	int flag = 1;
+	result = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
 
 	ts_LOGf("CAM | Connected to fd:%d\n", fd);
 	return fd;
