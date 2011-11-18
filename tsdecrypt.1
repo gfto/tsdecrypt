@@ -26,6 +26,8 @@ this option to work \fB\-\-ident\fR should also be used.
 
 You can use \fBnotify-script.example\fR file as notification program
 and an example on how to create your own notification script.
+
+See \fBEVENTS\fR section for detailed description of the events.
 .TP
 \fB\-l\fR, \fB\-\-syslog\-host\fR <addr>
 Set syslog host. tsdecrypt sends messages to this host over tcp in
@@ -162,6 +164,36 @@ reports are not affected by this option.
 \fB\-J\fR, \fB\-\-cw\-warn\-time\fR <seconds>
 After how much seconds to warn if valid code word was not received.
 The default is \fB20\fR seconds. Set to \fB0\fR to disable the warning.
+.SH EVENTS
+Notification events are sent when \fB\-\-notify\-program\fR and \fB\-\-ident\fR
+options are used. The event parameters are set as environmental variables
+before executing the external notification program. The variables are:
+
+  \fB_TS\fR             Unix timestamp of the event.
+  \fB_IDENT\fR          tsdecrypt ident parameter with "/" replaced by "-".
+  \fB_MESSAGE_ID\fR     Event message id (for example START, STOP, etc...).
+  \fB_MESSAGE_MSG\fR    Event message id with "_" replaced by " ".
+  \fB_MESSAGE_TEXT\fR   Event message text. Human readable event message.
+
+currently defined events are:
+
+  \fBSTART\fR           tsdecrypt was started.
+
+  \fBCODE_WORD_OK\fR    Valid code word was received and decryption is
+                  working ok.
+
+  \fBNO_CODE_WORD\fR    No valid code word was received for X seconds. The
+                  decryption process have been suspended until valid
+                  code word is received.
+
+  \fBINPUT_TIMEOUT\fR   There was no data on the input.
+
+  \fBINPUT_OK\fR        The data have appeared on the input.
+
+  \fBSTOP\fR            tsdecrypt was stopped.
+
+See \fBnotify-script.example\fR for an example on how to create external
+notification program.
 .SH SEE ALSO
 See the README file for more information. If you have questions, remarks,
 problems or you just want to contact the developer, write to:
