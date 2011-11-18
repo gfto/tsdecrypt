@@ -630,7 +630,7 @@ EXIT:
 			pthread_join(ts.write_thread, NULL);
 	}
 
-	notify(&ts, "STOP", "Stopping %s", program_id);
+	notify_sync(&ts, "STOP", "Stopping %s", program_id);
 	ts_LOGf("Stop %s\n", program_id);
 
 	if (ts.syslog_active)

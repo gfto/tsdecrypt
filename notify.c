@@ -40,6 +40,7 @@ struct npriv {
 	char	program[512];
 	char	msg_id[512];
 	char	text[512];
+	int		sync;			/* Wait for message to be delivered */
 };
 
 static void *do_notify(void *in) {
@@ -96,14 +97,15 @@ static void *notify_thread(void *data) {
 		if (!np)
 			break;
 		pthread_t notifier; // The notifier frees the data
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-		if (pthread_create(&notifier, &attr, &do_notify, np) != 0) {
+		if (pthread_create(&notifier, NULL, &do_notify, np) != 0) {
 			perror("pthread_create");
 			free(np);
+		} else {
+			if (np->sync)
+				pthread_join(notifier, NULL);
+			else
+				pthread_detach(notifier);
 		}
-		pthread_attr_destroy(&attr);
 	}
 	pthread_exit(0);
 }
@@ -131,19 +133,46 @@ static void npriv_init_defaults(struct notify *n, struct npriv *np) {
 	strncpy(np->ident, n->ident, sizeof(np->ident) - 1);
 }
 
-void notify(struct ts *ts, char *msg_id, char *text_fmt, ...) {
-	va_list args;
+static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_text) {
 	struct npriv *np = calloc(1, sizeof(struct npriv));
 	if (!ts->notify)
 		return;
+	np->sync = sync_msg;
 	npriv_init_defaults(ts->notify, np);
+
 	strncpy(np->msg_id, msg_id, sizeof(np->ident) - 1);
 	np->msg_id[sizeof(np->ident) - 1] = 0;
-	va_start(args, text_fmt);
-	vsnprintf(np->text, sizeof(np->text) - 1, text_fmt, args);
+
+	strncpy(np->text, msg_text, sizeof(np->text) - 1);
 	np->text[sizeof(np->text) - 1] = 0;
-	va_end(args);
+
 	queue_add(ts->notify->notifications, np);
+}
+
+#define MAX_MSG_TEXT 256
+
+void notify(struct ts *ts, char *msg_id, char *text_fmt, ...) {
+	va_list args;
+	char msg_text[MAX_MSG_TEXT];
+
+	va_start(args, text_fmt);
+	vsnprintf(msg_text, sizeof(msg_text) - 1, text_fmt, args);
+	msg_text[sizeof(msg_text) - 1] = 0;
+	va_end(args);
+
+	notify_func(ts, 0, msg_id, msg_text);
+}
+
+void notify_sync(struct ts *ts, char *msg_id, char *text_fmt, ...) {
+	va_list args;
+	char msg_text[MAX_MSG_TEXT];
+
+	va_start(args, text_fmt);
+	vsnprintf(msg_text, sizeof(msg_text) - 1, text_fmt, args);
+	msg_text[sizeof(msg_text) - 1] = 0;
+	va_end(args);
+
+	notify_func(ts, 1, msg_id, msg_text);
 }
 
 void notify_free(struct notify **pn) {

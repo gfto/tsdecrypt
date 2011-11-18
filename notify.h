@@ -26,6 +26,9 @@ struct notify *notify_alloc(struct ts *ts);
 __attribute__ ((format(printf, 3, 4)))
 void notify(struct ts *ts, char *msg_id, char *text_fmt, ...);
 
+__attribute__ ((format(printf, 3, 4)))
+void notify_sync(struct ts *ts, char *msg_id, char *text_fmt, ...);
+
 void notify_free(struct notify **pn);
 
 #endif
