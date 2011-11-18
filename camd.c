@@ -58,7 +58,7 @@ static int connect_to(struct in_addr ip, int port) {
 	}
 
 	int flag = 1;
-	result = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
 
 	ts_LOGf("CAM | Connected to fd:%d\n", fd);
 	return fd;
