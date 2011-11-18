@@ -25,6 +25,7 @@ Daemon options:
  -d --daemon <pidfile>      | Daemonize program and write pid file.
  -N --notify-program <prg>  | Execute <prg> to report events. Default: empty
 
+ -S --syslog                | Log messages using syslog.
  -l --syslog-host <host>    | Syslog server address. Default: disabled
  -L --syslog-port <port>    | Syslog server port. Default: 514
 
