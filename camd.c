@@ -248,7 +248,7 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 
 	int ret = camd35_send_buf(ts, to_send);
 	if (ret <= 0) {
-		ts_LOGf("ECM | Error sending packet.\n");
+		ts_LOGf("ERR | Error sending ecm packet, reconnecting to camd.\n");
 		ts->is_cw_error = 1;
 		camd35_reconnect(ts);
 		return ret;
@@ -288,7 +288,7 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 
 	int ret = camd35_send_buf(ts, to_send);
 	if (ret <= 0) {
-		ts_LOGf("EMM | Error sending packet.\n");
+		ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
 		camd35_reconnect(ts);
 	}
 	return ret;
