@@ -113,6 +113,7 @@ struct ts {
 	struct ts_privsec	*tmp_ecm;
 	uint16_t			pmt_pid;
 	uint16_t			service_id;
+	uint16_t			forced_service_id;
 	uint16_t			emm_caid, emm_pid;
 	uint16_t			ecm_caid, ecm_pid;
 	uint16_t			forced_caid;

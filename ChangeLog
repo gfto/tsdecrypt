@@ -1,3 +1,6 @@
+xxxx-xx-xx : Version next
+ * Add --service option, to choose service id (program) in MPTS input.
+
 2011-11-18 : Version 4.0
  * Set CAMD sockets NODELAY to avoid OSCAM errors when many packets are sent.
  * Add --syslog parameter to enable local syslog logging.

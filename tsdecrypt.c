@@ -65,6 +65,7 @@ static const struct option long_options[] = {
 	{ "input",				required_argument, NULL, 'I' },
 	{ "input-rtp",			no_argument,       NULL, 'R' },
 	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
+	{ "service",			required_argument, NULL, 'M' },
 
 	{ "output",				required_argument, NULL, 'O' },
 	{ "output-intf",		required_argument, NULL, 'o' },
@@ -118,6 +119,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -I -              (read from stdin) (default)\n");
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
+	printf(" -M --service <service_id>  | Choose service id when input is MPTS.\n");
 	printf("\n");
 	printf("Output options:\n");
 	printf(" -O --output <dest>         | Where to send output. File or multicast address.\n");
@@ -199,7 +201,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:l:L:I:RzO:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:l:L:I:RzM:O:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -238,6 +240,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'z':
 				ts->ts_discont = !ts->ts_discont;
+				break;
+			case 'M':
+				ts->forced_service_id = strtoul(optarg, NULL, 0) & 0xffff;
 				break;
 
 			case 'O':
@@ -404,6 +409,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}
+	if (ts->forced_service_id)
+		ts_LOGf("Service id : 0x%04x (%d)\n",
+			ts->forced_service_id, ts->forced_service_id);
 	if (ts->req_CA_sys == CA_IRDETO)
 		ts_LOGf("Irdeto ECM : %d\n", ts->irdeto_ecm);
 

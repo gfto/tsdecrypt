@@ -43,6 +43,8 @@ extern void show_ts_pack(struct ts *ts, uint16_t pid, char *wtf, char *extra, ui
 
 void process_pat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int i;
+	int num_services = 0;
+	uint16_t f_service = 0, f_pid = 0;
 	if (pid != 0x00)
 		return;
 
@@ -50,13 +52,38 @@ void process_pat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	for (i=0;i<ts->pat->programs_num;i++) {
 		struct ts_pat_program *prg = ts->pat->programs[i];
-		if (prg->pid) {
-			if (prg->program != 0) {
-				ts->pmt_pid    = prg->pid;
-				ts->service_id = prg->program;
+		if (prg->pid && prg->program != 0) {
+			num_services++;
+			ts->pmt_pid    = prg->pid;
+			ts->service_id = prg->program;
+			if (prg->program == ts->forced_service_id) {
+				f_pid     = prg->pid;
+				f_service = prg->program;
 			}
 		}
 	}
+
+	if (f_service && f_pid) {
+		ts->pmt_pid    = f_pid;
+		ts->service_id = f_service;
+	}
+
+	if (num_services > 1 && !f_service) {
+		ts_LOGf("PAT | %d services exists. Consider using --service parameter.\n",
+			num_services);
+		for (i = 0; i < ts->pat->programs_num; i++) {
+			struct ts_pat_program *prg = ts->pat->programs[i];
+			if (prg->pid && prg->program != 0) {
+				ts_LOGf("PAT | Service 0x%04x (%5d) with PMT PID %04x (%d)\n",
+					prg->program, prg->program,
+					prg->pid, prg->pid);
+			}
+		}
+	}
+
+	ts_LOGf("PAT | Using service 0x%04x (%d), PMT pid: %04x (%d)\n",
+		ts->service_id, ts->service_id,
+		ts->pmt_pid, ts->pmt_pid);
 }
 
 void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
