@@ -207,6 +207,13 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->ecm->ts_header;
 	struct ts_section_header *sec = ts->ecm->section_header;
+
+	// ECMs should be in these tables.
+	if (sec->section_data[0] != 0x80 && sec->section_data[0] != 0x81) {
+		ts_privsec_clear(ts->ecm);
+		return;
+	}
+
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
 	if (duplicate && !ts->is_cw_error)
 		ts->ecm_duplicate_count++;
