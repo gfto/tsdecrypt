@@ -201,7 +201,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:l:L:I:RzM:O:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
