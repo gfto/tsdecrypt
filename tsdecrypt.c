@@ -65,7 +65,7 @@ static const struct option long_options[] = {
 	{ "input",				required_argument, NULL, 'I' },
 	{ "input-rtp",			no_argument,       NULL, 'R' },
 	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
-	{ "service",			required_argument, NULL, 'M' },
+	{ "input-service",		required_argument, NULL, 'M' },
 
 	{ "output",				required_argument, NULL, 'O' },
 	{ "output-intf",		required_argument, NULL, 'o' },
@@ -119,7 +119,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -I -              (read from stdin) (default)\n");
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
-	printf(" -M --service <service_id>  | Choose service id when input is MPTS.\n");
+	printf(" -M --input-service <srvid> | Choose service id when input is MPTS.\n");
 	printf("\n");
 	printf("Output options:\n");
 	printf(" -O --output <dest>         | Where to send output. File or multicast address.\n");
