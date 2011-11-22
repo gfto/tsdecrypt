@@ -1,4 +1,6 @@
 xxxx-xx-xx : Version next
+ * Fix payload offset detection, a bug which broke packets that have
+   adaptation with whole packet size (libtsfuncs).
  * Add --input-service option, to choose service id (program) in MPTS input.
 
 2011-11-18 : Version 4.0
