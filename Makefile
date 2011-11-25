@@ -1,6 +1,6 @@
 CC = $(CROSS)$(TARGET)gcc
 STRIP = $(CROSS)$(TARGET)strip
-MKDEP = $(CROSS)$(TARGET)gcc -M -o $*.d $<
+MKDEP = $(CROSS)$(TARGET)$(CC) -M -o $*.d $<
 
 BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
@@ -9,8 +9,8 @@ ifeq "$(GIT_VER)" ""
 GIT_VER = "release"
 endif
 
-CFLAGS  = -O2 -ggdb
-CFLAGS += -Wall -Wextra -Wshadow -Wformat-security
+CFLAGS  = -O2 -ggdb -std=c99
+CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Wstrict-prototypes
 CFLAGS += -DBUILD_ID=\"$(BUILD_ID)\" -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 
 RM = /bin/rm -f
@@ -42,11 +42,11 @@ PROGS = tsdecrypt
 
 all: $(PROGS)
 
-$(FUNCS_LIB):
+$(FUNCS_LIB): $(FUNCS_DIR)/libfuncs.h
 	$(Q)echo "  MAKE	$(FUNCS_LIB)"
 	$(Q)$(MAKE) -s -C $(FUNCS_DIR)
 
-$(TS_LIB):
+$(TS_LIB): $(TS_DIR)/tsfuncs.h $(TS_DIR)/tsdata.h
 	$(Q)echo "  MAKE	$(TS_LIB)"
 	$(Q)$(MAKE) -s -C $(TS_DIR)
 

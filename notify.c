@@ -117,7 +117,7 @@ struct notify *notify_alloc(struct ts *ts) {
 	if (!ts->ident[0] || !ts->notify_program[0])
 		return NULL;
 	struct notify *n = calloc(1, sizeof(struct notify));
-	n->notifications = queue_new("notifications");
+	n->notifications = queue_new();
 	strncpy(n->ident, ts->ident, sizeof(n->ident) - 1);
 	for (i=0; i<strlen(n->ident); i++) {
 		if (n->ident[i] == '/')
