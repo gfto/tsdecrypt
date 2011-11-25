@@ -58,8 +58,6 @@ CAMD server options:
  -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).
  -U --camd-user <user>      | Set CAMD server user. Default: user
  -P --camd-pass <pass>      | Set CAMD server password. Default: pass
- -y --camd-pkt-delay <us>   | Sleep <us> usec between sending ECM/EMM
-                            .   packets to CAMD. Default: 0
 
 EMM options:
  -e --emm                   | Enable sending EMM's to CAMD. Default: disabled

@@ -74,8 +74,6 @@ void data_init(struct ts *ts) {
 	ts->emm_send    = 0;
 	ts->pid_filter  = 1;
 
-	ts->packet_delay = 0;
-
 	ts->emm_report_interval = 60;
 	ts->emm_last_report     = time(NULL);
 

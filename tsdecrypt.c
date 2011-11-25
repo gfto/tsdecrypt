@@ -77,7 +77,6 @@ static const struct option long_options[] = {
 	{ "camd-server",		required_argument, NULL, 's' },
 	{ "camd-user",			required_argument, NULL, 'U' },
 	{ "camd-pass",			required_argument, NULL, 'P' },
-	{ "camd-pkt-delay",		required_argument, NULL, 'y' },
 
 	{ "emm",				no_argument,       NULL, 'e' },
 	{ "emm-pid",			required_argument, NULL, 'Z' },
@@ -141,8 +140,6 @@ static void show_help(struct ts *ts) {
 	printf(" -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd35.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd35.pass);
-	printf(" -y --camd-pkt-delay <us>   | Sleep <us> usec between sending ECM/EMM\n");
-	printf("                            .   packets to CAMD. Default: %d\n", ts->packet_delay);
 	printf("\n");
 	printf("EMM options:\n");
 	printf(" -e --emm                   | Enable sending EMM's to CAMD. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
@@ -304,11 +301,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				strncpy(ts->camd35.pass, optarg, sizeof(ts->camd35.pass) - 1);
 				ts->camd35.pass[sizeof(ts->camd35.pass) - 1] = 0;
 				break;
-			case 'y':
-				ts->packet_delay = atoi(optarg);
-				if (ts->packet_delay < 0 || ts->packet_delay > 1000000)
-					ts->packet_delay = 0;
-				break;
 
 			case 'e':
 				ts->emm_send = !ts->emm_send;
@@ -429,8 +421,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);
 	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
-	if (ts->packet_delay)
-		ts_LOGf("Pkt sleep  : %d us (%d ms)\n", ts->packet_delay, ts->packet_delay / 1000);
+
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
 	if (ts->emm_send && ts->emm_report_interval)

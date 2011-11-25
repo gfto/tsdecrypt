@@ -1,4 +1,5 @@
 xxxx-xx-xx : Version next
+ * Remove --camd-pkt-delay (-y) option. This workaround is no longer needed.
  * Fix payload offset detection, a bug which broke packets that have
    adaptation with whole packet size (libtsfuncs).
  * Add --input-service option, to choose service id (program) in MPTS input.
