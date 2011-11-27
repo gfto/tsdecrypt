@@ -188,7 +188,7 @@ static void show_help(struct ts *ts) {
 	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
 	printf("\n");
 	printf("CAMD server options:\n");
-	printf(" -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).\n");
+	printf(" -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd35.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd35.pass);
 	printf("\n");
@@ -206,7 +206,7 @@ static void show_help(struct ts *ts) {
 	printf(" -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been\n");
 	printf("                            .   processed/skipped. Set <sec> to 0 to disable\n");
 	printf("                            .   the reports. Default: %d sec\n", ts->ecm_report_interval);
-	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: %d\n", ts->irdeto_ecm);
+	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0-3/. Default: %d\n", ts->irdeto_ecm);
 	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
 	printf(" -J --cw-warn-time <sec>    | Warn if no valid code word has been received.\n");
 	printf("                            .   Set <sec> to 0 to disable. Default: %d sec\n", ts->cw_warn_sec);
