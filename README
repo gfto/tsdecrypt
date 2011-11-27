@@ -86,6 +86,7 @@ Misc options:
                             .    3 = show duplicate ECMs
                             .    4 = packet debug
                             .    5 = packet debug + packet dump
+ -b --bench                 | Benchmark decrypton.
  -h --help                  | Show help screen.
  -V --version               | Show program version.
 
