@@ -9,7 +9,7 @@ ifeq "$(GIT_VER)" ""
 GIT_VER = "release"
 endif
 
-CFLAGS  = -O2 -ggdb -std=c99
+CFLAGS  = -O2 -ggdb
 CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Wstrict-prototypes
 CFLAGS += -DBUILD_ID=\"$(BUILD_ID)\" -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 
