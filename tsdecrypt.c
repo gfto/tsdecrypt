@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-
+// Unused short options: ABFQTWYagjkmnqruvwxy0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
