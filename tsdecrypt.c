@@ -234,7 +234,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 			io->fd = open(opt, open_flags, open_mode);
 			if (io->fd < 0) {
 				fprintf(stderr, "ERROR: Can not open file (%s): %s\n", opt, strerror(errno));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 		io->fname = strdup(opt);
@@ -400,11 +400,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 			case 'h':
 				show_help(ts);
-				exit(0);
+				exit(EXIT_SUCCESS);
 
 			case 'V':
 				printf("%s\n", program_id);
-				exit(0);
+				exit(EXIT_SUCCESS);
 		}
 	}
 	if (!ts->ident[0]) {
@@ -425,7 +425,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			fprintf(stderr, "ERROR: Output IP address is invalid.\n");
 		if (output_intf_err)
 			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
 	ts_LOGf("Notify prog: %s\n", ts->notify_program[0] ? ts->notify_program : "*NOT SET*");
@@ -722,5 +722,5 @@ EXIT:
 	notify_free(&ts.notify);
 	data_free(&ts);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }

@@ -76,7 +76,7 @@ static void *do_notify(void *in) {
 			free(env[e--]);
 		} while (e);
 		free(env);
-		exit(127);
+		exit(EXIT_FAILURE);
 	} else {
 		waitpid(pid, NULL, 0);
 	}
@@ -84,7 +84,7 @@ static void *do_notify(void *in) {
 	munmap(shared, sizeof(struct npriv));
 OUT:
 	free(data);
-	pthread_exit(0);
+	pthread_exit(EXIT_SUCCESS);
 }
 
 static void *notify_thread(void *data) {
@@ -107,7 +107,7 @@ static void *notify_thread(void *data) {
 				pthread_detach(notifier);
 		}
 	}
-	pthread_exit(0);
+	pthread_exit(EXIT_SUCCESS);
 }
 
 /* ======================================================================== */

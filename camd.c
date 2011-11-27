@@ -357,7 +357,7 @@ static void *camd_thread(void *in_ts) {
 			break;
 		camd_do_msg(msg);
 	}
-	pthread_exit(0);
+	pthread_exit(EXIT_SUCCESS);
 }
 
 void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
