@@ -26,6 +26,10 @@
 #include <errno.h>
 #include <syslog.h>
 
+#include <dvbcsa/dvbcsa.h>
+
+#include "libfuncs/libfuncs.h"
+
 #include "data.h"
 #include "util.h"
 #include "camd.h"
@@ -53,6 +57,52 @@ static void LOG_func(const char *msg) {
 static void LOG_func_syslog(const char *msg) {
 	syslog(LOG_INFO, msg, strlen(msg));
 }
+
+/* The following routine is taken from benchbitslice in libdvbcsa */
+void run_benchmark(void) {
+	struct timeval t0, t1;
+	struct dvbcsa_bs_key_s *ffkey = dvbcsa_bs_key_alloc();
+	unsigned int n, i, c = 0, pkt_len = 0;
+	unsigned int gs = dvbcsa_bs_batch_size();
+	uint8_t data[gs + 1][184];
+	struct dvbcsa_bs_batch_s pcks[gs + 1];
+	uint8_t cw[8] = { 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, };
+
+	srand(time(0));
+
+	puts("* Single threaded libdvbcsa benchmark *");
+
+	dvbcsa_bs_key_set (cw, ffkey);
+
+	printf(" - Generating batch with %i randomly sized packets\n\n", gs);
+	for (i = 0; i < gs; i++) {
+		pcks[i].data = data[i];
+		pcks[i].len = 100 + rand() % 85;
+		memset(data[i], rand(), pcks[i].len);
+		pkt_len += pcks[i].len;
+	}
+	pcks[i].data = NULL;
+
+	gettimeofday(&t0, NULL);
+	for (n = (1 << 12) / gs; n < (1 << 19) / gs; n *= 2) {
+		printf(" - Decrypting %u TS packets\n", n * gs);
+		for (i = 0; i < n; i++) {
+			dvbcsa_bs_decrypt(ffkey, pcks, 184);
+		}
+		c += n * gs;
+	}
+	gettimeofday(&t1, NULL);
+
+	printf("\n* %u packets proceded: %.1f Mbits/s\n\n", c,
+		(float)(c * 188 * 8) / (float)timeval_diff_usec(&t0, &t1)
+		/*(float)((t1.tv_sec * 1000000 + t1.tv_usec) - (t0.tv_sec * 1000000 + t0.tv_usec)) */
+	);
+
+	dvbcsa_bs_key_free(ffkey);
+
+	puts("* Done *");
+}
+
 
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
@@ -90,6 +140,7 @@ static const struct option long_options[] = {
 	{ "cw-warn-time",		required_argument, NULL, 'J' },
 
 	{ "debug",				required_argument, NULL, 'D' },
+	{ "bench",				no_argument,       NULL, 'b' },
 	{ "help",				no_argument,       NULL, 'h' },
 	{ "version",			no_argument,       NULL, 'V' },
 
@@ -168,6 +219,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
 	printf("                            .    5 = packet debug + packet dump\n");
+	printf(" -b --bench                 | Benchmark decrypton.\n");
 	printf(" -h --help                  | Show help screen.\n");
 	printf(" -V --version               | Show program version.\n");
 	printf("\n");
@@ -198,7 +250,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pc:C:s:U:P:y:eZ:Ef:X:H:G:KJ:D:hV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pc:C:s:U:P:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -341,6 +393,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'D':
 				ts->debug_level = atoi(optarg);
 				break;
+
+			case 'b':
+				run_benchmark();
+				exit(EXIT_SUCCESS);
 
 			case 'h':
 				show_help(ts);
