@@ -159,6 +159,74 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 }
 
+static int sdt_parse_service_name_desc(
+	int desc_len, uint8_t *desc,
+	uint8_t *pname_len, uint8_t **pname,
+	uint8_t *sname_len, uint8_t **sname)
+{
+	int ofs = 0;
+	*pname_len = 0;
+	*sname_len = 0;
+	*pname = NULL;
+	*sname = NULL;
+	while (ofs + 2 < desc_len) {
+		uint8_t tag = desc[ofs++];
+		uint8_t len = desc[ofs++];
+		if (tag != 0x48) {
+			ofs += len;
+			continue;
+		}
+		// Parse descriptor 0x48 - Service name descriptor
+		// +3 == +1 for service type, +1 for provider len, +1 for service len
+		if (ofs + 3 > desc_len)
+			break;
+
+		ofs++; // Skip service type
+
+		*pname_len = desc[ofs++];
+		if (*pname_len)
+			*pname = desc + ofs;
+		ofs += *pname_len;
+		if (ofs > desc_len)
+			break;
+
+		*sname_len = desc[ofs++];
+		if (*sname_len)
+			*sname = desc + ofs;
+		ofs += *sname_len;
+
+		return 1;
+	}
+	return 0;
+}
+
+void process_sdt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
+	int i;
+
+	if (pid != 0x11)
+		return;
+
+	handle_table_changes(sdt);
+
+	for(i=0;i<ts->sdt->streams_num;i++) {
+		struct ts_sdt_stream *stream = ts->sdt->streams[i];
+		uint8_t *pname, *sname;
+		uint8_t pname_len, sname_len;
+		if (sdt_parse_service_name_desc(
+			stream->descriptor_size, stream->descriptor_data,
+			&pname_len, &pname, &sname_len, &sname))
+		{
+			ts_LOGf("SDT | Service 0x%04x (%5d) Provider: \"%.*s\" Service: \"%.*s\"\n",
+				stream->service_id, stream->service_id,
+				pname_len, (char *)pname,
+				sname_len, (char *)sname);
+		} else {
+			ts_LOGf("SDT | Service 0x%04x (%5d)\n",
+				stream->service_id, stream->service_id);
+		}
+	}
+}
+
 #define dump_sz      (16)
 #define dump_buf_sz  (dump_sz * 6)
 

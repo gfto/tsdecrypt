@@ -33,6 +33,9 @@ void data_init(struct ts *ts) {
 	ts->pmt      = ts_pmt_alloc();
 	ts->curpmt   = ts_pmt_alloc();
 
+	ts->sdt      = ts_sdt_alloc();
+	ts->cursdt   = ts_sdt_alloc();
+
 	ts->emm      = ts_privsec_alloc();
 	ts->last_emm = ts_privsec_alloc();
 	ts->tmp_emm  = ts_privsec_alloc();

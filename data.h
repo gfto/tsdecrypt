@@ -107,6 +107,7 @@ struct ts {
 	struct ts_pat		*pat, *curpat;
 	struct ts_cat		*cat, *curcat;
 	struct ts_pmt		*pmt, *curpmt;
+	struct ts_sdt		*sdt, *cursdt;
 	struct ts_privsec	*emm, *last_emm;
 	struct ts_privsec	*ecm, *last_ecm;
 	struct ts_privsec	*tmp_emm;

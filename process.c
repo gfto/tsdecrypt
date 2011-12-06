@@ -271,6 +271,7 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		process_pat(ts, pid, ts_packet);
 		process_cat(ts, pid, ts_packet);
 		process_pmt(ts, pid, ts_packet);
+		process_sdt(ts, pid, ts_packet);
 		process_emm(ts, pid, ts_packet);
 		process_ecm(ts, pid, ts_packet);
 
