@@ -32,7 +32,7 @@ TS_LIB = $(TS_DIR)/libtsfuncs.a
 
 tsdecrypt_SRC  = data.c udp.c util.c camd.c process.c tables.c notify.c tsdecrypt.c
 tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
-tsdecrypt_OBJS = $(tsdecrypt_SRC:.c=.o) $(FUNCS_LIB) $(TS_LIB)
+tsdecrypt_OBJS = $(FUNCS_LIB) $(TS_LIB) $(tsdecrypt_SRC:.c=.o)
 
 CLEAN_OBJS = tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
 
