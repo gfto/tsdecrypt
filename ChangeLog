@@ -3,10 +3,13 @@ xxxx-xx-xx : Version next
  * Remove --camd-pkt-delay (-y) option. This workaround is no longer needed.
  * Fix payload offset detection, a bug which broke packets that have
    adaptation with whole packet size (libtsfuncs).
- * Add --input-service option, to choose service id (program) in MPTS input.
+ * Add --input-service (-M) option, to choose service id (program) in MPTS input.
  * When the input is MPTS and output filtering is enabled, rewrite output
    PAT to include only the single program that is decoded.
  * Parse SDT and display provider and service name.
+ * Add --output-nit-pass (-y) to enable NIT pass through.
+ * Add --output-eit-pass (-w) to enable EIT (EPG) pass through.
+ * Add --output-tdt-pass (-x) to enable TDT/TOT pass through.
 
 2011-11-18 : Version 4.0
  * Set CAMD sockets NODELAY to avoid OSCAM errors when many packets are sent.

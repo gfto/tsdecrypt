@@ -46,6 +46,9 @@ Output options:
  -o --output-intf <addr>    | Set multicast output interface. Default: 0.0.0.0
  -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
  -p --output-filter         | Enable or disable output filter. Default: enabled
+ -y --output-nit-pass       | Pass through NIT.
+ -w --output-eit-pass       | Pass through EIT (EPG).
+ -x --output-tdt-pass       | Pass through TDT/TOT.
 
 CA options:
  -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.
@@ -55,7 +58,7 @@ CA options:
  -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
 
 CAMD server options:
- -s --camd-server <addr>    | Set CAMD server ip address and port (1.2.3.4:2233).
+ -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).
  -U --camd-user <user>      | Set CAMD server user. Default: user
  -P --camd-pass <pass>      | Set CAMD server password. Default: pass
 
@@ -73,7 +76,7 @@ ECM options:
  -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been
                             .   processed/skipped. Set <sec> to 0 to disable
                             .   the reports. Default: 60 sec
- -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0..3/. Default: 0
+ -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0-3/. Default: 0
  -K --ecm-no-log            | Disable ECM and code words logging.
  -J --cw-warn-time <sec>    | Warn if no valid code word has been received.
                             .   Set <sec> to 0 to disable. Default: 20 sec

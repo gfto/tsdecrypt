@@ -133,6 +133,12 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	pidmap_clear(&ts->pidmap);
 	pidmap_set(&ts->pidmap, 0x0000); // PAT
 	pidmap_set(&ts->pidmap, 0x0011); // SDT
+	if (ts->nit_passthrough)
+		pidmap_set(&ts->pidmap, 0x0010); // NIT
+	if (ts->eit_passthrough)
+		pidmap_set(&ts->pidmap, 0x0012); // EIT
+	if (ts->tdt_passthrough)
+		pidmap_set(&ts->pidmap, 0x0014); // TDT/TOT
 	pidmap_set(&ts->pidmap, ts->pmt->ts_header.pid); // PMT PID
 	pidmap_set(&ts->pidmap, ts->pmt->PCR_pid); // PCR
 	for (i=0;i<ts->pmt->streams_num;i++) {

@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-// Unused short options: ABFQTWYagjkmnqruvwxy0123456789
+// Unused short options: ABFQTWYagjkmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -121,6 +121,9 @@ static const struct option long_options[] = {
 	{ "output-intf",		required_argument, NULL, 'o' },
 	{ "output-ttl",			required_argument, NULL, 't' },
 	{ "output-filter",		no_argument,       NULL, 'p' },
+	{ "output-nit-pass",	no_argument,       NULL, 'y' },
+	{ "output-eit-pass",	no_argument,       NULL, 'w' },
+	{ "output-tdt-pass",	no_argument,       NULL, 'x' },
 
 	{ "ca-system",			required_argument, NULL, 'c' },
 	{ "caid",				required_argument, NULL, 'C' },
@@ -179,6 +182,9 @@ static void show_help(struct ts *ts) {
 	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
 	printf(" -p --output-filter         | Enable or disable output filter. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
+	printf(" -y --output-nit-pass       | Pass through NIT.\n");
+	printf(" -w --output-eit-pass       | Pass through EIT (EPG).\n");
+	printf(" -x --output-tdt-pass       | Pass through TDT/TOT.\n");
 	printf("\n");
 	printf("CA options:\n");
 	printf(" -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.\n");
@@ -250,7 +256,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pc:C:s:U:P:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pwxyc:C:s:U:P:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -309,7 +315,15 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'p':
 				ts->pid_filter = !ts->pid_filter;
 				break;
-
+			case 'y':
+				ts->nit_passthrough = !ts->nit_passthrough;
+				break;
+			case 'w':
+				ts->eit_passthrough = !ts->eit_passthrough;
+				break;
+			case 'x':
+				ts->tdt_passthrough = !ts->tdt_passthrough;
+				break;
 			case 'c':
 				if (strcasecmp("IRDETO", optarg) == 0)
 					ts->req_CA_sys = CA_IRDETO;
@@ -472,7 +486,18 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		} else if (ts->output.type == FILE_IO) {
 			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}
-		ts_LOGf("PID filter : %s\n", ts->pid_filter ? "enabled" : "disabled");
+		ts_LOGf("Out filter : %s (%s)\n",
+			ts->pid_filter ? "enabled" : "disabled",
+			ts->pid_filter ? "output only service related PIDs" : "output everything"
+		);
+		if (ts->pid_filter) {
+			if (ts->nit_passthrough)
+				ts_LOGf("Out filter : Pass through NIT.\n");
+			if (ts->eit_passthrough)
+				ts_LOGf("Out filter : Pass through EIT (EPG).\n");
+			if (ts->tdt_passthrough)
+				ts_LOGf("Out filter : Pass through TDT/TOT.\n");
+		}
 	}
 	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
 	ts_LOGf("Server user: %s\n", ts->camd35.user);

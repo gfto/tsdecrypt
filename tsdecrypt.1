@@ -96,6 +96,15 @@ Enable output filtering. When output filter is enabled only PAT/PMT/SDT
 and data packets are left in the output. Everything else not mentioned
 in PMT like NIT, EIT, TDT tables and unknown pids is removed.
 .TP
+\fB\-y\fR, \fB\-\-output\-nit\-pass\fR
+Pass throught NIT packets when output filtering is enabled.
+.TP
+\fB\-w\fR, \fB\-\-output\-eit\-pass\fR
+Pass throught EIT (EPG) packets when output filtering is enabled.
+.TP
+\fB\-x\fR, \fB\-\-output\-tdt\-pass\fR
+Pass throught TDT/TOT packets when output filtering is enabled.
+.TP
 .SH CA OPTIONS
 .PP
 .TP

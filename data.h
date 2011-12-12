@@ -161,6 +161,9 @@ struct ts {
 	int					emm_send;
 	int					emm_only;
 	int					pid_filter;
+	int					eit_passthrough;
+	int					tdt_passthrough;
+	int					nit_passthrough;
 
 	uint8_t				irdeto_ecm;
 	int					ecm_cw_log;
