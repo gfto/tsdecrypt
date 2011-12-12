@@ -69,7 +69,7 @@ void process_pat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 
 	if (num_services > 1 && !f_service) {
-		ts_LOGf("PAT | %d services exists. Consider using --service parameter.\n",
+		ts_LOGf("PAT | %d services exists. Consider using --input-service parameter.\n",
 			num_services);
 		for (i = 0; i < ts->pat->programs_num; i++) {
 			struct ts_pat_program *prg = ts->pat->programs[i];
