@@ -105,6 +105,8 @@ struct io {
 struct ts {
 	// Stream handling
 	struct ts_pat		*pat, *curpat;
+	struct ts_pat		*genpat;
+	uint8_t				genpat_cc;
 	struct ts_cat		*cat, *curcat;
 	struct ts_pmt		*pmt, *curpmt;
 	struct ts_sdt		*sdt, *cursdt;

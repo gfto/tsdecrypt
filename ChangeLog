@@ -4,6 +4,8 @@ xxxx-xx-xx : Version next
  * Fix payload offset detection, a bug which broke packets that have
    adaptation with whole packet size (libtsfuncs).
  * Add --input-service option, to choose service id (program) in MPTS input.
+ * When the input is MPTS and output filtering is enabled, rewrite output
+   PAT to include only the single program that is decoded.
  * Parse SDT and display provider and service name.
 
 2011-11-18 : Version 4.0

@@ -283,6 +283,16 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		if (ts->emm_only)
 			continue;
 
+		// Return rewritten PAT
+		if (pid == 0x00 && ts->pid_filter && ts->genpat->initialized) {
+			if (!ts_packet_is_pusi(ts_packet))
+				continue;
+			ts_packet_set_cont(ts->genpat->section_header->packet_data, ts->genpat_cc);
+			ts->genpat->ts_header.continuity = ts->genpat_cc;
+			ts_packet = ts->genpat->section_header->packet_data;
+			ts->genpat_cc = (ts->genpat_cc + 1) & 0x0f;
+		}
+
 		if (ts->threaded) {
 			// Add to decode buffer. The decoder thread will handle it
 			if (cbuf_fill(ts->decode_buf, ts_packet, 188) != 0) {

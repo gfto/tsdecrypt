@@ -26,6 +26,7 @@ void data_init(struct ts *ts) {
 	// Stream
 	ts->pat	     = ts_pat_alloc();
 	ts->curpat   = ts_pat_alloc();
+	ts->genpat   = ts_pat_alloc();
 
 	ts->cat      = ts_cat_alloc();
 	ts->curcat   = ts_cat_alloc();
@@ -100,6 +101,7 @@ void data_init(struct ts *ts) {
 void data_free(struct ts *ts) {
 	ts_pat_free(&ts->pat);
 	ts_pat_free(&ts->curpat);
+	ts_pat_free(&ts->genpat);
 	ts_cat_free(&ts->cat);
 	ts_cat_free(&ts->curcat);
 	ts_pmt_free(&ts->pmt);

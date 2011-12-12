@@ -84,6 +84,12 @@ void process_pat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	ts_LOGf("PAT | Using service 0x%04x (%d), PMT pid: %04x (%d)\n",
 		ts->service_id, ts->service_id,
 		ts->pmt_pid, ts->pmt_pid);
+
+	if (num_services > 1) {
+		ts_pat_clear(ts->genpat);
+		ts->genpat = ts_pat_init(ts->genpat, ts->pat->section_header->ts_id_number);
+		ts_pat_add_program(ts->genpat, ts->service_id, ts->pmt_pid);
+	}
 }
 
 void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
