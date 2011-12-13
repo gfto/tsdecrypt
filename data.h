@@ -61,21 +61,26 @@ struct key {
 // When this limit is reached camd_reconnect is called.
 #define EMM_RECV_ERRORS_LIMIT 100
 
-struct camd35 {
-	uint8_t			buf[CAMD35_BUF_LEN];
+struct camd35;
 
+struct camd_ops {
+	int (*connect)(struct camd35 *c);
+	void (*disconnect)(struct camd35 *c);
+	int (*reconnect)(struct camd35 *c);
+	int (*do_emm)(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
+	int (*do_ecm)(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len);
+	int (*get_cw)(struct camd35 *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
+};
+
+struct camd35 {
 	int				server_fd;
 	struct in_addr	server_addr;
 	unsigned int	server_port;
 	char			user[64];
 	char			pass[64];
-	AES_KEY			aes_encrypt_key;
-	AES_KEY			aes_decrypt_key;
 
 	unsigned int	ecm_recv_errors; // Error counter, reset on successful send/recv
 	unsigned int	emm_recv_errors; // Error counter, reset on successful send/recv
-
-	uint32_t		auth_token;
 
 	struct key		*key;
 
@@ -83,6 +88,14 @@ struct camd35 {
 	QUEUE			*req_queue;
 	QUEUE			*ecm_queue;
 	QUEUE			*emm_queue;
+
+	struct camd_ops ops;
+
+	// cs378x private data
+	uint8_t			buf[CAMD35_BUF_LEN];
+	AES_KEY			aes_encrypt_key;
+	AES_KEY			aes_decrypt_key;
+	uint32_t		auth_token;
 };
 
 enum io_type {

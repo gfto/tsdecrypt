@@ -1,0 +1,186 @@
+/*
+ * cs378x protocol
+ * Copyright (C) 2011 Unix Solutions Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+ */
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#include <openssl/aes.h>
+#include <openssl/md5.h>
+
+#include "libfuncs/libfuncs.h"
+
+#include "data.h"
+#include "util.h"
+#include "camd.h"
+
+static int cs378x_connect(struct camd35 *c) {
+	if (c->server_fd < 0)
+		c->server_fd = camd_tcp_connect(c->server_addr, c->server_port);
+	return c->server_fd;
+}
+
+static void cs378x_disconnect(struct camd35 *c) {
+	shutdown_fd(&c->server_fd);
+}
+
+static int cs378x_reconnect(struct camd35 *c) {
+	cs378x_disconnect(c);
+	return cs378x_connect(c);
+}
+
+static int cs378x_recv(struct camd35 *c, uint8_t *data, int *data_len) {
+	int i;
+
+	// Read AUTH token
+	ssize_t r = fdread(c->server_fd, (char *)data, 4);
+	if (r < 4)
+		return -1;
+	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
+	if (auth_token != c->auth_token)
+		ts_LOGf("WARN: recv auth 0x%08x != camd35_auth 0x%08x\n", auth_token, c->auth_token);
+
+	*data_len = 256;
+	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
+		fdread(c->server_fd, (char *)data + i, 16);
+		AES_decrypt(data + i, data + i, &c->aes_decrypt_key);
+		if (i == 0)
+			*data_len = boundary(4, data[1] + 20); // Initialize real data length
+	}
+	return *data_len;
+}
+
+static int cs378x_send_buf(struct camd35 *c, int data_len) {
+	int i;
+	unsigned char dump[16];
+
+	cs378x_connect(c);
+
+	// Prepare auth token (only once)
+	if (!c->auth_token) {
+		c->auth_token = crc32(0L, MD5((unsigned char *)c->user, strlen(c->user), dump), 16);
+
+		MD5((unsigned char *)c->pass, strlen(c->pass), dump);
+
+		AES_set_encrypt_key(dump, 128, &c->aes_encrypt_key);
+		AES_set_decrypt_key(dump, 128, &c->aes_decrypt_key);
+	}
+
+	uint8_t *bdata = c->buf + 4; // Leave space for auth token
+	memmove(bdata, c->buf, data_len); // Move data
+	init_4b(c->auth_token, c->buf); // Put authentication token
+
+	for (i = 0; i < data_len; i += 16) // Encrypt payload
+		AES_encrypt(bdata + i, bdata + i, &c->aes_encrypt_key);
+
+	return fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
+}
+
+static void cs378x_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
+	memset(c->buf, 0, CAMD35_HDR_LEN); // Reset header
+	memset(c->buf + CAMD35_HDR_LEN, 0xff, CAMD35_BUF_LEN - CAMD35_HDR_LEN); // Reset data
+	c->buf[1] = data_len; // Data length
+	init_4b(crc32(0L, data, data_len), c->buf + 4); // Data CRC is at buf[4]
+	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
+}
+
+static int cs378x_do_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+	uint32_t provider_id = 0;
+	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
+
+	cs378x_buf_init(c, data, (int)data_len);
+
+	c->buf[0] = 0x00; // CMD ECM request
+	init_2b(service_id , c->buf + 8);
+	init_2b(ca_id      , c->buf + 10);
+	init_4b(provider_id, c->buf + 12);
+	init_2b(idx        , c->buf + 16);
+	c->buf[18] = 0xff;
+	c->buf[19] = 0xff;
+
+	return cs378x_send_buf(c, to_send);
+}
+
+static int cs378x_do_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+	uint32_t prov_id = 0;
+	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
+
+	cs378x_buf_init(c, data, (int)data_len);
+
+	c->buf[0] = 0x06; // CMD incomming EMM
+	init_2b(ca_id  , c->buf + 10);
+	init_4b(prov_id, c->buf + 12);
+
+	return cs378x_send_buf(c, to_send);
+}
+
+static int cs378x_get_cw(struct camd35 *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw) {
+	uint8_t *data = c->buf;
+	int data_len = 0;
+	int ret = 0;
+
+READ:
+	ret = cs378x_recv(c, data, &data_len);
+	if (ret < 0) {
+		ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
+		cs378x_reconnect(c);
+		return ret;
+	}
+
+	// EMM request, ignore it. Sometimes OSCAM sends two EMM requests after CW
+	if (data[0] == 0x05)
+		goto READ;
+
+	if (data[0] != 0x01) {
+		ts_LOGf("ERR | Unexpected server response on code word request (ret data[0] == 0x%02x /%s/)\n",
+			data[0],
+			data[0] == 0x08 ? "No card" :
+			data[0] == 0x44 ? "No code word found" : "Unknown err");
+		c->ecm_recv_errors++;
+		usleep(10000);
+		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
+			c->key->is_valid_cw = 0;
+			memset(cw, 0, 16); // Invalid CW
+		}
+		return 0;
+	}
+
+	if (data_len < 48) {
+		ts_LOGf("ERR | Code word data_len (%d) mismatch != 48\n", data_len);
+		return 0;
+	}
+
+	if (data[1] < 0x10) {
+		ts_LOGf("ERR | Code word len (%d) mismatch != 16\n", data[1]);
+		return 0;
+	}
+
+	*ca_id = (data[10] << 8) | data[11];
+	*idx   = (data[16] << 8) | data[17];
+	memcpy(cw, data + 20, 16);
+
+	return ret;
+}
+
+void camd_proto_cs378x(struct camd_ops *ops) {
+	ops->connect	= cs378x_connect;
+	ops->disconnect	= cs378x_disconnect;
+	ops->reconnect	= cs378x_reconnect;
+	ops->do_emm		= cs378x_do_emm;
+	ops->do_ecm		= cs378x_do_ecm;
+	ops->get_cw		= cs378x_get_cw;
+}

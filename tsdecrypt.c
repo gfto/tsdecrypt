@@ -628,6 +628,8 @@ int main(int argc, char **argv) {
 
 	parse_options(&ts, argc, argv);
 
+	camd_proto_cs378x(&ts.camd35.ops);
+
 	if (ts.pidfile[0])
 		daemonize(ts.pidfile);
 
