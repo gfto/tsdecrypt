@@ -1,6 +1,7 @@
 CC = $(CROSS)$(TARGET)cc
 STRIP = $(CROSS)$(TARGET)strip
 MKDEP = $(CC) -M -o $*.d $<
+RM = /bin/rm -f
 
 BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
@@ -9,15 +10,16 @@ ifeq "$(GIT_VER)" ""
 GIT_VER = "release"
 endif
 
+ifndef V
+Q = @
+endif
+
 CFLAGS ?= -O2 -ggdb \
  -W -Wall -Wextra \
  -Wshadow -Wformat-security -Wstrict-prototypes
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
  -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
-
-RM = /bin/rm -f
-Q = @
 
 PREFIX ?= /usr/local
 
