@@ -9,9 +9,12 @@ ifeq "$(GIT_VER)" ""
 GIT_VER = "release"
 endif
 
-CFLAGS  = -O2 -ggdb
-CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Wstrict-prototypes
-CFLAGS += -DBUILD_ID=\"$(BUILD_ID)\" -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
+CFLAGS ?= -O2 -ggdb \
+ -W -Wall -Wextra \
+ -Wshadow -Wformat-security -Wstrict-prototypes
+
+DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
+ -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 
 RM = /bin/rm -f
 Q = @
@@ -60,12 +63,12 @@ $(TS_LIB): $(TS_DIR)/tsfuncs.h $(TS_DIR)/tsdata.h
 
 tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
-	$(Q)$(CC) $(CFLAGS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
+	$(Q)$(CC) $(CFLAGS) $(DEFS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
 %.o: %.c RELEASE
 	@$(MKDEP)
 	$(Q)echo "  CC	tsdecrypt	$<"
-	$(Q)$(CC) $(CFLAGS)  -c $<
+	$(Q)$(CC) $(CFLAGS) $(DEFS) -c $<
 
 -include $(tsdecrypt_SRC:.c=.d)
 
