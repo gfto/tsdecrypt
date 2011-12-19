@@ -1,6 +1,6 @@
 CC = $(CROSS)$(TARGET)cc
 STRIP = $(CROSS)$(TARGET)strip
-MKDEP = $(CROSS)$(TARGET)$(CC) -M -o $*.d $<
+MKDEP = $(CC) -M -o $*.d $<
 
 BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
