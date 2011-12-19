@@ -1,4 +1,4 @@
-CC = $(CROSS)$(TARGET)gcc
+CC = $(CROSS)$(TARGET)cc
 STRIP = $(CROSS)$(TARGET)strip
 MKDEP = $(CROSS)$(TARGET)$(CC) -M -o $*.d $<
 
