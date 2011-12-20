@@ -51,13 +51,13 @@ static int cs378x_recv(struct camd *c, uint8_t *data, int *data_len) {
 	if (r < 4)
 		return -1;
 	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
-	if (auth_token != c->auth_token)
-		ts_LOGf("WARN: recv auth 0x%08x != camd_auth 0x%08x\n", auth_token, c->auth_token);
+	if (auth_token != c->cs378x.auth_token)
+		ts_LOGf("WARN: recv auth 0x%08x != camd_auth 0x%08x\n", auth_token, c->cs378x.auth_token);
 
 	*data_len = 256;
 	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
 		fdread(c->server_fd, (char *)data + i, 16);
-		AES_decrypt(data + i, data + i, &c->aes_decrypt_key);
+		AES_decrypt(data + i, data + i, &c->cs378x.aes_decrypt_key);
 		if (i == 0)
 			*data_len = boundary(4, data[1] + 20); // Initialize real data length
 	}
@@ -71,31 +71,31 @@ static int cs378x_send_buf(struct camd *c, int data_len) {
 	cs378x_connect(c);
 
 	// Prepare auth token (only once)
-	if (!c->auth_token) {
-		c->auth_token = crc32(0L, MD5((unsigned char *)c->user, strlen(c->user), dump), 16);
+	if (!c->cs378x.auth_token) {
+		c->cs378x.auth_token = crc32(0L, MD5((unsigned char *)c->user, strlen(c->user), dump), 16);
 
 		MD5((unsigned char *)c->pass, strlen(c->pass), dump);
 
-		AES_set_encrypt_key(dump, 128, &c->aes_encrypt_key);
-		AES_set_decrypt_key(dump, 128, &c->aes_decrypt_key);
+		AES_set_encrypt_key(dump, 128, &c->cs378x.aes_encrypt_key);
+		AES_set_decrypt_key(dump, 128, &c->cs378x.aes_decrypt_key);
 	}
 
-	uint8_t *bdata = c->buf + 4; // Leave space for auth token
-	memmove(bdata, c->buf, data_len); // Move data
-	init_4b(c->auth_token, c->buf); // Put authentication token
+	uint8_t *bdata = c->cs378x.buf + 4; // Leave space for auth token
+	memmove(bdata, c->cs378x.buf, data_len); // Move data
+	init_4b(c->cs378x.auth_token, c->cs378x.buf); // Put authentication token
 
 	for (i = 0; i < data_len; i += 16) // Encrypt payload
-		AES_encrypt(bdata + i, bdata + i, &c->aes_encrypt_key);
+		AES_encrypt(bdata + i, bdata + i, &c->cs378x.aes_encrypt_key);
 
-	return fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
+	return fdwrite(c->server_fd, (char *)c->cs378x.buf, data_len + 4);
 }
 
 static void cs378x_buf_init(struct camd *c, uint8_t *data, int data_len) {
-	memset(c->buf, 0, CAMD35_HDR_LEN); // Reset header
-	memset(c->buf + CAMD35_HDR_LEN, 0xff, CAMD35_BUF_LEN - CAMD35_HDR_LEN); // Reset data
-	c->buf[1] = data_len; // Data length
-	init_4b(crc32(0L, data, data_len), c->buf + 4); // Data CRC is at buf[4]
-	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
+	memset(c->cs378x.buf, 0, CAMD35_HDR_LEN); // Reset header
+	memset(c->cs378x.buf + CAMD35_HDR_LEN, 0xff, CAMD35_BUF_LEN - CAMD35_HDR_LEN); // Reset data
+	c->cs378x.buf[1] = data_len; // Data length
+	init_4b(crc32(0L, data, data_len), c->cs378x.buf + 4); // Data CRC is at buf[4]
+	memcpy(c->cs378x.buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
 static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
@@ -104,13 +104,13 @@ static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, ui
 
 	cs378x_buf_init(c, data, (int)data_len);
 
-	c->buf[0] = 0x00; // CMD ECM request
-	init_2b(service_id , c->buf + 8);
-	init_2b(ca_id      , c->buf + 10);
-	init_4b(provider_id, c->buf + 12);
-	init_2b(idx        , c->buf + 16);
-	c->buf[18] = 0xff;
-	c->buf[19] = 0xff;
+	c->cs378x.buf[0] = 0x00; // CMD ECM request
+	init_2b(service_id , c->cs378x.buf + 8);
+	init_2b(ca_id      , c->cs378x.buf + 10);
+	init_4b(provider_id, c->cs378x.buf + 12);
+	init_2b(idx        , c->cs378x.buf + 16);
+	c->cs378x.buf[18] = 0xff;
+	c->cs378x.buf[19] = 0xff;
 
 	return cs378x_send_buf(c, to_send);
 }
@@ -121,15 +121,15 @@ static int cs378x_do_emm(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t 
 
 	cs378x_buf_init(c, data, (int)data_len);
 
-	c->buf[0] = 0x06; // CMD incomming EMM
-	init_2b(ca_id  , c->buf + 10);
-	init_4b(prov_id, c->buf + 12);
+	c->cs378x.buf[0] = 0x06; // CMD incomming EMM
+	init_2b(ca_id  , c->cs378x.buf + 10);
+	init_4b(prov_id, c->cs378x.buf + 12);
 
 	return cs378x_send_buf(c, to_send);
 }
 
 static int cs378x_get_cw(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw) {
-	uint8_t *data = c->buf;
+	uint8_t *data = c->cs378x.buf;
 	int data_len = 0;
 	int ret = 0;
 

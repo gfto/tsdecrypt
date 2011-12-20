@@ -72,6 +72,14 @@ struct camd_ops {
 	int (*get_cw)(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
 };
 
+struct cs378x {
+	// cs378x private data
+	uint8_t			buf[CAMD35_BUF_LEN];
+	AES_KEY			aes_encrypt_key;
+	AES_KEY			aes_decrypt_key;
+	uint32_t		auth_token;
+};
+
 struct camd {
 	int				server_fd;
 	struct in_addr	server_addr;
@@ -89,13 +97,8 @@ struct camd {
 	QUEUE			*ecm_queue;
 	QUEUE			*emm_queue;
 
-	struct camd_ops ops;
-
-	// cs378x private data
-	uint8_t			buf[CAMD35_BUF_LEN];
-	AES_KEY			aes_encrypt_key;
-	AES_KEY			aes_decrypt_key;
-	uint32_t		auth_token;
+	struct camd_ops	ops;
+	struct cs378x	cs378x;
 };
 
 enum io_type {
