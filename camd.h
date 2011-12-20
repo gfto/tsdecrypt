@@ -31,5 +31,6 @@ void					camd_stop			(struct ts *ts);
 void					camd_process_packet	(struct ts *ts, struct camd_msg *msg);
 
 void					camd_proto_cs378x	(struct camd_ops *ops);
+void					camd_proto_newcamd	(struct camd_ops *ops);
 
 #endif

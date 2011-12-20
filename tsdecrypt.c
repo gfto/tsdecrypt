@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-// Unused short options: ABFQTWYagjkmnqruv0123456789
+// Unused short options: FQTWYagjkmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -127,9 +127,12 @@ static const struct option long_options[] = {
 
 	{ "ca-system",			required_argument, NULL, 'c' },
 	{ "caid",				required_argument, NULL, 'C' },
+
+	{ "camd-proto",			required_argument, NULL, 'A' },
 	{ "camd-server",		required_argument, NULL, 's' },
 	{ "camd-user",			required_argument, NULL, 'U' },
 	{ "camd-pass",			required_argument, NULL, 'P' },
+	{ "camd-des-key",		required_argument, NULL, 'B' },
 
 	{ "emm",				no_argument,       NULL, 'e' },
 	{ "emm-pid",			required_argument, NULL, 'Z' },
@@ -194,9 +197,13 @@ static void show_help(struct ts *ts) {
 	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
 	printf("\n");
 	printf("CAMD server options:\n");
+	printf(" -A --camd-proto <proto>    | Set CAMD network protocol.\n");
+	printf("                            . Valid protocols are: CS378X (default) and NEWCAMD\n");
 	printf(" -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd.pass);
+	printf(" -B --camd-des-key <key>    | Set DES key for newcamd protocol.\n");
+	printf("                            . Default: %s\n", ts->camd.newcamd.hex_des_key);
 	printf("\n");
 	printf("EMM options:\n");
 	printf(" -e --emm                   | Enable sending EMM's to CAMD. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
@@ -255,8 +262,8 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 }
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
-	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pwxyc:C:s:U:P:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
+	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -348,11 +355,22 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->forced_caid = strtoul(optarg, NULL, 0) & 0xffff;
 				break;
 
+			case 'A':
+				if (strcasecmp(optarg, "cs378x") == 0) {
+					camd_proto_cs378x(&ts->camd.ops);
+				} else if (strcasecmp(optarg, "newcamd") == 0) {
+					camd_proto_newcamd(&ts->camd.ops);
+				} else {
+					fprintf(stderr, "Unknown CAMD protocol: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				break;
 			case 's':
 				p = strrchr(optarg, ':');
 				if (p) {
 					*p = 0x00;
 					ts->camd.server_port = atoi(p + 1);
+					port_set = 1;
 				}
 				if (inet_aton(optarg, &ts->camd.server_addr) == 0)
 					server_err = 1;
@@ -366,6 +384,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'P':
 				strncpy(ts->camd.pass, optarg, sizeof(ts->camd.pass) - 1);
 				ts->camd.pass[sizeof(ts->camd.pass) - 1] = 0;
+				break;
+			case 'B':
+				if (strlen(optarg) != DESKEY_LENGTH) {
+					fprintf(stderr, "ERROR: des key should be %u characters long.\n", DESKEY_LENGTH);
+					exit(EXIT_FAILURE);
+				}
+				strncpy(ts->camd.newcamd.hex_des_key, optarg, sizeof(ts->camd.newcamd.hex_des_key) - 1);
+				ts->camd.newcamd.hex_des_key[sizeof(ts->camd.newcamd.hex_des_key) - 1] = 0;
 				break;
 
 			case 'e':
@@ -441,6 +467,15 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
 		exit(EXIT_FAILURE);
 	}
+	if (decode_hex_string(ts->camd.newcamd.hex_des_key, ts->camd.newcamd.bin_des_key, DESKEY_LENGTH) < 0) {
+		fprintf(stderr, "ERROR: Invalid hex string for des key: %s\n", ts->camd.newcamd.hex_des_key);
+		exit(EXIT_FAILURE);
+	}
+	if (ts->camd.ops.proto == CAMD_NEWCAMD && !port_set) {
+		fprintf(stderr, "ERROR: CAMD server port is not set. Use --camd-server %s:xxxx to set the port.\n", inet_ntoa(ts->camd.server_addr));
+		exit(EXIT_FAILURE);
+	}
+
 	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
 	ts_LOGf("Notify prog: %s\n", ts->notify_program[0] ? ts->notify_program : "*NOT SET*");
 	if (ts->pidfile[0])
@@ -499,9 +534,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts_LOGf("Out filter : Pass through TDT/TOT.\n");
 		}
 	}
-	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
-	ts_LOGf("Server user: %s\n", ts->camd.user);
-	ts_LOGf("Server pass: %s\n", ts->camd.pass);
+	ts_LOGf("CAMD proto : %s\n", ts->camd.ops.ident);
+	ts_LOGf("CAMD addr  : tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
+	ts_LOGf("CAMD user  : %s\n", ts->camd.user);
+	ts_LOGf("CAMD pass  : %s\n", ts->camd.pass);
+	if (ts->camd.ops.proto == CAMD_NEWCAMD)
+		ts_LOGf("CAMD deskey: %s\n", ts->camd.newcamd.hex_des_key);
 
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);

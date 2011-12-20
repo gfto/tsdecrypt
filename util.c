@@ -135,3 +135,22 @@ void set_thread_name(char *thread_name) {
 }
 
 #endif
+
+static int decode_hex_char(char c) {
+	if ((c >= '0') && (c <= '9')) return c - '0';
+	if ((c >= 'A') && (c <= 'F')) return c - 'A' + 10;
+	if ((c >= 'a') && (c <= 'f')) return c - 'a' + 10;
+	return -1;
+}
+
+int decode_hex_string(char *hex, uint8_t *bin, int asc_len) {
+	int i;
+	for (i = 0; i < asc_len; i += 2) {
+		int n1 = decode_hex_char(hex[i + 0]);
+		int n2 = decode_hex_char(hex[i + 1]);
+		if (n1 == -1 || n2 == -1)
+			return -1;
+		bin[i / 2] = (n1 << 4) | (n2 & 0xf);
+	}
+	return asc_len / 2;
+}

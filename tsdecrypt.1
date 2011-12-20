@@ -5,9 +5,10 @@ tsdecrypt - Decrypt mpeg transport stream.
 .B tsdecrypt
 [\fIoptions\fR]
 .SH DESCRIPTION
-tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then decrypts it
-using libdvbcsa and keys obtained from OSCAM or similar cam server. tsdecrypt
-communicates with CAM server using camd35 over tcp protocol also known as cs378x.
+tsdecrypt reads incoming mpeg transport stream over UDP/RTP or file and
+then decrypts it using libdvbcsa and keys obtained from OSCAM or similar
+CAMD server. tsdecrypt communicates with CAM server using cs378x (camd35
+over tcp) protocol or newcamd protocol.
 .SH OPTIONS
 .TP
 .SH MAIN OPTIONS
@@ -122,16 +123,25 @@ one CA but with different CAIDs.
 .SH CAMD OPTIONS
 .PP
 .TP
+\fB\-A\fR, \fB\-\-camd\-proto\fR <protocol>
+Set CAMD server protocol. Valid protocols are \fBCS378X\fR and \fBNEWCAMD\fR.
+If this option is not used the default protocol is \fBCS378X\fR (camd35 over
+tcp).
+.TP
 \fB\-s\fR, \fB\-\-camd\-server\fR <addr[:port]>
 Set CAMD server ip and port (10.0.1.1:2233). Is not set default port
-is \fB2233\fR. tsdecrypt is tested and working with OSCAM using cs378x protocol
-(camd35 over tcp).
+is \fB2233\fR. 2233 is the default port CS378X protocol, for NEWCAMD
+protocol you probably should choose other port.
 .TP
 \fB\-U\fR, \fB\-\-camd\-user\fR <username>
 Set CAMD user name. The default is \fBuser\fR.
 .TP
 \fB\-P\fR, \fB\-\-camd\-pass\fR <password>
 Set CAMD user password. The default is \fBpass\fR.
+.TP
+\fB\-B\fR, \fB\-\-camd\-des\-key\fR <des_key>
+Set DES key used by NEWCAMD protocol. The default
+is \fB0102030405060708091011121314\fR.
 .TP
 .SH EMM OPTIONS
 .PP

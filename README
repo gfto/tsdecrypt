@@ -2,8 +2,8 @@ tsdecrypt
 =========
 tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then
 decrypts it using libdvbcsa and keys obtained from OSCAM or similar cam
-server. tsdecrypt communicates with CAM server using camd35 over tcp
-protocol also known as cs378x.
+server. tsdecrypt communicates with CAM server using cs378x (camd35 over
+tcp) protocol or newcamd protocol.
 
 License
 =======
@@ -58,9 +58,13 @@ CA options:
  -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
 
 CAMD server options:
+ -A --camd-proto <proto>    | Set CAMD network protocol.
+                            . Valid protocols are: CS378X (default) and NEWCAMD
  -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).
  -U --camd-user <user>      | Set CAMD server user. Default: user
  -P --camd-pass <pass>      | Set CAMD server password. Default: pass
+ -B --camd-des-key <key>    | Set DES key for newcamd protocol.
+                            . Default: 0102030405060708091011121314
 
 EMM options:
  -e --emm                   | Enable sending EMM's to CAMD. Default: disabled

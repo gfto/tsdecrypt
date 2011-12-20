@@ -67,6 +67,7 @@ void data_init(struct ts *ts) {
 	ts->camd.key          = &ts->key;
 	strcpy(ts->camd.user, "user");
 	strcpy(ts->camd.pass, "pass");
+	strcpy(ts->camd.newcamd.hex_des_key, "0102030405060708091011121314");
 
 	camd_proto_cs378x(&ts->camd.ops);
 

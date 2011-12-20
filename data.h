@@ -22,6 +22,7 @@
 #include <limits.h>
 
 #include <openssl/aes.h>
+#include <openssl/des.h>
 #include <openssl/md5.h>
 
 #include <dvbcsa/dvbcsa.h>
@@ -77,6 +78,7 @@ struct camd_msg {
 
 enum camd_proto {
 	CAMD_CS378X,
+	CAMD_NEWCAMD,
 };
 
 struct camd_ops {
@@ -99,6 +101,32 @@ struct cs378x {
 	uint16_t		msg_id;
 };
 
+#define DESKEY_LENGTH     28
+#define NEWCAMD_MSG_SIZE  400
+#define NEWCAMD_MAXPROV   32
+
+typedef struct {
+	DES_key_schedule ks1;
+	DES_key_schedule ks2;
+	uint8_t des_key[16];
+} triple_des_t;
+
+struct newcamd {
+	// newcamd private data
+	uint8_t			buf[NEWCAMD_MSG_SIZE];
+	char			hex_des_key[DESKEY_LENGTH + 1];
+	uint8_t			bin_des_key[DESKEY_LENGTH / 2];	// Decoded des_key
+	triple_des_t	td_key;
+	uint16_t		msg_id;
+	// Initialized from CARD INFO command
+	int				caid;
+	uint8_t			ua[8];
+	uint8_t			num_of_provs;
+	uint8_t			provs_ident[NEWCAMD_MAXPROV][3];
+	uint8_t			provs_id[NEWCAMD_MAXPROV][8];
+	uint8_t			prov_ident_manual;
+};
+
 struct camd {
 	int				server_fd;
 	struct in_addr	server_addr;
@@ -118,6 +146,7 @@ struct camd {
 
 	struct camd_ops	ops;
 	struct cs378x	cs378x;
+	struct newcamd	newcamd;
 };
 
 enum io_type {
