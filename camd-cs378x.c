@@ -28,22 +28,22 @@
 #include "util.h"
 #include "camd.h"
 
-static int cs378x_connect(struct camd35 *c) {
+static int cs378x_connect(struct camd *c) {
 	if (c->server_fd < 0)
 		c->server_fd = camd_tcp_connect(c->server_addr, c->server_port);
 	return c->server_fd;
 }
 
-static void cs378x_disconnect(struct camd35 *c) {
+static void cs378x_disconnect(struct camd *c) {
 	shutdown_fd(&c->server_fd);
 }
 
-static int cs378x_reconnect(struct camd35 *c) {
+static int cs378x_reconnect(struct camd *c) {
 	cs378x_disconnect(c);
 	return cs378x_connect(c);
 }
 
-static int cs378x_recv(struct camd35 *c, uint8_t *data, int *data_len) {
+static int cs378x_recv(struct camd *c, uint8_t *data, int *data_len) {
 	int i;
 
 	// Read AUTH token
@@ -52,7 +52,7 @@ static int cs378x_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 		return -1;
 	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
 	if (auth_token != c->auth_token)
-		ts_LOGf("WARN: recv auth 0x%08x != camd35_auth 0x%08x\n", auth_token, c->auth_token);
+		ts_LOGf("WARN: recv auth 0x%08x != camd_auth 0x%08x\n", auth_token, c->auth_token);
 
 	*data_len = 256;
 	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
@@ -64,7 +64,7 @@ static int cs378x_recv(struct camd35 *c, uint8_t *data, int *data_len) {
 	return *data_len;
 }
 
-static int cs378x_send_buf(struct camd35 *c, int data_len) {
+static int cs378x_send_buf(struct camd *c, int data_len) {
 	int i;
 	unsigned char dump[16];
 
@@ -90,7 +90,7 @@ static int cs378x_send_buf(struct camd35 *c, int data_len) {
 	return fdwrite(c->server_fd, (char *)c->buf, data_len + 4);
 }
 
-static void cs378x_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
+static void cs378x_buf_init(struct camd *c, uint8_t *data, int data_len) {
 	memset(c->buf, 0, CAMD35_HDR_LEN); // Reset header
 	memset(c->buf + CAMD35_HDR_LEN, 0xff, CAMD35_BUF_LEN - CAMD35_HDR_LEN); // Reset data
 	c->buf[1] = data_len; // Data length
@@ -98,7 +98,7 @@ static void cs378x_buf_init(struct camd35 *c, uint8_t *data, int data_len) {
 	memcpy(c->buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
-static int cs378x_do_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
 	uint32_t provider_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -115,7 +115,7 @@ static int cs378x_do_ecm(struct camd35 *c, uint16_t ca_id, uint16_t service_id, 
 	return cs378x_send_buf(c, to_send);
 }
 
-static int cs378x_do_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+static int cs378x_do_emm(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
 	uint32_t prov_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
@@ -128,7 +128,7 @@ static int cs378x_do_emm(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_
 	return cs378x_send_buf(c, to_send);
 }
 
-static int cs378x_get_cw(struct camd35 *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw) {
+static int cs378x_get_cw(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw) {
 	uint8_t *data = c->buf;
 	int data_len = 0;
 	int ret = 0;

@@ -60,8 +60,8 @@ int camd_tcp_connect(struct in_addr ip, int port) {
 	return fd;
 }
 
-static int camd35_recv_cw(struct ts *ts) {
-	struct camd35 *c = &ts->camd35;
+static int camd_recv_cw(struct ts *ts) {
+	struct camd *c = &ts->camd;
 	struct timeval tv1, tv2, last_ts_keyset;
 	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint16_t ca_id = 0;
@@ -115,8 +115,8 @@ static int camd35_recv_cw(struct ts *ts) {
 
 #undef ERR
 
-static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
-	struct camd35 *c = &ts->camd35;
+static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+	struct camd *c = &ts->camd;
 	int ret = c->ops.do_ecm(c, ca_id, service_id, idx, data, data_len);
 	if (ret <= 0) {
 		ts_LOGf("ERR | Error sending ecm packet, reconnecting to camd.\n");
@@ -125,7 +125,7 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 		return ret;
 	}
 
-	ret = camd35_recv_cw(ts);
+	ret = camd_recv_cw(ts);
 	if (ret < 48) {
 		ts->is_cw_error = 1;
 		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME) {
@@ -140,8 +140,8 @@ static int camd35_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, u
 	return ret;
 }
 
-static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
-	struct camd35 *c = &ts->camd35;
+static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+	struct camd *c = &ts->camd;
 	int ret = c->ops.do_emm(c, ca_id, data, data_len);
 	if (ret < 0) {
 		c->emm_recv_errors++;
@@ -159,12 +159,12 @@ static int camd35_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t
 static void camd_do_msg(struct camd_msg *msg) {
 	if (msg->type == EMM_MSG) {
 		msg->ts->emm_seen_count++;
-		if (camd35_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len) > 0)
+		if (camd_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len) > 0)
 			msg->ts->emm_processed_count++;
 	}
 	if (msg->type == ECM_MSG) {
 		msg->ts->ecm_seen_count++;
-		if (camd35_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len) > 0)
+		if (camd_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len) > 0)
 			msg->ts->ecm_processed_count++;
 	}
 
@@ -205,12 +205,12 @@ static void *camd_thread(void *in_ts) {
 
 	while (1) {
 		struct camd_msg *msg;
-		void *req = queue_get(ts->camd35.req_queue); // Waits...
+		void *req = queue_get(ts->camd.req_queue); // Waits...
 		if (!req || ts->camd_stop)
 			break;
-		msg = queue_get_nowait(ts->camd35.ecm_queue);
+		msg = queue_get_nowait(ts->camd.ecm_queue);
 		if (!msg)
-			msg = queue_get_nowait(ts->camd35.emm_queue);
+			msg = queue_get_nowait(ts->camd.emm_queue);
 		if (!msg)
 			break;
 		camd_do_msg(msg);
@@ -220,19 +220,19 @@ static void *camd_thread(void *in_ts) {
 
 void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
 	msg->ts = ts;
-	if (ts->camd35.thread) {
+	if (ts->camd.thread) {
 		if (msg->type == EMM_MSG)
-			queue_add(ts->camd35.emm_queue, msg);
+			queue_add(ts->camd.emm_queue, msg);
 		if (msg->type == ECM_MSG)
-			queue_add(ts->camd35.ecm_queue, msg);
-		queue_add(ts->camd35.req_queue, msg);
+			queue_add(ts->camd.ecm_queue, msg);
+		queue_add(ts->camd.req_queue, msg);
 	} else {
 		camd_do_msg(msg);
 	}
 }
 
 void camd_start(struct ts *ts) {
-	struct camd35 *c = &ts->camd35;
+	struct camd *c = &ts->camd;
 	c->ops.connect(c);
 	// The input is not file, process messages using async thread
 	if (!(ts->input.type == FILE_IO && ts->input.fd != 0)) {
@@ -244,7 +244,7 @@ void camd_start(struct ts *ts) {
 }
 
 void camd_stop(struct ts *ts) {
-	struct camd35 *c = &ts->camd35;
+	struct camd *c = &ts->camd;
 	ts->camd_stop = 1;
 	if (c->thread) {
 		queue_wakeup(c->req_queue);

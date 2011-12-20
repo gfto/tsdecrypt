@@ -60,12 +60,12 @@ void data_init(struct ts *ts) {
 	gettimeofday(&ts->key.ts_keyset, NULL);
 
 	// CAMD
-	memset(&ts->camd35, 0, sizeof(ts->camd35));
-	ts->camd35.server_fd    = -1;
-	ts->camd35.server_port  = 2233;
-	ts->camd35.key          = &ts->key;
-	strcpy(ts->camd35.user, "user");
-	strcpy(ts->camd35.pass, "pass");
+	memset(&ts->camd, 0, sizeof(ts->camd));
+	ts->camd.server_fd    = -1;
+	ts->camd.server_port  = 2233;
+	ts->camd.key          = &ts->key;
+	strcpy(ts->camd.user, "user");
+	strcpy(ts->camd.pass, "pass");
 
 	// Config
 	ts->syslog_port = 514;

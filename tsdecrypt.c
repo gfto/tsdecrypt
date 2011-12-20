@@ -195,8 +195,8 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("CAMD server options:\n");
 	printf(" -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).\n");
-	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd35.user);
-	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd35.pass);
+	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd.user);
+	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd.pass);
 	printf("\n");
 	printf("EMM options:\n");
 	printf(" -e --emm                   | Enable sending EMM's to CAMD. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
@@ -352,20 +352,20 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				p = strrchr(optarg, ':');
 				if (p) {
 					*p = 0x00;
-					ts->camd35.server_port = atoi(p + 1);
+					ts->camd.server_port = atoi(p + 1);
 				}
-				if (inet_aton(optarg, &ts->camd35.server_addr) == 0)
+				if (inet_aton(optarg, &ts->camd.server_addr) == 0)
 					server_err = 1;
 				else
 					server_err = 0;
 				break;
 			case 'U':
-				strncpy(ts->camd35.user, optarg, sizeof(ts->camd35.user) - 1);
-				ts->camd35.user[sizeof(ts->camd35.user) - 1] = 0;
+				strncpy(ts->camd.user, optarg, sizeof(ts->camd.user) - 1);
+				ts->camd.user[sizeof(ts->camd.user) - 1] = 0;
 				break;
 			case 'P':
-				strncpy(ts->camd35.pass, optarg, sizeof(ts->camd35.pass) - 1);
-				ts->camd35.pass[sizeof(ts->camd35.pass) - 1] = 0;
+				strncpy(ts->camd.pass, optarg, sizeof(ts->camd.pass) - 1);
+				ts->camd.pass[sizeof(ts->camd.pass) - 1] = 0;
 				break;
 
 			case 'e':
@@ -499,9 +499,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts_LOGf("Out filter : Pass through TDT/TOT.\n");
 		}
 	}
-	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd35.server_addr), ts->camd35.server_port);
-	ts_LOGf("Server user: %s\n", ts->camd35.user);
-	ts_LOGf("Server pass: %s\n", ts->camd35.pass);
+	ts_LOGf("Server addr: tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
+	ts_LOGf("Server user: %s\n", ts->camd.user);
+	ts_LOGf("Server pass: %s\n", ts->camd.pass);
 
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
@@ -628,7 +628,7 @@ int main(int argc, char **argv) {
 
 	parse_options(&ts, argc, argv);
 
-	camd_proto_cs378x(&ts.camd35.ops);
+	camd_proto_cs378x(&ts.camd.ops);
 
 	if (ts.pidfile[0])
 		daemonize(ts.pidfile);

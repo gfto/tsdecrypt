@@ -61,18 +61,18 @@ struct key {
 // When this limit is reached camd_reconnect is called.
 #define EMM_RECV_ERRORS_LIMIT 100
 
-struct camd35;
+struct camd;
 
 struct camd_ops {
-	int (*connect)(struct camd35 *c);
-	void (*disconnect)(struct camd35 *c);
-	int (*reconnect)(struct camd35 *c);
-	int (*do_emm)(struct camd35 *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
-	int (*do_ecm)(struct camd35 *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len);
-	int (*get_cw)(struct camd35 *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
+	int (*connect)(struct camd *c);
+	void (*disconnect)(struct camd *c);
+	int (*reconnect)(struct camd *c);
+	int (*do_emm)(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
+	int (*do_ecm)(struct camd *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len);
+	int (*get_cw)(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
 };
 
-struct camd35 {
+struct camd {
 	int				server_fd;
 	struct in_addr	server_addr;
 	unsigned int	server_port;
@@ -157,7 +157,7 @@ struct ts {
 
 	// CAMD handling
 	struct key			key;
-	struct camd35		camd35;
+	struct camd			camd;
 
 	// Config
 	char				ident[128];
