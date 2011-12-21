@@ -75,7 +75,13 @@ struct camd_msg {
 	struct ts		*ts;
 };
 
+enum camd_proto {
+	CAMD_CS378X,
+};
+
 struct camd_ops {
+	char ident[16];
+	enum camd_proto proto;
 	int (*connect)(struct camd *c);
 	void (*disconnect)(struct camd *c);
 	int (*reconnect)(struct camd *c);
