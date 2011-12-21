@@ -98,8 +98,9 @@ static void cs378x_buf_init(struct camd *c, uint8_t *data, int data_len) {
 	memcpy(c->cs378x.buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
-static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
 	uint32_t provider_id = 0;
+	uint16_t idx = c->cs378x.msg_id++;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
 	cs378x_buf_init(c, data, (int)data_len);

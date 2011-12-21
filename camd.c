@@ -104,7 +104,7 @@ static int camd_recv_cw(struct ts *ts) {
 	}
 
 	if (ts->ecm_cw_log) {
-		ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------- IDX: 0x%04x Data: %s\n",
+		ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------ IDX: 0x%04x Data: %s\n",
 			ca_id, timeval_diff_msec(&tv1, &tv2),
 			timeval_diff_msec(&last_ts_keyset, &tv2),
 			idx, cw_dump );
@@ -115,9 +115,9 @@ static int camd_recv_cw(struct ts *ts) {
 
 #undef ERR
 
-static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
 	struct camd *c = &ts->camd;
-	int ret = c->ops.do_ecm(c, ca_id, service_id, idx, data, data_len);
+	int ret = c->ops.do_ecm(c, ca_id, service_id, data, data_len);
 	if (ret <= 0) {
 		ts_LOGf("ERR | Error sending ecm packet, reconnecting to camd.\n");
 		ts->is_cw_error = 1;
@@ -164,7 +164,7 @@ static void camd_do_msg(struct camd_msg *msg) {
 	}
 	if (msg->type == ECM_MSG) {
 		msg->ts->ecm_seen_count++;
-		if (camd_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->idx, msg->data, msg->data_len) > 0)
+		if (camd_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->data, msg->data_len) > 0)
 			msg->ts->ecm_processed_count++;
 	}
 
@@ -180,10 +180,9 @@ struct camd_msg *camd_msg_alloc_emm(uint16_t ca_id, uint8_t *data, uint8_t data_
 	return c;
 }
 
-struct camd_msg *camd_msg_alloc_ecm(uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len) {
+struct camd_msg *camd_msg_alloc_ecm(uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
 	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
 	c->type       = ECM_MSG;
-	c->idx        = idx;
 	c->ca_id      = ca_id;
 	c->service_id = service_id;
 	c->data_len   = data_len;

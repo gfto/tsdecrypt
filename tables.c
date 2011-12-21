@@ -258,9 +258,10 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	struct ts_section_header *sec = ts->emm->section_header;
 	if (ts->debug_level >= 2) {
 		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
-		ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d ----------- Data: %s..\n",
+		ts_LOGf("EMM | CAID: 0x%04x PID 0x%04x SID 0x%04x Table: 0x%02x Length: %3d Data: %s..\n",
 			ts->emm_caid,
 			th->pid,
+			ts->service_id,
 			sec->table_id,
 			sec->section_data_len,
 			dump);
@@ -300,25 +301,22 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (!duplicate || ts->is_cw_error) {
 		if (ts->ecm_cw_log) {
 			ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
-			ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: %s..\n",
+			ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x SID 0x%04x Table: 0x%02x Length: %3d Data: %s..\n",
 				ts->ecm_caid,
 				th->pid,
+				ts->service_id,
 				sec->table_id,
 				sec->section_data_len,
-				ts->ecm_counter,
 				dump);
 		}
-		if (ts->is_cw_error)
-			ts->ecm_counter--;
 		ts->is_cw_error = 0;
-		camd_msg_process(ts, camd_msg_alloc_ecm(ts->ecm_caid, ts->service_id, ts->ecm_counter++, sec->section_data, sec->section_data_len));
+		camd_msg_process(ts, camd_msg_alloc_ecm(ts->ecm_caid, ts->service_id, sec->section_data, sec->section_data_len));
 	} else if (ts->debug_level >= 3) {
-		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d IDX: 0x%04x Data: -dup-\n",
+		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d Data: -dup-\n",
 			ts->ecm_caid,
 			th->pid,
 			sec->table_id,
-			sec->section_data_len,
-			ts->ecm_counter - 1);
+			sec->section_data_len);
 	}
 	ts_privsec_copy(ts->ecm, ts->last_ecm);
 	ts_privsec_clear(ts->ecm);

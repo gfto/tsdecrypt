@@ -68,7 +68,7 @@ struct camd_ops {
 	void (*disconnect)(struct camd *c);
 	int (*reconnect)(struct camd *c);
 	int (*do_emm)(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
-	int (*do_ecm)(struct camd *c, uint16_t ca_id, uint16_t service_id, uint16_t idx, uint8_t *data, uint8_t data_len);
+	int (*do_ecm)(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len);
 	int (*get_cw)(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
 };
 
@@ -78,6 +78,7 @@ struct cs378x {
 	AES_KEY			aes_encrypt_key;
 	AES_KEY			aes_decrypt_key;
 	uint32_t		auth_token;
+	uint16_t		msg_id;
 };
 
 struct camd {
@@ -138,7 +139,6 @@ struct ts {
 	uint16_t			forced_caid;
 	uint16_t			forced_emm_pid;
 	uint16_t			forced_ecm_pid;
-	uint16_t			ecm_counter;
 	pidmap_t			pidmap;
 	pidmap_t			cc; // Continuity counters
 	pidmap_t			pid_seen;
@@ -213,7 +213,6 @@ enum msg_type { EMM_MSG, ECM_MSG };
 
 struct camd_msg {
 	enum msg_type	type;
-	uint16_t		idx;
 	uint16_t		ca_id;
 	uint16_t		service_id;
 	uint8_t			data_len;
