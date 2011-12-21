@@ -51,8 +51,10 @@ static int cs378x_recv(struct camd *c, uint8_t *data, int *data_len) {
 	if (r < 4)
 		return -1;
 	uint32_t auth_token = (((data[0] << 24) | (data[1] << 16) | (data[2]<<8) | data[3]) & 0xffffffffL);
-	if (auth_token != c->cs378x.auth_token)
-		ts_LOGf("WARN: recv auth 0x%08x != camd_auth 0x%08x\n", auth_token, c->cs378x.auth_token);
+	if (auth_token != c->cs378x.auth_token) {
+		ts_LOGf("ERR | [%s] recv auth 0x%08x != camd_auth 0x%08x\n",
+			c->ops.ident, auth_token, c->cs378x.auth_token);
+	}
 
 	*data_len = 256;
 	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
@@ -143,7 +145,8 @@ READ:
 		goto READ;
 
 	if (data[0] != 0x01) {
-		ts_LOGf("ERR | Unexpected server response on code word request (ret data[0] == 0x%02x /%s/)\n",
+		ts_LOGf("ERR | [%s] Unexpected server response on code word request (ret data[0] == 0x%02x /%s/)\n",
+			c->ops.ident,
 			data[0],
 			data[0] == 0x08 ? "No card" :
 			data[0] == 0x44 ? "No code word found" : "Unknown err");
@@ -151,12 +154,12 @@ READ:
 	}
 
 	if (data_len < 48) {
-		ts_LOGf("ERR | Code word data_len (%d) mismatch != 48\n", data_len);
+		ts_LOGf("ERR | [%s] Code word packet len != 48 (%d)\n", c->ops.ident, data_len);
 		return 0;
 	}
 
 	if (data[1] < 0x10) {
-		ts_LOGf("ERR | Code word len (%d) mismatch != 16\n", data[1]);
+		ts_LOGf("ERR | [%s] Code word len != 16 (%d)\n", c->ops.ident, data[1]);
 		return 0;
 	}
 
