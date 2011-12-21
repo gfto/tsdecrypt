@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "data.h"
+#include "camd.h"
 
 void data_init(struct ts *ts) {
 	memset(ts, 0, sizeof(struct ts));
@@ -66,6 +67,8 @@ void data_init(struct ts *ts) {
 	ts->camd.key          = &ts->key;
 	strcpy(ts->camd.user, "user");
 	strcpy(ts->camd.pass, "pass");
+
+	camd_proto_cs378x(&ts->camd.ops);
 
 	// Config
 	ts->syslog_port = 514;
