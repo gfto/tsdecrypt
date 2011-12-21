@@ -79,7 +79,7 @@ struct camd_ops {
 	int (*connect)(struct camd *c);
 	void (*disconnect)(struct camd *c);
 	int (*reconnect)(struct camd *c);
-	int (*do_emm)(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t data_len);
+	int (*do_emm)(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len);
 	int (*do_ecm)(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len);
 	int (*get_cw)(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw);
 };

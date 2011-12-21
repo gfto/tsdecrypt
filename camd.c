@@ -140,9 +140,9 @@ static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uin
 	return ret;
 }
 
-static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
 	struct camd *c = &ts->camd;
-	int ret = c->ops.do_emm(c, ca_id, data, data_len);
+	int ret = c->ops.do_emm(c, ca_id, service_id, data, data_len);
 	if (ret < 0) {
 		c->emm_recv_errors++;
 		if (c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
@@ -159,7 +159,7 @@ static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint8_t *data, uint8_t d
 static void camd_do_msg(struct camd_msg *msg) {
 	if (msg->type == EMM_MSG) {
 		msg->ts->emm_seen_count++;
-		if (camd_send_emm(msg->ts, msg->ca_id, msg->data, msg->data_len) > 0)
+		if (camd_send_emm(msg->ts, msg->ca_id, msg->service_id, msg->data, msg->data_len) > 0)
 			msg->ts->emm_processed_count++;
 	}
 	if (msg->type == ECM_MSG) {

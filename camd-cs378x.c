@@ -116,7 +116,8 @@ static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, ui
 	return cs378x_send_buf(c, to_send);
 }
 
-static int cs378x_do_emm(struct camd *c, uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+static int cs378x_do_emm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
+	(void)service_id;
 	uint32_t prov_id = 0;
 	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
 
