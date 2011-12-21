@@ -62,6 +62,18 @@ struct key {
 #define EMM_RECV_ERRORS_LIMIT 100
 
 struct camd;
+struct ts;
+
+enum msg_type { EMM_MSG, ECM_MSG };
+
+struct camd_msg {
+	enum msg_type	type;
+	uint16_t		ca_id;
+	uint16_t		service_id;
+	uint8_t			data_len;
+	uint8_t			data[255];
+	struct ts		*ts;
+};
 
 struct camd_ops {
 	int (*connect)(struct camd *c);
@@ -207,17 +219,6 @@ struct ts {
 
 	struct notify		*notify;
 	char				notify_program[512];
-};
-
-enum msg_type { EMM_MSG, ECM_MSG };
-
-struct camd_msg {
-	enum msg_type	type;
-	uint16_t		ca_id;
-	uint16_t		service_id;
-	uint8_t			data_len;
-	uint8_t			data[255];
-	struct ts		*ts;
 };
 
 void data_init(struct ts *ts);
