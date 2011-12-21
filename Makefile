@@ -45,8 +45,12 @@ tsdecrypt_SRC = data.c \
  tables.c \
  notify.c \
  tsdecrypt.c
-tsdecrypt_LIBS = -lcrypt -lcrypto -ldvbcsa -lpthread
+tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
 tsdecrypt_OBJS = $(FUNCS_LIB) $(TS_LIB) $(tsdecrypt_SRC:.c=.o)
+
+ifeq "$(shell uname -s)" "Linux"
+tsdecrypt_LIBS += -lcrypt
+endif
 
 CLEAN_OBJS = tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
 

@@ -17,12 +17,10 @@
  */
 
 #define _XOPEN_SOURCE 700 // Needed to pull crypt() from unistd.h
-#define _GNU_SOURCE 1 // Needed to pull crypt_r() from crypt.h
 
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <crypt.h>
 
 #include <openssl/des.h>
 
@@ -296,9 +294,7 @@ static int newcamd_login(struct camd *c) {
 		return 0;
 	}
 
-	struct crypt_data crypt_data;
-	crypt_data.initialized = 0;
-	char *crPasswd = crypt_r(c->pass, "$1$abcdefgh$", &crypt_data);
+	char *crPasswd = crypt(c->pass, "$1$abcdefgh$");
 
 	const int userLen = strlen(c->user) + 1;
 	const int passLen = strlen(crPasswd) + 1;
