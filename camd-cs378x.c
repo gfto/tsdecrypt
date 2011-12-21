@@ -98,34 +98,32 @@ static void cs378x_buf_init(struct camd *c, uint8_t *data, int data_len) {
 	memcpy(c->cs378x.buf + CAMD35_HDR_LEN, data, data_len); // Copy data to buf
 }
 
-static int cs378x_do_ecm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
-	uint32_t provider_id = 0;
-	uint16_t idx = c->cs378x.msg_id++;
-	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
+static int cs378x_do_ecm(struct camd *c, struct camd_msg *msg) {
+	int to_send = boundary(4, CAMD35_HDR_LEN + msg->data_len);
 
-	cs378x_buf_init(c, data, (int)data_len);
+	cs378x_buf_init(c, msg->data, (int)msg->data_len);
+
+	c->cs378x.msg_id++;
 
 	c->cs378x.buf[0] = 0x00; // CMD ECM request
-	init_2b(service_id , c->cs378x.buf + 8);
-	init_2b(ca_id      , c->cs378x.buf + 10);
-	init_4b(provider_id, c->cs378x.buf + 12);
-	init_2b(idx        , c->cs378x.buf + 16);
+	init_2b(msg->service_id , c->cs378x.buf + 8);
+	init_2b(msg->ca_id      , c->cs378x.buf + 10);
+	init_4b(0               , c->cs378x.buf + 12); // Provider ID
+	init_2b(c->cs378x.msg_id, c->cs378x.buf + 16);
 	c->cs378x.buf[18] = 0xff;
 	c->cs378x.buf[19] = 0xff;
 
 	return cs378x_send_buf(c, to_send);
 }
 
-static int cs378x_do_emm(struct camd *c, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
-	(void)service_id;
-	uint32_t prov_id = 0;
-	int to_send = boundary(4, CAMD35_HDR_LEN + data_len);
+static int cs378x_do_emm(struct camd *c, struct camd_msg *msg) {
+	int to_send = boundary(4, CAMD35_HDR_LEN + msg->data_len);
 
-	cs378x_buf_init(c, data, (int)data_len);
+	cs378x_buf_init(c, msg->data, (int)msg->data_len);
 
 	c->cs378x.buf[0] = 0x06; // CMD incomming EMM
-	init_2b(ca_id  , c->cs378x.buf + 10);
-	init_4b(prov_id, c->cs378x.buf + 12);
+	init_2b(msg->ca_id  , c->cs378x.buf + 10);
+	init_4b(0           , c->cs378x.buf + 12); // Provider ID
 
 	return cs378x_send_buf(c, to_send);
 }

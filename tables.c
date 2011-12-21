@@ -266,7 +266,7 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			sec->section_data_len,
 			dump);
 	}
-	camd_msg_process(ts, camd_msg_alloc_emm(ts->emm_caid, sec->section_data, sec->section_data_len));
+	camd_process_packet(ts, camd_msg_alloc(EMM_MSG, ts->emm_caid, ts->service_id, sec->section_data, sec->section_data_len));
 	ts_privsec_copy(ts->emm, ts->last_emm);
 	ts_privsec_clear(ts->emm);
 }
@@ -310,7 +310,7 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 				dump);
 		}
 		ts->is_cw_error = 0;
-		camd_msg_process(ts, camd_msg_alloc_ecm(ts->ecm_caid, ts->service_id, sec->section_data, sec->section_data_len));
+		camd_process_packet(ts, camd_msg_alloc(ECM_MSG, ts->ecm_caid, ts->service_id, sec->section_data, sec->section_data_len));
 	} else if (ts->debug_level >= 3) {
 		ts_LOGf("ECM | CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %3d Data: -dup-\n",
 			ts->ecm_caid,

@@ -115,9 +115,9 @@ static int camd_recv_cw(struct ts *ts) {
 
 #undef ERR
 
-static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
+static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 	struct camd *c = &ts->camd;
-	int ret = c->ops.do_ecm(c, ca_id, service_id, data, data_len);
+	int ret = c->ops.do_ecm(c, msg);
 	if (ret <= 0) {
 		ts_LOGf("ERR | Error sending ecm packet, reconnecting to camd.\n");
 		ts->is_cw_error = 1;
@@ -140,9 +140,9 @@ static int camd_send_ecm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uin
 	return ret;
 }
 
-static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
+static int camd_send_emm(struct ts *ts, struct camd_msg *msg) {
 	struct camd *c = &ts->camd;
-	int ret = c->ops.do_emm(c, ca_id, service_id, data, data_len);
+	int ret = c->ops.do_emm(c, msg);
 	if (ret < 0) {
 		c->emm_recv_errors++;
 		if (c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
@@ -159,30 +159,21 @@ static int camd_send_emm(struct ts *ts, uint16_t ca_id, uint16_t service_id, uin
 static void camd_do_msg(struct camd_msg *msg) {
 	if (msg->type == EMM_MSG) {
 		msg->ts->emm_seen_count++;
-		if (camd_send_emm(msg->ts, msg->ca_id, msg->service_id, msg->data, msg->data_len) > 0)
+		if (camd_send_emm(msg->ts, msg) > 0)
 			msg->ts->emm_processed_count++;
 	}
 	if (msg->type == ECM_MSG) {
 		msg->ts->ecm_seen_count++;
-		if (camd_send_ecm(msg->ts, msg->ca_id, msg->service_id, msg->data, msg->data_len) > 0)
+		if (camd_send_ecm(msg->ts, msg) > 0)
 			msg->ts->ecm_processed_count++;
 	}
 
 	camd_msg_free(&msg);
 }
 
-struct camd_msg *camd_msg_alloc_emm(uint16_t ca_id, uint8_t *data, uint8_t data_len) {
+struct camd_msg *camd_msg_alloc(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
 	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
-	c->type       = EMM_MSG;
-	c->ca_id      = ca_id;
-	c->data_len   = data_len;
-	memcpy(c->data, data, data_len);
-	return c;
-}
-
-struct camd_msg *camd_msg_alloc_ecm(uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
-	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
-	c->type       = ECM_MSG;
+	c->type       = msg_type;
 	c->ca_id      = ca_id;
 	c->service_id = service_id;
 	c->data_len   = data_len;
@@ -217,7 +208,7 @@ static void *camd_thread(void *in_ts) {
 	pthread_exit(EXIT_SUCCESS);
 }
 
-void camd_msg_process(struct ts *ts, struct camd_msg *msg) {
+void camd_process_packet(struct ts *ts, struct camd_msg *msg) {
 	msg->ts = ts;
 	if (ts->camd.thread) {
 		if (msg->type == EMM_MSG)

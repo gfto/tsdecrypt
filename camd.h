@@ -22,13 +22,13 @@
 
 int						camd_tcp_connect	(struct in_addr ip, int port);
 
-struct camd_msg *		camd_msg_alloc_emm	(uint16_t ca_id, uint8_t *emm_data, uint8_t emm_data_len);
-struct camd_msg *		camd_msg_alloc_ecm	(uint16_t ca_id, uint16_t service_id, uint8_t *ecm_data, uint8_t ecm_data_len);
+struct camd_msg *		camd_msg_alloc		(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len);
 void					camd_msg_free   	(struct camd_msg **pmsg);
 
 void					camd_start			(struct ts *ts);
 void					camd_stop			(struct ts *ts);
-void					camd_msg_process	(struct ts *ts, struct camd_msg *msg);
+
+void					camd_process_packet	(struct ts *ts, struct camd_msg *msg);
 
 void					camd_proto_cs378x	(struct camd_ops *ops);
 
