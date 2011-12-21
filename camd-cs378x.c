@@ -135,11 +135,8 @@ static int cs378x_get_cw(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t
 
 READ:
 	ret = cs378x_recv(c, data, &data_len);
-	if (ret < 0) {
-		ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
-		cs378x_reconnect(c);
-		return ret;
-	}
+	if (ret < 0) // Fatal error
+		return -1;
 
 	// EMM request, ignore it. Sometimes OSCAM sends two EMM requests after CW
 	if (data[0] == 0x05)
@@ -150,12 +147,6 @@ READ:
 			data[0],
 			data[0] == 0x08 ? "No card" :
 			data[0] == 0x44 ? "No code word found" : "Unknown err");
-		c->ecm_recv_errors++;
-		usleep(10000);
-		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
-			c->key->is_valid_cw = 0;
-			memset(cw, 0, 16); // Invalid CW
-		}
 		return 0;
 	}
 
@@ -173,7 +164,7 @@ READ:
 	*idx   = (data[16] << 8) | data[17];
 	memcpy(cw, data + 20, 16);
 
-	return ret;
+	return 1;
 }
 
 void camd_proto_cs378x(struct camd_ops *ops) {

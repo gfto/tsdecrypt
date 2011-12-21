@@ -70,9 +70,21 @@ static int camd_recv_cw(struct ts *ts) {
 
 	gettimeofday(&tv1, NULL);
 	ret = c->ops.get_cw(c, &ca_id, &idx, c->key->cw);
-	if (ret <= 0)
-		return ret;
 	gettimeofday(&tv2, NULL);
+
+	if (ret <= 0) {
+		if (ret == -1) { // Fatal error it is better to reconnect to server.
+			ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
+			c->ops.reconnect(c);
+		}
+		c->ecm_recv_errors++;
+		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
+			c->key->is_valid_cw = 0;
+			memset(c->key->cw, 0, 16); // Invalid CW
+		}
+		usleep(10000);
+		return 0;
+	}
 
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, c->key->cw, 16, 0);
@@ -110,7 +122,7 @@ static int camd_recv_cw(struct ts *ts) {
 			idx, cw_dump );
 	}
 
-	return ret;
+	return 1;
 }
 
 #undef ERR
@@ -126,7 +138,7 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 	}
 
 	ret = camd_recv_cw(ts);
-	if (ret < 48) {
+	if (ret < 1) {
 		ts->is_cw_error = 1;
 		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME) {
 			if (c->key->is_valid_cw)
