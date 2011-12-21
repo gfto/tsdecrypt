@@ -70,7 +70,8 @@ static int cs378x_send_buf(struct camd *c, int data_len) {
 	int i;
 	unsigned char dump[16];
 
-	cs378x_connect(c);
+	if (cs378x_connect(c) < 0)
+		return -1;
 
 	// Prepare auth token (only once)
 	if (!c->cs378x.auth_token) {
