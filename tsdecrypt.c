@@ -697,7 +697,7 @@ int main(int argc, char **argv) {
 	signal(SIGINT , signal_quit);
 	signal(SIGTERM, signal_quit);
 
-	if (&ts.threaded) {
+	if (ts.threaded) {
 		pthread_create(&ts.decode_thread, NULL, &decode_thread, &ts);
 		pthread_create(&ts.write_thread, NULL , &write_thread , &ts);
 	}
