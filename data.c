@@ -110,6 +110,8 @@ void data_free(struct ts *ts) {
 	ts_cat_free(&ts->curcat);
 	ts_pmt_free(&ts->pmt);
 	ts_pmt_free(&ts->curpmt);
+	ts_sdt_free(&ts->sdt);
+	ts_sdt_free(&ts->cursdt);
 	ts_privsec_free(&ts->emm);
 	ts_privsec_free(&ts->last_emm);
 	ts_privsec_free(&ts->tmp_emm);
