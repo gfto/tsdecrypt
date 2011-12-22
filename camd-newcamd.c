@@ -295,6 +295,11 @@ static int newcamd_login(struct camd *c) {
 	}
 
 	char *crPasswd = crypt(c->pass, "$1$abcdefgh$");
+	if (!crPasswd) {
+		ts_LOGf("ERR | [%s] Can't crypt password.\n", c->ops.ident);
+		sleep(1);
+		return -1;
+	}
 
 	const int userLen = strlen(c->user) + 1;
 	const int passLen = strlen(crPasswd) + 1;
@@ -313,6 +318,7 @@ static int newcamd_login(struct camd *c) {
 		newcamd_recv_cmd(c) != MSG_CLIENT_2_SERVER_LOGIN_ACK)
 	{
 		ts_LOGf("ERR | [%s] Login failed. Check user/pass/des-key.\n", c->ops.ident);
+		free(crPasswd);
 		sleep(1);
 		return 0;
 	}
@@ -325,6 +331,7 @@ static int newcamd_login(struct camd *c) {
 		tmpkey[i % 14] ^= crPasswd[i];
 	des_key_spread(&c->newcamd.td_key, tmpkey);
 	des_schedule_key(&c->newcamd.td_key);
+	free(crPasswd);
 
 	if (!newcamd_send_cmd(c, MSG_CARD_DATA_REQ) || newcamd_recv_msg(c, buffer, 0) <= 0) {
 		ts_LOGf("ERR | [%s] MSG_CARD_DATA_REQ error.\n", c->ops.ident);
