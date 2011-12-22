@@ -134,9 +134,13 @@ static void npriv_init_defaults(struct notify *n, struct npriv *np) {
 }
 
 static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_text) {
-	struct npriv *np = calloc(1, sizeof(struct npriv));
+	struct npriv *np;
+
 	if (!ts->notify)
 		return;
+
+	np = calloc(1, sizeof(struct npriv));
+
 	np->sync = sync_msg;
 	npriv_init_defaults(ts->notify, np);
 
