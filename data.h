@@ -36,6 +36,12 @@
 // How much seconds to assume the key is valid
 #define KEY_VALID_TIME 10
 
+#define EMM_QUEUE_HARD_LIMIT 10000
+#define EMM_QUEUE_SOFT_LIMIT 1000
+
+#define ECM_QUEUE_HARD_LIMIT 10
+#define ECM_QUEUE_SOFT_LIMIT 3
+
 struct notify {
 	pthread_t	thread;				/* Thread handle */
 	QUEUE		*notifications;		/* Notification queue */

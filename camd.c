@@ -216,7 +216,36 @@ static void *camd_thread(void *in_ts) {
 		if (!msg)
 			break;
 		camd_do_msg(msg);
+
+		if (ts->camd.ecm_queue->items >= ECM_QUEUE_HARD_LIMIT) {
+			ts_LOGf("WRN | Too much items (%d) in ECM queue, dropping the oldest.\n", ts->camd.ecm_queue->items);
+			while(ts->camd.ecm_queue->items >= ECM_QUEUE_SOFT_LIMIT) {
+				msg = queue_get_nowait(ts->camd.ecm_queue);
+				camd_msg_free(&msg);
+			}
+		}
+
+		if (ts->camd.emm_queue->items >= EMM_QUEUE_HARD_LIMIT) {
+			ts_LOGf("WRN | Too much items (%d) in EMM queue, dropping the oldest.%s\n",
+				ts->camd.emm_queue->items, ts->camd.ops.proto == CAMD_NEWCAMD ?
+				" Consider switching to cs378x protocol!" : "");
+			while(ts->camd.emm_queue->items >= EMM_QUEUE_SOFT_LIMIT) {
+				msg = queue_get_nowait(ts->camd.emm_queue);
+				camd_msg_free(&msg);
+			}
+		}
 	}
+	// Flush ECM queue
+	while (ts->camd.ecm_queue->items) {
+		struct camd_msg *msg = queue_get_nowait(ts->camd.ecm_queue);
+		camd_msg_free(&msg);
+	}
+	// Flush EMM queue
+	while (ts->camd.emm_queue->items) {
+		struct camd_msg *msg = queue_get_nowait(ts->camd.emm_queue);
+		camd_msg_free(&msg);
+	}
+
 	pthread_exit(EXIT_SUCCESS);
 }
 

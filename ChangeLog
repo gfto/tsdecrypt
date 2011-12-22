@@ -11,6 +11,7 @@ xxxx-xx-xx : Version next
  * Add --output-eit-pass (-w) to enable EIT (EPG) pass through.
  * Add --output-tdt-pass (-x) to enable TDT/TOT pass through.
  * Add support for newcamd CAMD protocol.
+ * Add ECM/EMM queues depth limit to avoid allocating too much memory.
 
 2011-11-18 : Version 4.0
  * Set CAMD sockets NODELAY to avoid OSCAM errors when many packets are sent.
