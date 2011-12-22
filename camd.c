@@ -237,7 +237,7 @@ void camd_start(struct ts *ts) {
 	struct camd *c = &ts->camd;
 	c->ops.connect(c);
 	// The input is not file, process messages using async thread
-	if (!(ts->input.type == FILE_IO && ts->input.fd != 0)) {
+	if (ts->threaded) {
 		c->req_queue = queue_new();
 		c->ecm_queue = queue_new();
 		c->emm_queue = queue_new();
