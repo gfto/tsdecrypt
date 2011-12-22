@@ -155,7 +155,7 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 static int camd_send_emm(struct ts *ts, struct camd_msg *msg) {
 	struct camd *c = &ts->camd;
 	int ret = c->ops.do_emm(c, msg);
-	if (ret < 0) {
+	if (ret < 1) {
 		c->emm_recv_errors++;
 		if (c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
 			ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
