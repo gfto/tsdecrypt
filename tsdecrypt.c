@@ -121,6 +121,7 @@ static const struct option long_options[] = {
 	{ "output-intf",		required_argument, NULL, 'o' },
 	{ "output-ttl",			required_argument, NULL, 't' },
 	{ "output-filter",		no_argument,       NULL, 'p' },
+	{ "no-output-filter",	no_argument,       NULL, 'p' },
 	{ "output-nit-pass",	no_argument,       NULL, 'y' },
 	{ "output-eit-pass",	no_argument,       NULL, 'w' },
 	{ "output-tdt-pass",	no_argument,       NULL, 'x' },
@@ -184,7 +185,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -O -              (write to stdout) (default)\n");
 	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
-	printf(" -p --output-filter         | Enable or disable output filter. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
+	printf(" -p --no-output-filter      | Disable output filtering. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
 	printf(" -y --output-nit-pass       | Pass through NIT.\n");
 	printf(" -w --output-eit-pass       | Pass through EIT (EPG).\n");
 	printf(" -x --output-tdt-pass       | Pass through TDT/TOT.\n");
@@ -320,7 +321,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->output.ttl = atoi(optarg);
 				break;
 			case 'p':
-				ts->pid_filter = !ts->pid_filter;
+				ts->pid_filter = 0;
 				break;
 			case 'y':
 				ts->nit_passthrough = !ts->nit_passthrough;
