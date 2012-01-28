@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-// Unused short options: FQTYajkmnqruv0123456789
+// Unused short options: FQTYakmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -149,6 +149,7 @@ static const struct option long_options[] = {
 	{ "cw-warn-time",		required_argument, NULL, 'J' },
 
 	{ "debug",				required_argument, NULL, 'D' },
+	{ "pid-report",			no_argument,       NULL, 'j' },
 	{ "bench",				no_argument,       NULL, 'b' },
 	{ "help",				no_argument,       NULL, 'h' },
 	{ "version",			no_argument,       NULL, 'V' },
@@ -237,6 +238,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
 	printf("                            .    5 = packet debug + packet dump\n");
+	printf(" -j --pid-report            | Report how much packets were received.\n");
 	printf(" -b --bench                 | Benchmark decrypton.\n");
 	printf(" -h --help                  | Show help screen.\n");
 	printf(" -V --version               | Show program version.\n");
@@ -268,7 +270,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -444,7 +446,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'D':
 				ts->debug_level = atoi(optarg);
 				break;
-
+			case 'j':
+				ts->pid_report = 1;
+				break;
 			case 'b':
 				run_benchmark();
 				exit(EXIT_SUCCESS);
@@ -791,6 +795,8 @@ EXIT:
 		if (ts.write_thread)
 			pthread_join(ts.write_thread, NULL);
 	}
+
+	show_pid_report(&ts);
 
 	notify_sync(&ts, "STOP", "Stopping %s", program_id);
 	ts_LOGf("Stop %s\n", program_id);

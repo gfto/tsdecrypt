@@ -25,7 +25,7 @@
 static unsigned long ts_pack;
 static int ts_pack_shown;
 
-static char *get_pid_desc(struct ts *ts, uint16_t pid) {
+char *get_pid_desc(struct ts *ts, uint16_t pid) {
 	int i;
 	uint16_t nitpid = 0x0010, pmtpid = 0xffff, pcrpid = 0xffff;
 
@@ -266,6 +266,9 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		uint8_t *ts_packet = data + i;
 		uint16_t pid = ts_packet_get_pid(ts_packet);
 
+		if (ts->pid_report)
+			ts->pid_stats[pid]++;
+
 		ts_pack_shown = 0;
 
 		process_pat(ts, pid, ts_packet);
@@ -311,5 +314,18 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		}
 
 		ts_pack++;
+	}
+}
+
+void show_pid_report(struct ts *ts) {
+	int i;
+	if (!ts->pid_report)
+		return;
+
+	for (i = 0; i < MAX_PIDS; i++) {
+		if (ts->pid_stats[i]) {
+			ts_LOGf("PID | %8u packets with PID 0x%04x (%4u) %s\n",
+					ts->pid_stats[i], i, i, get_pid_desc(ts, i));
+		}
 	}
 }

@@ -21,5 +21,6 @@
 void *decode_thread(void *_ts);
 void *write_thread(void *_ts);
 void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len);
+void show_pid_report(struct ts *ts);
 
 #endif

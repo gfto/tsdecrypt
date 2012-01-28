@@ -173,6 +173,8 @@ struct io {
 	struct in_addr		intf;
 };
 
+#define MAX_PIDS 8192
+
 struct ts {
 	// Stream handling
 	struct ts_pat		*pat, *curpat;
@@ -211,6 +213,9 @@ struct ts {
 
 	unsigned int		cw_warn_sec;
 	time_t				cw_last_warn;
+
+	unsigned int		pid_report;
+	unsigned int		pid_stats[MAX_PIDS];
 
 	// CAMD handling
 	struct key			key;

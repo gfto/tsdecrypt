@@ -47,6 +47,10 @@ duplicate ECMs, 4 = packet debug. 5 = packet debug + mpeg ts packet
 dump.
 Setting higher level enables the levels bellow.
 .TP
+\fB\-j\fR, \fB\-\-pid\-report\fR
+When this option is used, tsdecrypt on exit reports how much packets
+were received on each PID.
+.TP
 \fB\-b\fR, \fB\-\-bench\fR
 Bechmark libdvbcsa decryption. The benchmark is single threaded.
 If you want to fully test your CPU, run couple of tsdecrypts in parallel.
