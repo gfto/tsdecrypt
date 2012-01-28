@@ -97,6 +97,7 @@ void data_init(struct ts *ts) {
 	ts->output.fd   = 1; // STDOUT
 	ts->output.type = FILE_IO;
 	ts->output.ttl  = 1;
+	ts->output.tos  = -1;
 
 	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 16, "decode"); // ~658Kb
 	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) *  8, "write");  // ~324Kb

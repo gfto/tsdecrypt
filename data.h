@@ -169,6 +169,7 @@ struct io {
 	unsigned int		port;
 	// Used only for output
 	int					ttl;
+	int					tos;
 	struct in_addr		intf;
 };
 

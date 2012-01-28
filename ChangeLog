@@ -1,3 +1,6 @@
+next : Version next
+ * Add --output-tos (-g) option used to set output TOS value.
+
 2011-12-23 : Version 5.0
  * Add --bench (-b) option that benchmarks libdvbcsa decryption.
  * Remove --camd-pkt-delay (-y) option. This workaround is no longer needed.

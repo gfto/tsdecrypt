@@ -45,6 +45,7 @@ Output options:
                             .    -O -              (write to stdout) (default)
  -o --output-intf <addr>    | Set multicast output interface. Default: 0.0.0.0
  -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
+ -g --output-tos <tos>      | Set TOS value of output packets. Default: none
  -p --no-output-filter      | Disable output filtering. Default: enabled
  -y --output-nit-pass       | Pass through NIT.
  -w --output-eit-pass       | Pass through EIT (EPG).

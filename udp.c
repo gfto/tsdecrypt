@@ -104,6 +104,12 @@ int udp_connect_output(struct io *io) {
 		}
 	}
 
+	if (io->tos > -1) {
+		if (setsockopt(sock, IPPROTO_IP, IP_TOS, &io->tos, sizeof(io->tos)) < 0) {
+			ts_LOGf("setsockopt(IP_TOS 0x%02x): %s\n", io->tos, strerror(errno));
+		}
+	}
+
 	struct sockaddr_in sockaddr;
 	memset(&sockaddr, 0, sizeof(sockaddr));
 	sockaddr.sin_family			= AF_INET;

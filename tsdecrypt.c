@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-// Unused short options: FQTWYagjkmnqruv0123456789
+// Unused short options: FQTWYajkmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -120,6 +120,7 @@ static const struct option long_options[] = {
 	{ "output",				required_argument, NULL, 'O' },
 	{ "output-intf",		required_argument, NULL, 'o' },
 	{ "output-ttl",			required_argument, NULL, 't' },
+	{ "output-tos",			required_argument, NULL, 'g' },
 	{ "output-filter",		no_argument,       NULL, 'p' },
 	{ "no-output-filter",	no_argument,       NULL, 'p' },
 	{ "output-nit-pass",	no_argument,       NULL, 'y' },
@@ -185,6 +186,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -O -              (write to stdout) (default)\n");
 	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
+	printf(" -g --output-tos <tos>      | Set TOS value of output packets. Default: none\n");
 	printf(" -p --no-output-filter      | Disable output filtering. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
 	printf(" -y --output-nit-pass       | Pass through NIT.\n");
 	printf(" -w --output-eit-pass       | Pass through EIT (EPG).\n");
@@ -264,7 +266,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -319,6 +321,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 't':
 				ts->output.ttl = atoi(optarg);
+				break;
+			case 'g':
+				ts->output.tos = (uint8_t)strtol(optarg, NULL, 0);
 				break;
 			case 'p':
 				ts->pid_filter = 0;
@@ -519,6 +524,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			ts_LOGf("Output addr: udp://%s:%u/\n", inet_ntoa(ts->output.addr), ts->output.port);
 			ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
 			ts_LOGf("Output ttl : %d\n", ts->output.ttl);
+			if (ts->output.tos > -1)
+				ts_LOGf("Output TOS : %u (0x%02x)\n", ts->output.tos, ts->output.tos);
 		} else if (ts->output.type == FILE_IO) {
 			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}
