@@ -243,6 +243,9 @@ struct ts {
 	struct io			input;
 	struct io			output;
 
+	FILE				*input_dump_file;
+	char				*input_dump_filename;
+
 	int					debug_level;
 	int					ts_discont;
 

@@ -37,6 +37,7 @@ Input options:
  -R --input-rtp             | Enable RTP input
  -z --input-ignore-disc     | Do not report discontinuty errors in input.
  -M --input-service <srvid> | Choose service id when input is MPTS.
+ -W --input-dump <filename> | Save input stream in file.
 
 Output options:
  -O --output <dest>         | Where to send output. File or multicast address.

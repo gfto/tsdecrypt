@@ -103,7 +103,7 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-// Unused short options: FQTWYajkmnqruv0123456789
+// Unused short options: FQTYajkmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -116,6 +116,7 @@ static const struct option long_options[] = {
 	{ "input-rtp",			no_argument,       NULL, 'R' },
 	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
 	{ "input-service",		required_argument, NULL, 'M' },
+	{ "input-dump",			required_argument, NULL, 'W' },
 
 	{ "output",				required_argument, NULL, 'O' },
 	{ "output-intf",		required_argument, NULL, 'o' },
@@ -178,6 +179,7 @@ static void show_help(struct ts *ts) {
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
 	printf(" -M --input-service <srvid> | Choose service id when input is MPTS.\n");
+	printf(" -W --input-dump <filename> | Save input stream in file.\n");
 	printf("\n");
 	printf("Output options:\n");
 	printf(" -O --output <dest>         | Where to send output. File or multicast address.\n");
@@ -266,7 +268,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
+	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:bhV", long_options, NULL)) != -1 ) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
@@ -308,6 +310,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'M':
 				ts->forced_service_id = strtoul(optarg, NULL, 0) & 0xffff;
+				break;
+			case 'W':
+				ts->input_dump_filename = optarg;
 				break;
 
 			case 'O':
@@ -511,6 +516,13 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			inet_ntoa(ts->input.addr), ts->input.port);
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
+	}
+	if (ts->input_dump_filename) {
+		ts->input_dump_file = fopen(ts->input_dump_filename, "w");
+		if (ts->input_dump_file)
+			ts_LOGf("Input dump : %s\n", ts->input_dump_filename);
+		else
+			ts_LOGf("Input dump : %s | ERROR: %s\n", ts->input_dump_filename, strerror(errno));
 	}
 	if (ts->forced_service_id)
 		ts_LOGf("Service id : 0x%04x (%d)\n",
@@ -759,8 +771,11 @@ int main(int argc, char **argv) {
 			readen = read(ts.input.fd, ts_packet, FRAME_SIZE);
 			have_data = !(readen <= 0);
 		}
-		if (readen > 0)
+		if (readen > 0) {
+			if (ts.input_dump_file)
+				fwrite(ts_packet, readen, 1, ts.input_dump_file);
 			process_packets(&ts, ts_packet, readen);
+		}
 		if (!keep_running)
 			break;
 	} while (have_data);
@@ -786,6 +801,9 @@ EXIT:
 		else
 			closelog();
 	}
+
+	if (ts.input_dump_file)
+		fclose(ts.input_dump_file);
 
 	if (ts.daemonize)
 		unlink(ts.pidfile);

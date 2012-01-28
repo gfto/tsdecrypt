@@ -1,5 +1,6 @@
 next : Version next
  * Add --output-tos (-g) option used to set output TOS value.
+ * Add --input-dump (-W) option used save input stream in file.
 
 2011-12-23 : Version 5.0
  * Add --bench (-b) option that benchmarks libdvbcsa decryption.
