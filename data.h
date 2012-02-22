@@ -244,6 +244,9 @@ struct ts {
 	int					ecm_cw_log;
 
 	int					rtp_input;
+	int					rtp_output;
+	uint32_t			rtp_ssrc;
+	uint16_t			rtp_seqnum;
 
 	struct io			input;
 	struct io			output;

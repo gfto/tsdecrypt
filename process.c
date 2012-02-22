@@ -204,7 +204,37 @@ void *decode_thread(void *_ts) {
 static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_size) {
 	if (!data)
 		return;
-	write(ts->output.fd, data, data_size);
+	if (!ts->rtp_output) {
+		write(ts->output.fd, data, data_size);
+	} else {
+		struct iovec iov[2];
+		uint8_t rtp_header[12];
+		uint32_t rtime = get_time() * 9 / 100;
+
+		ts->rtp_seqnum++;
+
+		rtp_header[ 0] = 0x80;
+		rtp_header[ 1] = 33; // MPEG TS rtp payload type
+		rtp_header[ 2] = ts->rtp_seqnum >> 8;
+		rtp_header[ 3] = ts->rtp_seqnum & 0xff;
+		rtp_header[ 4] = (rtime >> 24) & 0xff;
+		rtp_header[ 5] = (rtime >> 16) & 0xff;
+		rtp_header[ 6] = (rtime >>  8) & 0xff;
+		rtp_header[ 7] =  rtime        & 0xff;
+
+		rtp_header[ 8] = (ts->rtp_ssrc >> 24) & 0xff;
+		rtp_header[ 9] = (ts->rtp_ssrc >> 16) & 0xff;
+		rtp_header[10] = (ts->rtp_ssrc >>  8) & 0xff;
+		rtp_header[11] =  ts->rtp_ssrc        & 0xff;
+
+		iov[0].iov_base = rtp_header;
+		iov[0].iov_len  = sizeof(rtp_header);
+
+		iov[1].iov_base = data;
+		iov[1].iov_len  = data_size;
+
+		writev(ts->output.fd, iov, 2);
+	}
 }
 
 void *write_thread(void *_ts) {

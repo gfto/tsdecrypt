@@ -27,6 +27,7 @@
 #include <syslog.h>
 
 #include <dvbcsa/dvbcsa.h>
+#include <openssl/rand.h>
 
 #include "libfuncs/libfuncs.h"
 
@@ -103,9 +104,9 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-static const char short_options[] = "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:I:RzM:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: FQTYakmnqruv0123456789
+// Unused short options: FQTYamnquv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -123,6 +124,8 @@ static const struct option long_options[] = {
 	{ "output",				required_argument, NULL, 'O' },
 	{ "output-intf",		required_argument, NULL, 'o' },
 	{ "output-ttl",			required_argument, NULL, 't' },
+	{ "output-rtp",			no_argument,       NULL, 'r' },
+	{ "output-rtp-ssrc",	required_argument, NULL, 'k' },
 	{ "output-tos",			required_argument, NULL, 'g' },
 	{ "output-filter",		no_argument,       NULL, 'p' },
 	{ "no-output-filter",	no_argument,       NULL, 'p' },
@@ -191,6 +194,8 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -O -              (write to stdout) (default)\n");
 	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
+	printf(" -r --output-rtp            | Enable RTP output.\n");
+	printf(" -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: %u\n", ts->rtp_ssrc);
 	printf(" -g --output-tos <tos>      | Set TOS value of output packets. Default: none\n");
 	printf(" -p --no-output-filter      | Disable output filtering. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
 	printf(" -y --output-nit-pass       | Pass through NIT.\n");
@@ -330,6 +335,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 't':
 				ts->output.ttl = atoi(optarg);
+				break;
+			case 'r':
+				ts->rtp_output = 1;
+				break;
+			case 'k':
+				ts->rtp_ssrc = strtoul(optarg, NULL, 0);
 				break;
 			case 'g':
 				ts->output.tos = (uint8_t)strtol(optarg, NULL, 0);
@@ -539,11 +550,19 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (!ts->emm_only)
 	{
 		if (ts->output.type == NET_IO) {
-			ts_LOGf("Output addr: udp://%s:%u/\n", inet_ntoa(ts->output.addr), ts->output.port);
+			ts_LOGf("Output addr: %s://%s:%u/\n",
+				ts->rtp_output ? "rtp" : "udp",
+				inet_ntoa(ts->output.addr), ts->output.port);
 			ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
 			ts_LOGf("Output ttl : %d\n", ts->output.ttl);
 			if (ts->output.tos > -1)
 				ts_LOGf("Output TOS : %u (0x%02x)\n", ts->output.tos, ts->output.tos);
+			if (ts->rtp_output) {
+				ts_LOGf("RTP SSRC   : %u (0x%04x)\n",
+					ts->rtp_ssrc, ts->rtp_ssrc);
+				// It is recommended that RTP seqnum starts with random number
+				RAND_bytes((unsigned char *)&(ts->rtp_seqnum), 2);
+			}
 		} else if (ts->output.type == FILE_IO) {
 			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}

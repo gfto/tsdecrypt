@@ -106,6 +106,13 @@ Set multicast ttl. The default value is \fB1\fR.
 \fB\-g\fR, \fB\-\-output\-tos\fR
 Set TOS value of output packets. The default is not to set any specific TOS.
 .TP
+\fB\-r\fR, \fB\-\-output\-rtp\fR
+Enable RTP output. The default output is standart MPEG TS over UDP, this
+option enables tsdecrypt to output RTP packets.
+.TP
+\fB\-k\fR, \fB\-\-output\-rtp\-ssrc\fR <ssrc>
+Set RTP SSRC field to <ssrc>. By default is is set to \fB0\fR.
+.TP
 \fB\-p\fR, \fB\-\-no\-output\-filter\fR
 Disable output filtering. By default the output filter is enabled and only
 PAT/PMT/SDT and data packets are left in the output. Everything else not

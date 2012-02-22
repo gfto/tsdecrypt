@@ -16,7 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  */
 
+#include <time.h>
 #include <string.h>
+#include <errno.h>
 
 #include "util.h"
 
@@ -153,4 +155,11 @@ int decode_hex_string(char *hex, uint8_t *bin, int asc_len) {
 		bin[i / 2] = (n1 << 4) | (n2 & 0xf);
 	}
 	return asc_len / 2;
+}
+
+int64_t get_time(void) {
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) == EINVAL) // Shouldn't happen on modern Linux
+		clock_gettime(CLOCK_REALTIME, &ts);
+	return ts.tv_sec * 1000000ll + ts.tv_nsec / 1000;
 }
