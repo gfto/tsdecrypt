@@ -201,6 +201,12 @@ void *decode_thread(void *_ts) {
 	return NULL;
 }
 
+static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_size) {
+	if (!data)
+		return;
+	write(ts->output.fd, data, data_size);
+}
+
 void *write_thread(void *_ts) {
 	struct ts *ts = _ts;
 	uint8_t *data;
@@ -216,14 +222,12 @@ void *write_thread(void *_ts) {
 			continue;
 		}
 		data = cbuf_get (ts->write_buf, FRAME_SIZE, &data_size);
-		if (data)
-			write(ts->output.fd, data, data_size);
+		output_write(ts, data, data_size);
 	}
 
 	do { // Flush data
 		data = cbuf_get(ts->write_buf, FRAME_SIZE, &data_size);
-		if (data)
-			write(ts->output.fd, data, data_size);
+		output_write(ts, data, data_size);
 	} while(data);
 
 	return NULL;
@@ -307,9 +311,9 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 			decode_packet(ts, ts_packet);
 			if (ts->pid_filter) {
 				if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
-					write(ts->output.fd, ts_packet, 188);
+					output_write(ts, ts_packet, 188);
 			} else {
-				write(ts->output.fd, ts_packet, 188);
+				output_write(ts, ts_packet, 188);
 			}
 		}
 
