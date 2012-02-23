@@ -103,6 +103,8 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
+static const char short_options[] = "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+
 // Unused short options: FQTYakmnqruv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
@@ -270,7 +272,7 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
-	while ( (j = getopt_long(argc, argv, "i:d:N:Sl:L:I:RzM:W:O:o:t:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV", long_options, NULL)) != -1 ) {
+	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
