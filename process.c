@@ -17,6 +17,7 @@
  */
 #include <unistd.h>
 #include <string.h>
+#include <sys/uio.h>
 
 #include "data.h"
 #include "tables.h"
