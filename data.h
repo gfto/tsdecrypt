@@ -213,6 +213,7 @@ struct ts {
 
 	unsigned int		cw_warn_sec;
 	time_t				cw_last_warn;
+	time_t				cw_next_warn;
 
 	unsigned int		pid_report;
 	unsigned int		pid_stats[MAX_PIDS];

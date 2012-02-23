@@ -139,11 +139,20 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 
 	ret = camd_recv_cw(ts);
 	if (ret < 1) {
+		time_t now = time(NULL);
 		ts->is_cw_error = 1;
-		if (ts->key.ts && time(NULL) - ts->key.ts > KEY_VALID_TIME) {
-			if (c->key->is_valid_cw)
+		if (ts->key.ts && now - ts->key.ts > KEY_VALID_TIME) {
+			if (c->key->is_valid_cw) {
 				notify(ts, "NO_CODE_WORD", "No code word was set in %ld sec. Decryption is disabled.",
-					time(NULL) - ts->key.ts);
+					now - ts->key.ts);
+				ts_LOGf("CW  | *ERR* No valid code word was received in %ld seconds. Decryption is disabled.\n",
+					now - ts->key.ts);
+				ts->cw_last_warn = time(NULL);
+				ts->cw_next_warn = ts->cw_last_warn + ts->cw_warn_sec;
+				ts->cw_next_warn -= now - ts->key.ts;
+				if (ts->cw_next_warn <= ts->cw_last_warn)
+					ts->cw_next_warn = ts->cw_last_warn + ts->cw_warn_sec;
+			}
 			c->key->is_valid_cw = 0;
 		}
 		return 0;

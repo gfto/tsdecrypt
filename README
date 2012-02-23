@@ -87,7 +87,7 @@ ECM options:
  -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0-3/. Default: 0
  -K --ecm-no-log            | Disable ECM and code words logging.
  -J --cw-warn-time <sec>    | Warn if no valid code word has been received.
-                            .   Set <sec> to 0 to disable. Default: 20 sec
+                            .   Set <sec> to 0 to disable. Default: 60 sec
 
 Misc options:
  -D --debug <level>         | Message debug level.

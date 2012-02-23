@@ -88,8 +88,10 @@ void data_init(struct ts *ts) {
 	ts->ecm_report_interval = 60;
 	ts->ecm_last_report     = time(NULL);
 
-	ts->cw_warn_sec = 20;
+	ts->cw_warn_sec = 60;
 	ts->cw_last_warn= time(NULL);
+	ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;
+	ts->key.ts      = time(NULL);
 
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;

@@ -454,6 +454,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->cw_warn_sec = strtoul(optarg, NULL, 10);
 				if (ts->cw_warn_sec > 86400)
 					ts->cw_warn_sec = 86400;
+				ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;
 				break;
 
 			case 'D':
@@ -647,11 +648,14 @@ static void report_ecms(struct ts *ts, time_t now) {
 }
 
 static void report_cw_warn(struct ts *ts, time_t now) {
-	notify(ts, "NO_CODE_WORD", "No valid code word was received for %ld sec.",
-		now - ts->cw_last_warn);
-	ts_LOGf("CW  | *ERR* No valid code word was received for %ld seconds!\n",
-		now - ts->cw_last_warn);
+	if (now - ts->key.ts > 1) {
+		notify(ts, "NO_CODE_WORD", "No valid code word was received in %ld sec.",
+			now - ts->key.ts);
+		ts_LOGf("CW  | *ERR* No valid code word was received for %ld seconds!\n",
+			now - ts->key.ts);
+	}
 	ts->cw_last_warn = now;
+	ts->cw_next_warn = now + ts->cw_warn_sec;
 }
 
 static void do_reports(struct ts *ts) {
@@ -678,7 +682,7 @@ static void do_reports(struct ts *ts) {
 	}
 
 	if (!ts->emm_only && !ts->key.is_valid_cw) {
-		if ((time_t)(ts->cw_last_warn + ts->cw_warn_sec) <= now) {
+		if (ts->cw_warn_sec && now >= ts->cw_next_warn) {
 			report_cw_warn(ts, now);
 		}
 	}
