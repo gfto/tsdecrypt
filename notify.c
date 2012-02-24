@@ -77,6 +77,8 @@ static void *do_notify(void *in) {
 		} while (e);
 		free(env);
 		exit(EXIT_FAILURE);
+	} else if (pid < 0) {
+		fprintf(stderr, "fork() failed: %s\n", strerror(errno));
 	} else {
 		waitpid(pid, NULL, 0);
 	}
