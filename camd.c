@@ -217,13 +217,15 @@ static void *camd_thread(void *in_ts) {
 	while (1) {
 		struct camd_msg *msg;
 		void *req = queue_get(ts->camd.req_queue); // Waits...
-		if (!req || ts->camd_stop)
+		if (ts->camd_stop)
 			break;
+		if (!req)
+			continue;
 		msg = queue_get_nowait(ts->camd.ecm_queue);
 		if (!msg)
 			msg = queue_get_nowait(ts->camd.emm_queue);
 		if (!msg)
-			break;
+			continue;
 		camd_do_msg(msg);
 
 		if (ts->camd.ecm_queue->items >= ECM_QUEUE_HARD_LIMIT) {
@@ -259,6 +261,8 @@ static void *camd_thread(void *in_ts) {
 }
 
 void camd_process_packet(struct ts *ts, struct camd_msg *msg) {
+	if (!msg)
+		return;
 	msg->ts = ts;
 	if (ts->camd.thread) {
 		if (msg->type == EMM_MSG)
