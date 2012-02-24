@@ -4,6 +4,8 @@ next : Version next
  * Add --pid-report (-j) option used to turn on PID reporting.
  * Add RTP output enabled by --output-rtp (-r) option.
  * Add --output-rtp-ssrc (-k) option used to set RTP SSRC.
+ * A bug was fixed that prevented tsdecrypt from working if CAMD server
+   was not available for couple of minutes.
 
 2011-12-23 : Version 5.0
  * Add --bench (-b) option that benchmarks libdvbcsa decryption.
