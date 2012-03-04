@@ -154,12 +154,12 @@ Examples:
        --input-rtp --input 239.0.50.11:5000 --output 239.78.78.78:5000
 
 
-OSCAM configuration
-===================
-In order for tsdecrypt to communicate with OSCAM, OSCAM must have user
-added in oscam.user file and cs378x protocol must be enabled.
+OSCAM cs378x configuration
+==========================
+In order for tsdecrypt to communicate with OSCAM using cs378x (camd35
+over tcp) protocol you can use configuration like the examples bellow.
 
-Example oscam.user file:
+# Example oscam.user file:
 [account]
 user     = user
 pwd      = pass
@@ -168,9 +168,35 @@ au       = 1
 uniq     = 0
 monlevel = 4
 
-Example part of oscam.conf file:
+# Example part of oscam.conf file:
 [cs378x]
 port    = 2233
+
+OSCAM newcamd configuration
+===========================
+In order for tsdecrypt to communicate with OSCAM using newcamd protocol
+you can use configuration like the examples bellow.
+
+# Example oscam.user file
+[account]
+user     = user
+pwd      = pass
+group    = 1
+au       = 1
+uniq     = 0
+monlevel = 4
+ident    = 0604:000000
+caid     = 0604
+
+# Example part of oscam.conf file:
+[newcamd]
+port     = 1122@0604:000000
+serverip = 0.0.0.0
+key      = 0102030405060708091011121314
+
+The above example allows tsdecrypt clients using newcamd to retrive keys
+from OSCAM serving CAID 0x0604 (Irdeto) on port 1122.
+
 
 Releases
 ========
