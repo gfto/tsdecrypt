@@ -1,3 +1,6 @@
+now : Version next
+ * Fixed newcamd protocol issues when OSCAM disappeared.
+
 2012-02-24 : Version 6.0
  * Add --output-tos (-g) option used to set output TOS value.
  * Add --input-dump (-W) option used save input stream in file.
