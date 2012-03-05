@@ -86,6 +86,14 @@ in order to select the correct service (program). If the input is MPTS
 and \fB\-\-input\-service\fR is not used, tsdecrypt chooses the last service
 listed in PAT.
 .TP
+\fB\-T\fR, \fB\-\-input\-buffer\fR <miliseconds>
+Using this option delays the decoding for given amount of milliseconds. This
+allows tsdecrypt to decode services even if OSCAM returns code word too late.
+For example SkyUK sends code words ~700 ms before it starts using them. This
+means that if OSCAM is unable to return code word in less than 700 ms the
+decryption will fail for a small amount of time. Setting --input-buffer 1000
+will solve the problem in this case.
+.TP
 \fB\-W\fR, \fB\-\-input\-dump\fR <filename>
 Save input stream in <filename>. If the input is RTP, the file will contain
 the data without RTP headers (pure mpeg transport stream). Easiest way to

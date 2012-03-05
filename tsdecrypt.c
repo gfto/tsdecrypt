@@ -113,9 +113,9 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: QTYamnquv0123456789
+// Unused short options: QYamnquv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -129,6 +129,7 @@ static const struct option long_options[] = {
 	{ "input-rtp",			no_argument,       NULL, 'R' },
 	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
 	{ "input-service",		required_argument, NULL, 'M' },
+	{ "input-buffer",		required_argument, NULL, 'T' },
 	{ "input-dump",			required_argument, NULL, 'W' },
 
 	{ "output",				required_argument, NULL, 'O' },
@@ -191,6 +192,7 @@ static void show_help(struct ts *ts) {
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
 	printf(" -M --input-service <srvid> | Choose service id when input is MPTS.\n");
+	printf(" -T --input-buffer <ms>     | Set input buffer time in ms. Default: %u\n", ts->input_buffer_time);
 	printf(" -W --input-dump <filename> | Save input stream in file.\n");
 	printf("\n");
 	printf("Output options:\n");
@@ -329,6 +331,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'M':
 				ts->forced_service_id = strtoul(optarg, NULL, 0) & 0xffff;
+				break;
+			case 'T':
+				ts->input_buffer_time = strtoul(optarg, NULL, 0);
 				break;
 			case 'W':
 				ts->input_dump_filename = optarg;
@@ -549,6 +554,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Input addr : %s://%s:%u/\n",
 			ts->rtp_input ? "rtp" : "udp",
 			inet_ntoa(ts->input.addr), ts->input.port);
+		if (ts->input_buffer_time) {
+			ts_LOGf("Input buff : %u ms\n", ts->input_buffer_time);
+		}
 	} else if (ts->input.type == FILE_IO) {
 		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}

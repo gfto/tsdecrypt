@@ -297,6 +297,8 @@ static void detect_discontinuity(struct ts *ts, uint8_t *ts_packet) {
 
 void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 	ssize_t i;
+	int64_t now = get_time();
+
 	for (i=0; i<data_len; i += 188) {
 		uint8_t *ts_packet = data + i;
 		uint16_t pid = ts_packet_get_pid(ts_packet);
@@ -333,10 +335,35 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 
 		if (ts->threaded) {
 			// Add to decode buffer. The decoder thread will handle it
-			if (cbuf_fill(ts->decode_buf, ts_packet, 188) != 0) {
-				ts_LOGf("Decode buffer is full, waiting...\n");
-				cbuf_dump(ts->decode_buf);
-				usleep(10000);
+			if (ts->input_buffer_time == 0) {
+				// No input buffer, move packets to decoding buffer
+				if (cbuf_fill(ts->decode_buf, ts_packet, 188) != 0) {
+					ts_LOGf("Decode buffer is full, waiting...\n");
+					cbuf_dump(ts->decode_buf);
+					usleep(10000);
+				}
+			} else {
+				// Handle input buffer
+				struct packet_buf *p = malloc(sizeof(struct packet_buf));
+				p->time = now + (ts->input_buffer_time * 1000); //buffer time is in ms, p->time is in us
+				memcpy(p->data, ts_packet, 188);
+				list_add(ts->input_buffer, p);
+				// Move packets to decrypt buffer
+				LNODE *lc, *lctmp;
+				list_for_each(ts->input_buffer, lc, lctmp) {
+					p = lc->data;
+					if (p->time <= now) {
+						if (cbuf_fill(ts->decode_buf, p->data, 188) != 0) {
+							ts_LOGf("Decode buffer is full, waiting...\n");
+							cbuf_dump(ts->decode_buf);
+							usleep(10000);
+						}
+						list_del(ts->input_buffer, &lc);
+						free(p);
+					} else {
+						break;
+					}
+				}
 			}
 		} else {
 			decode_packet(ts, ts_packet);

@@ -173,6 +173,11 @@ struct io {
 	struct in_addr		intf;
 };
 
+struct packet_buf {
+	int64_t		time;
+	uint8_t		data[188];
+};
+
 #define MAX_PIDS 8192
 
 struct ts {
@@ -273,6 +278,9 @@ struct ts {
 
 	struct notify		*notify;
 	char				*notify_program;
+
+	unsigned int		input_buffer_time;
+	LIST				*input_buffer;
 };
 
 void data_init(struct ts *ts);

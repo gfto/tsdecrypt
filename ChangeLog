@@ -1,5 +1,7 @@
 now : Version next
- * Add --log-file option.
+ * Add --input-buffer (-T) option. This option allows uninterrupted
+   decryption even if OSCAM returns code words too late.
+ * Add --log-file (-F) option.
  * Fixed newcamd protocol issues when OSCAM disappeared.
 
 2012-02-24 : Version 6.0

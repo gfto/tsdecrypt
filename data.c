@@ -103,6 +103,8 @@ void data_init(struct ts *ts) {
 
 	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 16, "decode"); // ~658Kb
 	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) *  8, "write");  // ~324Kb
+
+	ts->input_buffer= list_new("input");
 }
 
 void data_free(struct ts *ts) {
@@ -133,4 +135,6 @@ void data_free(struct ts *ts) {
 
 	FREE(ts->input.fname);
 	FREE(ts->output.fname);
+
+	list_free(&ts->input_buffer, free, NULL);
 }
