@@ -116,7 +116,7 @@ static void *notify_thread(void *data) {
 
 struct notify *notify_alloc(struct ts *ts) {
 	unsigned int i;
-	if (!ts->ident[0] || !ts->notify_program[0])
+	if (!ts->ident[0] || !ts->notify_program)
 		return NULL;
 	struct notify *n = calloc(1, sizeof(struct notify));
 	n->notifications = queue_new();
@@ -126,6 +126,7 @@ struct notify *notify_alloc(struct ts *ts) {
 			n->ident[i] = '-';
 	}
 	strncpy(n->program, ts->notify_program, sizeof(n->program) - 1);
+	n->program[sizeof(n->program) - 1] = '\0';
 	pthread_create(&n->thread, NULL , &notify_thread, n);
 	return n;
 }

@@ -271,7 +271,7 @@ struct ts {
 	CBUF				*write_buf;
 
 	struct notify		*notify;
-	char				notify_program[512];
+	char				*notify_program;
 };
 
 void data_init(struct ts *ts);

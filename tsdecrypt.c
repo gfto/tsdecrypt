@@ -288,8 +288,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->pidfile = optarg;
 				break;
 			case 'N':
-				strncpy(ts->notify_program, optarg, sizeof(ts->notify_program) - 1);
-				ts->notify_program[sizeof(ts->notify_program) - 1] = 0;
+				ts->notify_program = optarg;
 				break;
 
 			case 'S':
@@ -475,7 +474,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		}
 	}
 	if (!ts->ident[0]) {
-		if (ts->syslog_active || ts->notify_program[0])
+		if (ts->syslog_active || ts->notify_program)
 			ident_err = 1;
 	}
 	if (ident_err || ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
@@ -504,7 +503,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 
 	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
-	ts_LOGf("Notify prog: %s\n", ts->notify_program[0] ? ts->notify_program : "*NOT SET*");
+	if (ts->notify_program)
+		ts_LOGf("Notify prg : %s\n", ts->notify_program);
 	if (ts->pidfile)
 		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
 	if (ts->syslog_active) {
