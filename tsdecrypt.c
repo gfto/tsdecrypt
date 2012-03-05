@@ -1,6 +1,6 @@
 /*
  * tsdecrypt
- * Copyright (C) 2011 Unix Solutions Ltd.
+ * Copyright (C) 2011-2012 Unix Solutions Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
@@ -164,7 +164,7 @@ static const struct option long_options[] = {
 
 static void show_help(struct ts *ts) {
 	printf("%s\n", program_id);
-	printf("Copyright (c) 2011 Unix Solutions Ltd.\n");
+	printf("Copyright (C) 2011-2012 Unix Solutions Ltd.\n");
 	printf("\n");
 	printf("	Usage: " PROGRAM_NAME " [opts]\n");
 	printf("\n");
