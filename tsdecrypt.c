@@ -178,15 +178,10 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("	Usage: " PROGRAM_NAME " [opts]\n");
 	printf("\n");
-	printf("Daemon options:\n");
+	printf("Main options:\n");
 	printf(" -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty\n");
 	printf(" -d --daemon <pidfile>      | Daemonize program and write pid file.\n");
 	printf(" -N --notify-program <prg>  | Execute <prg> to report events. Default: empty\n");
-	printf("\n");
-	printf(" -S --syslog                | Log messages using syslog.\n");
-	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
-	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
-	printf(" -F --log-file <filename>   | Log to file <filename>.\n");
 	printf("\n");
 	printf("Input options:\n");
 	printf(" -I --input <source>        | Where to read from. File or multicast address.\n");
@@ -248,7 +243,11 @@ static void show_help(struct ts *ts) {
 	printf(" -J --cw-warn-time <sec>    | Warn if no valid code word has been received.\n");
 	printf("                            .   Set <sec> to 0 to disable. Default: %d sec\n", ts->cw_warn_sec);
 	printf("\n");
-	printf("Misc options:\n");
+	printf("Logging options:\n");
+	printf(" -S --syslog                | Log messages using syslog.\n");
+	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
+	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
+	printf(" -F --log-file <filename>   | Log to file <filename>.\n");
 	printf(" -D --debug <level>         | Message debug level.\n");
 	printf("                            .    0 = default messages\n");
 	printf("                            .    1 = show PSI tables\n");
@@ -256,6 +255,8 @@ static void show_help(struct ts *ts) {
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
 	printf("                            .    5 = packet debug + packet dump\n");
+	printf("\n");
+	printf("Misc options:\n");
 	printf(" -j --pid-report            | Report how much packets were received.\n");
 	printf(" -b --bench                 | Benchmark decrypton.\n");
 	printf(" -h --help                  | Show help screen.\n");

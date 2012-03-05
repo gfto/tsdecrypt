@@ -18,16 +18,13 @@ from http://www.videolan.org/developers/libdvbcsa.html
 Documentation
 =============
 tsdecrypt is controlled using command line parameters. For more information
-about the parameters see the man page.
+about the parameters see the man page. Here is a list of supported command
+line parameters:
 
-Daemon options:
+Main options:
  -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty
  -d --daemon <pidfile>      | Daemonize program and write pid file.
  -N --notify-program <prg>  | Execute <prg> to report events. Default: empty
-
- -S --syslog                | Log messages using syslog.
- -l --syslog-host <host>    | Syslog server address. Default: disabled
- -L --syslog-port <port>    | Syslog server port. Default: 514
 
 Input options:
  -I --input <source>        | Where to read from. File or multicast address.
@@ -46,9 +43,9 @@ Output options:
                             .    -O -              (write to stdout) (default)
  -o --output-intf <addr>    | Set multicast output interface. Default: 0.0.0.0
  -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
- -g --output-tos <tos>      | Set TOS value of output packets. Default: none
  -r --output-rtp            | Enable RTP output.
  -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: 0
+ -g --output-tos <tos>      | Set TOS value of output packets. Default: none
  -p --no-output-filter      | Disable output filtering. Default: enabled
  -y --output-nit-pass       | Pass through NIT.
  -w --output-eit-pass       | Pass through EIT (EPG).
@@ -89,7 +86,11 @@ ECM options:
  -J --cw-warn-time <sec>    | Warn if no valid code word has been received.
                             .   Set <sec> to 0 to disable. Default: 60 sec
 
-Misc options:
+Logging options:
+ -S --syslog                | Log messages using syslog.
+ -l --syslog-host <host>    | Syslog server address. Default: disabled
+ -L --syslog-port <port>    | Syslog server port. Default: 514
+ -F --log-file <filename>   | Log to file <filename>.
  -D --debug <level>         | Message debug level.
                             .    0 = default messages
                             .    1 = show PSI tables
@@ -97,6 +98,8 @@ Misc options:
                             .    3 = show duplicate ECMs
                             .    4 = packet debug
                             .    5 = packet debug + packet dump
+
+Misc options:
  -j --pid-report            | Report how much packets were received.
  -b --bench                 | Benchmark decrypton.
  -h --help                  | Show help screen.
