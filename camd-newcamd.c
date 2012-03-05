@@ -422,7 +422,7 @@ static int newcamd_get_cw(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_
 }
 
 void camd_proto_newcamd(struct camd_ops *ops) {
-	strcpy(ops->ident, "newcamd");
+	ops->ident      = "newcamd";
 	ops->proto		= CAMD_NEWCAMD;
 	ops->connect	= newcamd_connect;
 	ops->disconnect	= newcamd_disconnect;

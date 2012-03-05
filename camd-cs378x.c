@@ -172,7 +172,7 @@ READ:
 }
 
 void camd_proto_cs378x(struct camd_ops *ops) {
-	strcpy(ops->ident, "cs378x");
+	ops->ident      = "cs378x";
 	ops->proto		= CAMD_CS378X;
 	ops->connect	= cs378x_connect;
 	ops->disconnect	= cs378x_disconnect;

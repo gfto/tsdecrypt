@@ -88,7 +88,7 @@ enum camd_proto {
 };
 
 struct camd_ops {
-	char ident[16];
+	char *ident;
 	enum camd_proto proto;
 	int (*connect)(struct camd *c);
 	void (*disconnect)(struct camd *c);
