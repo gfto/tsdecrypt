@@ -400,12 +400,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					server_err = 0;
 				break;
 			case 'U':
-				strncpy(ts->camd.user, optarg, sizeof(ts->camd.user) - 1);
-				ts->camd.user[sizeof(ts->camd.user) - 1] = 0;
+				if (strlen(optarg) < 64)
+					ts->camd.user = optarg;
 				break;
 			case 'P':
-				strncpy(ts->camd.pass, optarg, sizeof(ts->camd.pass) - 1);
-				ts->camd.pass[sizeof(ts->camd.pass) - 1] = 0;
+				ts->camd.pass = optarg;
 				break;
 			case 'B':
 				if (strlen(optarg) != DESKEY_LENGTH) {

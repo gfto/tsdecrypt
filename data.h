@@ -137,8 +137,8 @@ struct camd {
 	int				server_fd;
 	struct in_addr	server_addr;
 	unsigned int	server_port;
-	char			user[64];
-	char			pass[64];
+	char			*user;
+	char			*pass;
 
 	unsigned int	ecm_recv_errors; // Error counter, reset on successful send/recv
 	unsigned int	emm_recv_errors; // Error counter, reset on successful send/recv
