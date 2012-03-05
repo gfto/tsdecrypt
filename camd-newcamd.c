@@ -139,7 +139,7 @@ static uint8_t newcamd_send_msg(struct camd *c, const uint8_t *data, int data_le
 	uint8_t netbuf[NEWCAMD_MSG_SIZE];
 
 	if (newcamd_connect(c) < 0)
-		return 0;
+		return -1;
 
 	if (data_len < 3 || (data_len + NEWCAMD_HDR_LEN + 4) > NEWCAMD_MSG_SIZE) {
 		ts_LOGf("ERR | [%s] Bad message size.\n", c->ops.ident);
@@ -349,8 +349,10 @@ static int newcamd_login(struct camd *c) {
 static int newcamd_connect(struct camd *c) {
 	if (c->server_fd < 0) {
 		c->server_fd = camd_tcp_connect(c->server_addr, c->server_port);
-		if (!newcamd_login(c))
+		if (!newcamd_login(c)) {
 			shutdown_fd(&c->server_fd);
+			return -1;
+		}
 	}
 	return c->server_fd;
 }
@@ -365,7 +367,8 @@ static int newcamd_reconnect(struct camd *c) {
 }
 
 static int newcamd_do_ecm(struct camd *c, struct camd_msg *msg) {
-	return newcamd_send_msg(c, msg->data, msg->data_len, msg->service_id, 1);
+	int ret = newcamd_send_msg(c, msg->data, msg->data_len, msg->service_id, 1);
+	return ret <= 0 ? -1 : ret;
 }
 
 static int newcamd_do_emm(struct camd *c, struct camd_msg *msg) {
@@ -373,8 +376,8 @@ static int newcamd_do_emm(struct camd *c, struct camd_msg *msg) {
 	int ret;
 
 	ret = newcamd_send_msg(c, msg->data, msg->data_len, msg->service_id, 1);
-	if (!ret)
-		return ret;
+	if (ret <= 0)
+		return -1;
 
 	int data_len = newcamd_recv_msg(c, buf, 1);
 	if (data_len >= 3) {
@@ -391,17 +394,25 @@ static int newcamd_do_emm(struct camd *c, struct camd_msg *msg) {
 
 static int newcamd_get_cw(struct camd *c, uint16_t *ca_id, uint16_t *idx, uint8_t *cw) {
 	int ret;
+	int sync_try = 0;
 	uint8_t *buf = c->newcamd.buf;
 
-	while((ret = newcamd_recv_msg(c, buf, 1)) == -2)
+	while((ret = newcamd_recv_msg(c, buf, 1)) == -2) {
 		ts_LOGf("ERR | [%s] msg_id sync error. retrying...\n", c->ops.ident);
+		if (++sync_try > ECM_QUEUE_HARD_LIMIT) {
+			ts_LOGf("ERR | [%s] Can't sync msg_id after %d tries.\n", c->ops.ident, sync_try);
+			return -1;
+		}
+	}
 
 	if (ret != 19) {
-		if (ret == 3)
+		if (ret == 3) {
 			ts_LOGf("ERR | [%s] Card was not able to decode the channel.\n", c->ops.ident);
-		else
+			return 0;
+		} else {
 			ts_LOGf("ERR | [%s] Unexpected CAMD server response (code %d).\n", c->ops.ident, ret);
-		return 0;
+			return -1;
+		}
 	}
 
 	*ca_id = c->newcamd.caid;
