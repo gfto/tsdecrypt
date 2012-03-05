@@ -225,7 +225,7 @@ struct ts {
 	// Config
 	char				*ident;
 
-	char				syslog_host[128];
+	char				*syslog_host;
 	int					syslog_port;
 	int					syslog_active;
 	int					syslog_remote;

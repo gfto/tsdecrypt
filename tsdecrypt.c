@@ -295,8 +295,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->syslog_remote = 0;
 				break;
 			case 'l':
-				strncpy(ts->syslog_host, optarg, sizeof(ts->syslog_host) - 1);
-				ts->syslog_host[sizeof(ts->syslog_host) - 1] = 0;
+				ts->syslog_host = optarg;
 				ts->syslog_active = 1;
 				ts->syslog_remote = 1;
 				break;
