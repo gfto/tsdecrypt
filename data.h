@@ -223,7 +223,8 @@ struct ts {
 	struct camd			camd;
 
 	// Config
-	char				ident[128];
+	char				*ident;
+
 	char				syslog_host[128];
 	int					syslog_port;
 	int					syslog_active;

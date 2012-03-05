@@ -281,8 +281,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		char *p = NULL;
 		switch (j) {
 			case 'i':
-				strncpy(ts->ident, optarg, sizeof(ts->ident) - 1);
-				ts->ident[sizeof(ts->ident) - 1] = 0;
+				ts->ident = optarg;
 				break;
 			case 'd':
 				ts->pidfile = optarg;
@@ -473,7 +472,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				exit(EXIT_SUCCESS);
 		}
 	}
-	if (!ts->ident[0]) {
+	if (!ts->ident) {
 		if (ts->syslog_active || ts->notify_program)
 			ident_err = 1;
 	}
@@ -502,7 +501,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
+	if (ts->ident)
+		ts_LOGf("Ident      : %s\n", ts->ident);
 	if (ts->notify_program)
 		ts_LOGf("Notify prg : %s\n", ts->notify_program);
 	if (ts->pidfile)
@@ -613,11 +613,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (!ts->ecm_cw_log)
 		ts_LOGf("ECM/CW log : disabled\n");
 
-	for (i=0; i<(int)sizeof(ts->ident); i++) {
-		if (!ts->ident[i])
-			break;
-		if (ts->ident[i] == '/')
-			ts->ident[i] = '-';
+	if (ts->ident) {
+		int len = strlen(ts->ident);
+		for (i = 0; i < len; i++) {
+			if (ts->ident[i] == '/')
+				ts->ident[i] = '-';
+		}
 	}
 }
 
