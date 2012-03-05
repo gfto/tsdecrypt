@@ -291,6 +291,7 @@ void camd_stop(struct ts *ts) {
 	struct camd *c = &ts->camd;
 	ts->camd_stop = 1;
 	if (c->thread) {
+		queue_add(c->req_queue, NULL);
 		queue_wakeup(c->req_queue);
 		pthread_join(c->thread, NULL);
 		queue_free(&c->req_queue);
