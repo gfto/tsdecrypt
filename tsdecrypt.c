@@ -44,19 +44,28 @@
 static const char *program_id = PROGRAM_NAME " v" VERSION " (" GIT_VER ", build " BUILD_ID ")";
 
 static int keep_running = 1;
+static FILE *log_file = NULL;
+static char *log_filename = NULL;
+static int local_syslog = 0;
+static int remote_syslog = 0;
 
-static void LOG_func(const char *msg) {
+static void do_log(FILE *f, time_t now, const char *msg) {
 	char date[64];
 	struct tm tm;
-	time_t now;
-	now = time(NULL);
 	localtime_r(&now, &tm);
-	strftime(date, sizeof(date), "%F %H:%M:%S", localtime(&now));
-	fprintf(stderr, "%s | %s", date, msg);
+	strftime(date, sizeof(date), "%F %H:%M:%S", localtime_r(&now, &tm));
+	fprintf(f, "%s | %s", date, msg);
 }
 
-static void LOG_func_syslog(const char *msg) {
-	syslog(LOG_INFO, msg, strlen(msg));
+static void LOG_func(const char *msg) {
+	time_t now = time(NULL);
+	do_log(stderr, now, msg);
+	if (log_file)
+		do_log(log_file, now, msg);
+	if (local_syslog)
+		syslog(LOG_INFO, msg, strlen(msg));
+	if (remote_syslog)
+		LOG(msg);
 }
 
 /* The following routine is taken from benchbitslice in libdvbcsa */
@@ -104,15 +113,16 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-static const char short_options[] = "i:d:N:Sl:L:I:RzM:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: FQTYamnquv0123456789
+// Unused short options: QTYamnquv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
 	{ "syslog",				no_argument,       NULL, 'S' },
 	{ "syslog-host",		required_argument, NULL, 'l' },
 	{ "syslog-port",		required_argument, NULL, 'L' },
+	{ "log-file",			required_argument, NULL, 'F' },
 	{ "notify-program",		required_argument, NULL, 'N' },
 
 	{ "input",				required_argument, NULL, 'I' },
@@ -176,6 +186,7 @@ static void show_help(struct ts *ts) {
 	printf(" -S --syslog                | Log messages using syslog.\n");
 	printf(" -l --syslog-host <host>    | Syslog server address. Default: disabled\n");
 	printf(" -L --syslog-port <port>    | Syslog server port. Default: %d\n", ts->syslog_port);
+	printf(" -F --log-file <filename>   | Log to file <filename>.\n");
 	printf("\n");
 	printf("Input options:\n");
 	printf(" -I --input <source>        | Where to read from. File or multicast address.\n");
@@ -301,6 +312,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'L':
 				ts->syslog_port = atoi(optarg);
+				break;
+			case 'F':
+				log_filename = optarg;
 				break;
 
 			case 'I':
@@ -497,6 +511,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (ts->camd.ops.proto == CAMD_NEWCAMD && !port_set) {
 		fprintf(stderr, "ERROR: CAMD server port is not set. Use --camd-server %s:xxxx to set the port.\n", inet_ntoa(ts->camd.server_addr));
 		exit(EXIT_FAILURE);
+	}
+
+	if (log_filename) {
+		log_file = fopen(log_filename, "a");
+		if (!log_file) {
+			fprintf(stderr, "ERROR: Can't open log file %s: %s\n", log_filename, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	if (ts->ident)
@@ -708,20 +730,20 @@ int main(int argc, char **argv) {
 
 	data_init(&ts);
 
+	ts_set_log_func(LOG_func);
+
 	parse_options(&ts, argc, argv);
 
 	if (ts.pidfile)
 		daemonize(ts.pidfile);
 
-	if (!ts.syslog_active) {
-		ts_set_log_func(LOG_func);
-	} else {
+	if (ts.syslog_active) {
 		if (ts.syslog_remote) {
-			ts_set_log_func(LOG);
 			log_init(ts.ident, 1, 1, ts.syslog_host, ts.syslog_port);
+			remote_syslog = 1;
 		} else {
 			openlog(ts.ident, LOG_NDELAY | LOG_PID, LOG_USER);
-			ts_set_log_func(LOG_func_syslog);
+			local_syslog = 1;
 		}
 	}
 
@@ -833,6 +855,9 @@ EXIT:
 
 	if (ts.pidfile)
 		unlink(ts.pidfile);
+
+	if (log_file)
+		fclose(log_file);
 
 	notify_free(&ts.notify);
 	data_free(&ts);

@@ -1,4 +1,5 @@
 now : Version next
+ * Add --log-file option.
  * Fixed newcamd protocol issues when OSCAM disappeared.
 
 2012-02-24 : Version 6.0
