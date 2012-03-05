@@ -229,8 +229,7 @@ struct ts {
 	int					syslog_active;
 	int					syslog_remote;
 
-	int					daemonize;
-	char				pidfile[PATH_MAX];
+	char				*pidfile;
 
 	enum CA_system		req_CA_sys;
 

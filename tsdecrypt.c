@@ -285,9 +285,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->ident[sizeof(ts->ident) - 1] = 0;
 				break;
 			case 'd':
-				strncpy(ts->pidfile, optarg, sizeof(ts->pidfile) - 1);
-				ts->pidfile[sizeof(ts->pidfile) - 1] = 0;
-				ts->daemonize = 1;
+				ts->pidfile = optarg;
 				break;
 			case 'N':
 				strncpy(ts->notify_program, optarg, sizeof(ts->notify_program) - 1);
@@ -507,10 +505,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 	ts_LOGf("Ident      : %s\n", ts->ident[0] ? ts->ident : "*NOT SET*");
 	ts_LOGf("Notify prog: %s\n", ts->notify_program[0] ? ts->notify_program : "*NOT SET*");
-	if (ts->pidfile[0])
+	if (ts->pidfile)
 		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
-	else
-		ts_LOGf("Daemonize  : no daemon\n");
 	if (ts->syslog_active) {
 		if (ts->syslog_remote)
 			ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
@@ -715,7 +711,7 @@ int main(int argc, char **argv) {
 
 	parse_options(&ts, argc, argv);
 
-	if (ts.pidfile[0])
+	if (ts.pidfile)
 		daemonize(ts.pidfile);
 
 	if (!ts.syslog_active) {
@@ -836,7 +832,7 @@ EXIT:
 	if (ts.input_dump_file)
 		fclose(ts.input_dump_file);
 
-	if (ts.daemonize)
+	if (ts.pidfile)
 		unlink(ts.pidfile);
 
 	notify_free(&ts.notify);
