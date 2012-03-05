@@ -331,7 +331,6 @@ static int newcamd_login(struct camd *c) {
 		tmpkey[i % 14] ^= crPasswd[i];
 	des_key_spread(&c->newcamd.td_key, tmpkey);
 	des_schedule_key(&c->newcamd.td_key);
-	free(crPasswd);
 
 	if (!newcamd_send_cmd(c, MSG_CARD_DATA_REQ) || newcamd_recv_msg(c, buffer, 0) <= 0) {
 		ts_LOGf("ERR | [%s] MSG_CARD_DATA_REQ error.\n", c->ops.ident);
