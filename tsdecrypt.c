@@ -656,6 +656,10 @@ static void report_emms(struct ts *ts, time_t now) {
 		ts->emm_seen_count,
 		ts->emm_processed_count,
 		now - ts->emm_last_report);
+	if (ts->emm_seen_count == 0) {
+		notify(ts, "NO_EMM_RECEIVED", "No EMMs were received in last %lu seconds.",
+			now - ts->emm_last_report);
+	}
 	ts->emm_last_report = now;
 	ts->emm_seen_count = 0;
 	ts->emm_processed_count = 0;

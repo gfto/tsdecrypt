@@ -5,6 +5,7 @@ now : Version next
  * Fixed newcamd protocol issues when OSCAM disappeared.
  * Fix (and optimize) decryption when the input is MPTS. Previously
    decrypting one stream broke the others.
+ * notify: Add NO_EMM_RECEIVED event.
 
 2012-02-24 : Version 6.0
  * Add --output-tos (-g) option used to set output TOS value.
