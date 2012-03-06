@@ -128,9 +128,10 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 	for (i = 0; i < batch_sz; i++) {
 		uint8_t *ts_packet = data + (i * 188);
 
-		int scramble_idx = ts_packet_get_scrambled(ts_packet);
-		if (scramble_idx > 1) {
+		uint16_t pid = ts_packet_get_pid(ts_packet);
+		if (pidmap_get(&ts->pidmap, pid) && ts_packet_is_scrambled(ts_packet)) {
 			if (ts->key.is_valid_cw) {
+				int scramble_idx = ts_packet_get_scrambled(ts_packet);
 				uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
 				if (scramble_idx == 2) { // scramble_idx 2 == even key
 					even_pcks[even_packets].data = ts_packet + payload_ofs;
@@ -366,9 +367,11 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 				}
 			}
 		} else {
-			decode_packet(ts, ts_packet);
+			int allowed_pid = pidmap_get(&ts->pidmap, pid);
+			if (allowed_pid) // PAT or allowed PIDs
+				decode_packet(ts, ts_packet);
 			if (ts->pid_filter) {
-				if (pidmap_get(&ts->pidmap, pid)) // PAT or allowed PIDs
+				if (allowed_pid) // PAT or allowed PIDs
 					output_write(ts, ts_packet, 188);
 			} else {
 				output_write(ts, ts_packet, 188);
