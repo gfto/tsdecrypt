@@ -131,6 +131,7 @@ struct newcamd {
 	uint8_t			provs_ident[NEWCAMD_MAXPROV][3];
 	uint8_t			provs_id[NEWCAMD_MAXPROV][8];
 	uint8_t			prov_ident_manual;
+	char			*crypt_passwd;
 };
 
 struct camd {

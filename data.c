@@ -137,4 +137,10 @@ void data_free(struct ts *ts) {
 	FREE(ts->output.fname);
 
 	list_free(&ts->input_buffer, free, NULL);
+
+	// glibc's crypt function allocates static buffer on first crypt() call.
+	// Since newcamd uses crypt(), the result is saved in c->newcamd.crypt_passwd
+	// and in order to avoid leaking 43 bytes of memory on exit which makes valgrind
+	// unhappy it is a good idea to free the memory (ONCE!).
+	FREE(ts->camd.newcamd.crypt_passwd);
 }

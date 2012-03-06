@@ -295,6 +295,7 @@ static int newcamd_login(struct camd *c) {
 	}
 
 	char *crPasswd = crypt(c->pass, "$1$abcdefgh$");
+	c->newcamd.crypt_passwd = crPasswd;
 	if (!crPasswd) {
 		ts_LOGf("ERR | [%s] Can't crypt password.\n", c->ops.ident);
 		sleep(1);
@@ -318,7 +319,6 @@ static int newcamd_login(struct camd *c) {
 		newcamd_recv_cmd(c) != MSG_CLIENT_2_SERVER_LOGIN_ACK)
 	{
 		ts_LOGf("ERR | [%s] Login failed. Check user/pass/des-key.\n", c->ops.ident);
-		free(crPasswd);
 		sleep(1);
 		return 0;
 	}
