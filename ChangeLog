@@ -3,6 +3,8 @@ now : Version next
    decryption even if OSCAM returns code words too late.
  * Add --log-file (-F) option.
  * Fixed newcamd protocol issues when OSCAM disappeared.
+ * Fix (and optimize) decryption when the input is MPTS. Previously
+   decrypting one stream broke the others.
 
 2012-02-24 : Version 6.0
  * Add --output-tos (-g) option used to set output TOS value.
