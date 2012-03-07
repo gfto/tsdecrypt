@@ -1,4 +1,4 @@
-now : Version next
+2012-03-07 : Version 7.0
  * Add --input-buffer (-T) option. This option allows uninterrupted
    decryption even if OSCAM returns code words too late.
  * Add --log-file (-F) option.
