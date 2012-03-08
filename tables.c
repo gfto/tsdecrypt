@@ -228,6 +228,15 @@ void process_sdt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			stream->descriptor_size, stream->descriptor_data,
 			&pname_len, &pname, &sname_len, &sname))
 		{
+			int r;
+			for (r = 0; r < pname_len; r++) {
+				if (pname[r] < ' ')
+					pname[r] = '*';
+			}
+			for (r = 0; r < sname_len; r++) {
+				if (sname[r] < ' ')
+					sname[r] = '*';
+			}
 			ts_LOGf("SDT | Service 0x%04x (%5d) Provider: \"%.*s\" Service: \"%.*s\"\n",
 				stream->service_id, stream->service_id,
 				pname_len, (char *)pname,
