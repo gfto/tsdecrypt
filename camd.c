@@ -116,10 +116,12 @@ static int camd_recv_cw(struct ts *ts) {
 	}
 
 	if (ts->ecm_cw_log) {
-		ts_LOGf("CW  | CAID: 0x%04x [ %5llu ms ] ( %6llu ms ) ------ IDX: 0x%04x Data: %s\n",
-			ca_id, timeval_diff_msec(&tv1, &tv2),
+		ts_LOGf("CW  | SID 0x%04x CAID: 0x%04x CW_recv: %5llu ms LastKey: %5llu ms Data: %s\n",
+			ts->service_id,
+			ca_id,
+			timeval_diff_msec(&tv1, &tv2),
 			timeval_diff_msec(&last_ts_keyset, &tv2),
-			idx, cw_dump );
+			cw_dump );
 	}
 
 	return 1;

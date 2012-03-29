@@ -307,8 +307,15 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
 	if (duplicate && !ts->is_cw_error)
 		ts->ecm_duplicate_count++;
+	if (!ts->ecm_change_time.tv_sec)
+		gettimeofday(&ts->ecm_change_time, NULL);
 	if (!duplicate || ts->is_cw_error) {
 		if (ts->ecm_cw_log) {
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			ts_LOGf("ECC | SID 0x%04x ------------ EcmChng: %5llu ms\n",
+				ts->service_id,
+				timeval_diff_msec(&ts->ecm_change_time, &tv));
 			ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
 			ts_LOGf("ECM | SID 0x%04x CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %4d Data: %s..\n",
 				ts->service_id,
@@ -317,6 +324,7 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 				sec->table_id,
 				sec->section_data_len,
 				dump);
+			gettimeofday(&ts->ecm_change_time, NULL);
 		}
 		ts->is_cw_error = 0;
 		camd_process_packet(ts, camd_msg_alloc(ECM_MSG, ts->ecm_caid, ts->service_id, sec->section_data, sec->section_data_len));

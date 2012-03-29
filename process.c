@@ -124,6 +124,8 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 	struct dvbcsa_bs_batch_s even_pcks[batch_sz + 1];
 	struct dvbcsa_bs_batch_s odd_pcks [batch_sz + 1];
 
+	int scramble_idx_old = 0;
+
 	// Prepare batch structure
 	for (i = 0; i < batch_sz; i++) {
 		uint8_t *ts_packet = data + (i * 188);
@@ -132,6 +134,8 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 		if (pidmap_get(&ts->pidmap, pid) && ts_packet_is_scrambled(ts_packet)) {
 			if (ts->key.is_valid_cw) {
 				int scramble_idx = ts_packet_get_scrambled(ts_packet);
+				if (!scramble_idx_old)
+					scramble_idx_old = scramble_idx;
 				uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
 				if (scramble_idx == 2) { // scramble_idx 2 == even key
 					even_pcks[even_packets].data = ts_packet + payload_ofs;
@@ -144,6 +148,15 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 					odd_packets++;
 				}
 				ts_packet_set_not_scrambled(ts_packet);
+				if (scramble_idx_old != scramble_idx) {
+					struct timeval tv;
+					gettimeofday(&tv, NULL);
+					ts_LOGf("CWC | SID 0x%04x ------------ EcmTime: %5llu ms CW_time: %5llu ms\n",
+						ts->service_id,
+						timeval_diff_msec(&ts->ecm_change_time, &tv),
+						timeval_diff_msec(&ts->key.ts_keyset, &tv));
+				}
+				scramble_idx_old = scramble_idx;
 			} else {
 				if (ts->pid_filter)
 					ts_packet_set_pid(ts_packet, 0x1fff);
@@ -306,6 +319,7 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 
 		if (ts->pid_report)
 			ts->pid_stats[pid]++;
+
 
 		ts_pack_shown = 0;
 
