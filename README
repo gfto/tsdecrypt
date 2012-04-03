@@ -201,6 +201,28 @@ key      = 0102030405060708091011121314
 The above example allows tsdecrypt clients using newcamd to retrive keys
 from OSCAM serving CAID 0x0604 (Irdeto) on port 1122.
 
+Reporting bugs
+==============
+If you think you have found bug in tsdecrypt, please report it to the
+e-mail listed in Contact section (see below) of this README file.
+
+Please use --debug 1 and --log-file tsdecrypt.log options and send the
+resulting tsdecrypt.log file along with the full command line which you
+used and describe what you think the tsdecrypt does wrong.
+
+One commonly seen error is not an error in tsdecrypt at all. You
+have to make sure that the software that streams channels from the
+DVB card is sending ECMs and EMMs along with other streams. If these
+streams are missing you'll probably get the following messages from
+tsdecrypt:
+
+2012-04-02 22:02:12 | ECM | Received 0 (0 dup) and processed 0 in 3 seconds.
+2012-04-02 22:03:09 | CW  | *ERR* No valid code word was received for 60 seconds!
+2012-04-02 22:03:12 | ECM | Received 0 (0 dup) and processed 0 in 60 seconds.
+
+Please configure your software to stream ECMs and EMMs. For dvblast
+(version 2.0 and above) the correct options are --ecm-passthrough and
+--emm-passthrough.
 
 Releases
 ========
