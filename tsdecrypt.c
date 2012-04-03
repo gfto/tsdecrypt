@@ -113,9 +113,9 @@ void run_benchmark(void) {
 	puts("* Done *");
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:Y:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: QYamnquv0123456789
+// Unused short options: Qamnquv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -146,6 +146,7 @@ static const struct option long_options[] = {
 
 	{ "ca-system",			required_argument, NULL, 'c' },
 	{ "caid",				required_argument, NULL, 'C' },
+	{ "const-cw",			required_argument, NULL, 'Y' },
 
 	{ "camd-proto",			required_argument, NULL, 'A' },
 	{ "camd-server",		required_argument, NULL, 's' },
@@ -216,6 +217,8 @@ static void show_help(struct ts *ts) {
 	printf("                            .   IRDETO, SECA (MEDIAGUARD), VIACCESS,\n");
 	printf("                            .   VIDEOGUARD (NDS), NAGRA and DRECRYPT.\n");
 	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
+	printf(" -Y --const-cw <codeword>   | Set constant code word for decryption.\n");
+	printf("                            . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8\n");
 	printf("\n");
 	printf("CAMD server options:\n");
 	printf(" -A --camd-proto <proto>    | Set CAMD network protocol.\n");
@@ -395,6 +398,19 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'C': // --caid
 				ts->forced_caid = strtoul(optarg, NULL, 0) & 0xffff;
 				break;
+			case 'Y': // --const-cw
+				ts->camd.constant_codeword = 1;
+				if (strlen(optarg) != CODEWORD_LENGTH * 2) {
+					fprintf(stderr, "ERROR: Constant code word should be %u characters long.\n", CODEWORD_LENGTH * 2);
+					exit(EXIT_FAILURE);
+				}
+				if (decode_hex_string(optarg, ts->camd.key->cw, strlen(optarg)) < 0) {
+					fprintf(stderr, "ERROR: Invalid hex string for constant code word: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				camd_set_cw(ts, ts->camd.key->cw, 0);
+				ts->camd.key->is_valid_cw = 1;
+				break;
 
 			case 'A': // --camd-proto
 				if (strcasecmp(optarg, "cs378x") == 0) {
@@ -496,6 +512,19 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		if (ts->syslog_active || ts->notify_program)
 			ident_err = 1;
 	}
+
+	// Constant codeword is special. Disable conflicting options
+	if (ts->camd.constant_codeword) {
+		server_err = 0; // No server settings are required
+		ts->forced_caid = 0;
+		ts->forced_ecm_pid = 0;
+		ts->forced_emm_pid = 0;
+		ts->emm_send = 0;
+		ts->emm_report_interval = 0;
+		ts->ecm_report_interval = 0;
+		ts->cw_warn_sec = 0;
+	}
+
 	if (ident_err || ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
 		show_help(ts);
 		if (ident_err)
@@ -543,14 +572,22 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	} else
 		ts_LOGf("Syslog     : disabled\n");
 
-	if (ts->forced_caid)
-		ts->req_CA_sys = ts_get_CA_sys(ts->forced_caid);
-	if (!ts->forced_caid)
-		ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
-	else
-		ts_LOGf("CA System  : %s | CAID: 0x%04x (%d)\n",
-			ts_get_CA_sys_txt(ts->req_CA_sys),
-			ts->forced_caid, ts->forced_caid);
+	if (!ts->camd.constant_codeword) {
+		if (ts->forced_caid)
+			ts->req_CA_sys = ts_get_CA_sys(ts->forced_caid);
+		if (!ts->forced_caid)
+			ts_LOGf("CA System  : %s\n", ts_get_CA_sys_txt(ts->req_CA_sys));
+		else
+			ts_LOGf("CA System  : %s | CAID: 0x%04x (%d)\n",
+				ts_get_CA_sys_txt(ts->req_CA_sys),
+				ts->forced_caid, ts->forced_caid);
+	} else {
+		char cw_even[64], cw_odd[64];
+		ts_hex_dump_buf(cw_even, sizeof(cw_even), ts->key.cw    , 8, 0);
+		ts_hex_dump_buf(cw_odd , sizeof(cw_odd ), ts->key.cw + 8, 8, 0);
+		ts_LOGf("Constant CW: even = %s\n", cw_even);
+		ts_LOGf("Constant CW: odd  = %s\n", cw_odd);
+	}
 
 	if (ts->input.type == NET_IO) {
 		ts_LOGf("Input addr : %s://%s:%u/\n",
@@ -607,12 +644,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts_LOGf("Out filter : Pass through TDT/TOT.\n");
 		}
 	}
-	ts_LOGf("CAMD proto : %s\n", ts->camd.ops.ident);
-	ts_LOGf("CAMD addr  : tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
-	ts_LOGf("CAMD user  : %s\n", ts->camd.user);
-	ts_LOGf("CAMD pass  : %s\n", ts->camd.pass);
-	if (ts->camd.ops.proto == CAMD_NEWCAMD)
-		ts_LOGf("CAMD deskey: %s\n", ts->camd.newcamd.hex_des_key);
+	if (!ts->camd.constant_codeword) {
+		ts_LOGf("CAMD proto : %s\n", ts->camd.ops.ident);
+		ts_LOGf("CAMD addr  : tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
+		ts_LOGf("CAMD user  : %s\n", ts->camd.user);
+		ts_LOGf("CAMD pass  : %s\n", ts->camd.pass);
+		if (ts->camd.ops.proto == CAMD_NEWCAMD)
+			ts_LOGf("CAMD deskey: %s\n", ts->camd.newcamd.hex_des_key);
+	}
 
 	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
@@ -625,23 +664,24 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (ts->emm_only) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
 	} else {
-		ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
+		if (!ts->camd.constant_codeword)
+			ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 	}
 
 	if (!ts->emm_only && ts->ecm_report_interval)
 		ts_LOGf("ECM report : %d sec\n", ts->emm_report_interval);
-	if (!ts->emm_only && ts->ecm_report_interval == 0)
+	if (!ts->emm_only && ts->ecm_report_interval == 0 && !ts->camd.constant_codeword)
 		ts_LOGf("ECM report : disabled\n");
 	if (ts->forced_ecm_pid)
 		ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
 
 	if (!ts->emm_only && ts->cw_warn_sec)
 		ts_LOGf("CW warning : %d sec\n", ts->cw_warn_sec);
-	if (!ts->emm_only && ts->cw_warn_sec)
+	if (!ts->emm_only && ts->cw_warn_sec && !ts->camd.constant_codeword)
 		ts_LOGf("CW warning : disabled\n");
 
-	if (!ts->ecm_cw_log)
+	if (!ts->ecm_cw_log && !ts->camd.constant_codeword)
 		ts_LOGf("ECM/CW log : disabled\n");
 
 	if (ts->ident) {
@@ -787,7 +827,8 @@ int main(int argc, char **argv) {
 	ts.ecm_last_report = time(NULL) + FIRST_REPORT_SEC;
 	camd_start(&ts);
 	do {
-		do_reports(&ts);
+		if (!ts.camd.constant_codeword)
+			do_reports(&ts);
 
 		if (ts.input.type == NET_IO) {
 			set_log_io_errors(0);

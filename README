@@ -58,6 +58,8 @@ CA options:
                             .   IRDETO, SECA (MEDIAGUARD), VIACCESS,
                             .   VIDEOGUARD (NDS), NAGRA and DRECRYPT.
  -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
+ -Y --const-cw <codeword>   | Set constant code word for decryption.
+                            . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8
 
 CAMD server options:
  -A --camd-proto <proto>    | Set CAMD network protocol.

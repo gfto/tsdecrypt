@@ -62,7 +62,7 @@ int camd_tcp_connect(struct in_addr ip, int port) {
 	return fd;
 }
 
-void camd_set_cw(struct ts *ts, unsigned char *new_cw) {
+void camd_set_cw(struct ts *ts, unsigned char *new_cw, int check_validity) {
 	struct camd *c = &ts->camd;
 
 	c->ecm_recv_errors = 0;
@@ -71,12 +71,12 @@ void camd_set_cw(struct ts *ts, unsigned char *new_cw) {
 	c->key->ts = c->key->ts_keyset.tv_sec;
 	ts->cw_last_warn = c->key->ts;
 
-	if (memcmp(c->key->cw, invalid_cw, 8) != 0) {
+	if (!check_validity || memcmp(c->key->cw, invalid_cw, 8) != 0) {
 		dvbcsa_key_set   (new_cw, c->key->csakey[0]);
 		dvbcsa_bs_key_set(new_cw, c->key->bs_csakey[0]);
 	}
 
-	if (memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
+	if (!check_validity || memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
 		dvbcsa_key_set(new_cw + 8, c->key->csakey[1]);
 		dvbcsa_bs_key_set(new_cw + 8, c->key->bs_csakey[1]);
 	}
@@ -120,7 +120,7 @@ static int camd_recv_cw(struct ts *ts) {
 	// At first ts_keyset is not initialized
 	last_ts_keyset = c->key->ts_keyset;
 	if (c->key->is_valid_cw)
-		camd_set_cw(ts, c->key->cw);
+		camd_set_cw(ts, c->key->cw, 1);
 
 	if (ts->ecm_cw_log) {
 		ts_LOGf("CW  | SID 0x%04x CAID: 0x%04x CW_recv: %5llu ms LastKey: %5llu ms Data: %s\n",
@@ -272,6 +272,8 @@ static void *camd_thread(void *in_ts) {
 void camd_process_packet(struct ts *ts, struct camd_msg *msg) {
 	if (!msg)
 		return;
+	if (ts->camd.constant_codeword)
+		return;
 	msg->ts = ts;
 	if (ts->camd.thread) {
 		if (msg->type == EMM_MSG)
@@ -286,6 +288,8 @@ void camd_process_packet(struct ts *ts, struct camd_msg *msg) {
 
 void camd_start(struct ts *ts) {
 	struct camd *c = &ts->camd;
+	if (c->constant_codeword)
+		return;
 	c->ops.connect(c);
 	// The input is not file, process messages using async thread
 	if (ts->threaded) {
@@ -298,6 +302,8 @@ void camd_start(struct ts *ts) {
 
 void camd_stop(struct ts *ts) {
 	struct camd *c = &ts->camd;
+	if (c->constant_codeword)
+		return;
 	ts->camd_stop = 1;
 	if (c->thread) {
 		queue_add(c->req_queue, NULL);

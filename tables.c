@@ -98,6 +98,9 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	handle_table_changes(cat);
 
+	if (ts->camd.constant_codeword)
+		return;
+
 	if (ts->forced_caid) {
 		ts->emm_caid = ts->forced_caid;
 		ts_get_emm_info_by_caid(ts->cat, ts->emm_caid, &ts->emm_pid);
@@ -145,6 +148,9 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 		struct ts_pmt_stream *stream = ts->pmt->streams[i];
 		pidmap_set(&ts->pidmap, stream->pid); // Data
 	}
+
+	if (ts->camd.constant_codeword)
+		return;
 
 	if (ts->forced_caid) {
 		ts->ecm_caid = ts->forced_caid;

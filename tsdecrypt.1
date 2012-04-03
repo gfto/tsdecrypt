@@ -152,6 +152,12 @@ The default <ca_sys> is \fBCONAX\fR.
 Directly set CAID. This is useful if you have couple of CA streams from
 one CA but with different CAIDs.
 .TP
+\fB\-Y\fR, \fB\-\-const-cw\fR <codeword>
+Set constant code word to be used for decryption. The \fB<codeword>\fR should
+contain 32 hex chars. For example using \fBa1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8\fR
+as parameter will set even code word to \fBa1a2a3a4a5a6a7a8\fR and odd code
+word to \fBb1b2b3b4b5b6b7b8\fR.
+.TP
 .SH CAMD OPTIONS
 .PP
 .TP

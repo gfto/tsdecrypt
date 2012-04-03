@@ -148,7 +148,7 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 					odd_packets++;
 				}
 				ts_packet_set_not_scrambled(ts_packet);
-				if (scramble_idx_old != scramble_idx) {
+				if (scramble_idx_old != scramble_idx && !ts->camd.constant_codeword) {
 					struct timeval tv;
 					gettimeofday(&tv, NULL);
 					ts_LOGf("CWC | SID 0x%04x ------------ EcmTime: %5llu ms CW_time: %5llu ms\n",

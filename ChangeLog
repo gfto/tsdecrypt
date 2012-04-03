@@ -1,3 +1,7 @@
+current : Version -next
+ * Add --const-cw (-Y) option. This option allows using of constant
+   code word for decryption.
+
 2012-03-07 : Version 7.0
  * Add --input-buffer (-T) option. This option allows uninterrupted
    decryption even if OSCAM returns code words too late.

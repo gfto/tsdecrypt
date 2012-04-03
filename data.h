@@ -49,8 +49,10 @@ struct notify {
 	char		program[512];		/* What program to exec */
 };
 
+#define CODEWORD_LENGTH 16
+
 struct key {
-	uint8_t				cw[16];
+	uint8_t				cw[CODEWORD_LENGTH];
 	int					is_valid_cw;
 	struct dvbcsa_key_s	*csakey[2];
 	struct dvbcsa_bs_key_s	*bs_csakey[2];
@@ -145,6 +147,7 @@ struct camd {
 	unsigned int	emm_recv_errors; // Error counter, reset on successful send/recv
 
 	struct key		*key;
+	unsigned int	constant_codeword; // The codeword is set on the command line once, no ecm processing is done.
 
 	pthread_t		thread;
 	QUEUE			*req_queue;
