@@ -770,15 +770,16 @@ void signal_quit(int sig) {
 
 #define RTP_HDR_SZ  12
 
+static uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
+static uint8_t rtp_hdr[2][RTP_HDR_SZ];
+static struct ts ts;
+
 int main(int argc, char **argv) {
 	ssize_t readen;
 	int have_data = 1;
 	int ntimeouts = 0;
 	time_t timeout_start = time(NULL);
-	uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
-	uint8_t rtp_hdr[2][RTP_HDR_SZ];
 	int rtp_hdr_pos = 0, num_packets = 0;
-	struct ts ts;
 
 	memset(rtp_hdr[0], 0, RTP_HDR_SZ);
 	memset(rtp_hdr[1], 0, RTP_HDR_SZ);
