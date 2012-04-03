@@ -33,6 +33,8 @@
 #include "camd.h"
 #include "notify.h"
 
+static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
 int camd_tcp_connect(struct in_addr ip, int port) {
 	ts_LOGf("CAM | Connecting to server %s:%d\n", inet_ntoa(ip), port);
 
@@ -60,10 +62,29 @@ int camd_tcp_connect(struct in_addr ip, int port) {
 	return fd;
 }
 
+void camd_set_cw(struct ts *ts, unsigned char *new_cw) {
+	struct camd *c = &ts->camd;
+
+	c->ecm_recv_errors = 0;
+
+	gettimeofday(&c->key->ts_keyset, NULL);
+	c->key->ts = c->key->ts_keyset.tv_sec;
+	ts->cw_last_warn = c->key->ts;
+
+	if (memcmp(c->key->cw, invalid_cw, 8) != 0) {
+		dvbcsa_key_set   (new_cw, c->key->csakey[0]);
+		dvbcsa_bs_key_set(new_cw, c->key->bs_csakey[0]);
+	}
+
+	if (memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
+		dvbcsa_key_set(new_cw + 8, c->key->csakey[1]);
+		dvbcsa_bs_key_set(new_cw + 8, c->key->bs_csakey[1]);
+	}
+}
+
 static int camd_recv_cw(struct ts *ts) {
 	struct camd *c = &ts->camd;
 	struct timeval tv1, tv2, last_ts_keyset;
-	static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint16_t ca_id = 0;
 	uint16_t idx = 0;
 	int ret;
@@ -98,22 +119,8 @@ static int camd_recv_cw(struct ts *ts) {
 
 	// At first ts_keyset is not initialized
 	last_ts_keyset = c->key->ts_keyset;
-	if (c->key->is_valid_cw) {
-		c->ecm_recv_errors = 0;
-
-		gettimeofday(&c->key->ts_keyset, NULL);
-		c->key->ts = c->key->ts_keyset.tv_sec;
-		ts->cw_last_warn = c->key->ts;
-
-		if (memcmp(c->key->cw, invalid_cw, 8) != 0) {
-			dvbcsa_key_set   (c->key->cw, c->key->csakey[0]);
-			dvbcsa_bs_key_set(c->key->cw, c->key->bs_csakey[0]);
-		}
-		if (memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
-			dvbcsa_key_set(c->key->cw + 8, c->key->csakey[1]);
-			dvbcsa_bs_key_set(c->key->cw + 8, c->key->bs_csakey[1]);
-		}
-	}
+	if (c->key->is_valid_cw)
+		camd_set_cw(ts, c->key->cw);
 
 	if (ts->ecm_cw_log) {
 		ts_LOGf("CW  | SID 0x%04x CAID: 0x%04x CW_recv: %5llu ms LastKey: %5llu ms Data: %s\n",
