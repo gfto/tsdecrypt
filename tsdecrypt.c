@@ -294,85 +294,85 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		char *p = NULL;
 		switch (j) {
-			case 'i':
+			case 'i': // -- ident
 				ts->ident = optarg;
 				break;
-			case 'd':
+			case 'd': // --daemon
 				ts->pidfile = optarg;
 				break;
-			case 'N':
+			case 'N': // --notify-program
 				ts->notify_program = optarg;
 				break;
 
-			case 'S':
+			case 'S': // --syslog
 				ts->syslog_active = 1;
 				ts->syslog_remote = 0;
 				break;
-			case 'l':
+			case 'l': // --syslog-host
 				ts->syslog_host = optarg;
 				ts->syslog_active = 1;
 				ts->syslog_remote = 1;
 				break;
-			case 'L':
+			case 'L': // --syslog-port
 				ts->syslog_port = atoi(optarg);
 				break;
-			case 'F':
+			case 'F': // --log-file
 				log_filename = optarg;
 				break;
 
-			case 'I':
+			case 'I': // --input
 				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
 				break;
-			case 'R':
+			case 'R': // --input-rtp
 				ts->rtp_input = !ts->rtp_input;
 				break;
-			case 'z':
+			case 'z': // --input-ignore-disc
 				ts->ts_discont = !ts->ts_discont;
 				break;
-			case 'M':
+			case 'M': // --input-service
 				ts->forced_service_id = strtoul(optarg, NULL, 0) & 0xffff;
 				break;
-			case 'T':
+			case 'T': // --input-buffer
 				ts->input_buffer_time = strtoul(optarg, NULL, 0);
 				break;
-			case 'W':
+			case 'W': // --input-dump
 				ts->input_dump_filename = optarg;
 				break;
 
-			case 'O':
+			case 'O': // --output
 				output_addr_err = parse_io_param(&ts->output, optarg,
 					O_CREAT | O_WRONLY | O_TRUNC,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 				break;
-			case 'o':
+			case 'o': // --output-intf
 				if (inet_aton(optarg, &ts->output.intf) == 0)
 					output_intf_err = 1;
 				break;
-			case 't':
+			case 't': // --output-ttl
 				ts->output.ttl = atoi(optarg);
 				break;
-			case 'r':
+			case 'r': // --output-rtp
 				ts->rtp_output = 1;
 				break;
-			case 'k':
+			case 'k': // --output-rtp-ssrc
 				ts->rtp_ssrc = strtoul(optarg, NULL, 0);
 				break;
-			case 'g':
+			case 'g': // --output-tos
 				ts->output.tos = (uint8_t)strtol(optarg, NULL, 0);
 				break;
-			case 'p':
+			case 'p': // --no-output-filter
 				ts->pid_filter = 0;
 				break;
-			case 'y':
+			case 'y': // --output-nit-pass
 				ts->nit_passthrough = !ts->nit_passthrough;
 				break;
-			case 'w':
+			case 'w': // --output-eit-pass
 				ts->eit_passthrough = !ts->eit_passthrough;
 				break;
-			case 'x':
+			case 'x': // --output-tdt-pass
 				ts->tdt_passthrough = !ts->tdt_passthrough;
 				break;
-			case 'c':
+			case 'c': // --ca-system
 				if (strcasecmp("IRDETO", optarg) == 0)
 					ts->req_CA_sys = CA_IRDETO;
 				else if (strcasecmp("CONNAX", optarg) == 0 || strcasecmp("CONAX", optarg) == 0)
@@ -392,11 +392,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				else
 					ca_err = 1;
 				break;
-			case 'C':
+			case 'C': // --caid
 				ts->forced_caid = strtoul(optarg, NULL, 0) & 0xffff;
 				break;
 
-			case 'A':
+			case 'A': // --camd-proto
 				if (strcasecmp(optarg, "cs378x") == 0) {
 					camd_proto_cs378x(&ts->camd.ops);
 				} else if (strcasecmp(optarg, "newcamd") == 0) {
@@ -406,7 +406,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					exit(EXIT_FAILURE);
 				}
 				break;
-			case 's':
+			case 's': // --camd-server
 				p = strrchr(optarg, ':');
 				if (p) {
 					*p = 0x00;
@@ -418,14 +418,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				else
 					server_err = 0;
 				break;
-			case 'U':
+			case 'U': // --camd-user
 				if (strlen(optarg) < 64)
 					ts->camd.user = optarg;
 				break;
-			case 'P':
+			case 'P': // --camd-pass
 				ts->camd.pass = optarg;
 				break;
-			case 'B':
+			case 'B': // --camd-des-key
 				if (strlen(optarg) != DESKEY_LENGTH) {
 					fprintf(stderr, "ERROR: des key should be %u characters long.\n", DESKEY_LENGTH);
 					exit(EXIT_FAILURE);
@@ -434,58 +434,58 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->camd.newcamd.hex_des_key[sizeof(ts->camd.newcamd.hex_des_key) - 1] = 0;
 				break;
 
-			case 'e':
+			case 'e': // --emm
 				ts->emm_send = !ts->emm_send;
 				break;
-			case 'Z':
+			case 'Z': // --emm-pid
 				ts->forced_emm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
-			case 'E':
+			case 'E': // --emm-only
 				ts->emm_only = 1;
 				ts->emm_send = 1;
 				break;
-			case 'f':
+			case 'f': // --emm-report-time
 				ts->emm_report_interval = strtoul(optarg, NULL, 10);
 				if (ts->emm_report_interval > 86400)
 					ts->emm_report_interval = 86400;
 				break;
 
-			case 'X':
+			case 'X': // --ecm-pid
 				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
-			case 'H':
+			case 'H': // --ecm-report-time
 				ts->ecm_report_interval = strtoul(optarg, NULL, 10);
 				if (ts->ecm_report_interval > 86400)
 					ts->ecm_report_interval = 86400;
 				break;
-			case 'G':
+			case 'G': // --ecm-irdeto-type
 				ts->irdeto_ecm = atoi(optarg);
 				break;
-			case 'K':
+			case 'K': // --ecm-no-log
 				ts->ecm_cw_log = !ts->ecm_cw_log;
 				break;
-			case 'J':
+			case 'J': // --cw-warn-time
 				ts->cw_warn_sec = strtoul(optarg, NULL, 10);
 				if (ts->cw_warn_sec > 86400)
 					ts->cw_warn_sec = 86400;
 				ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;
 				break;
 
-			case 'D':
+			case 'D': // --debug
 				ts->debug_level = atoi(optarg);
 				break;
-			case 'j':
+			case 'j': // --pid-report
 				ts->pid_report = 1;
 				break;
-			case 'b':
+			case 'b': // --bench
 				run_benchmark();
 				exit(EXIT_SUCCESS);
 
-			case 'h':
+			case 'h': // --help
 				show_help(ts);
 				exit(EXIT_SUCCESS);
 
-			case 'V':
+			case 'V': // --version
 				printf("%s\n", program_id);
 				exit(EXIT_SUCCESS);
 		}
