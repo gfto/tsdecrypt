@@ -473,6 +473,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 			case 'D': // --debug
 				ts->debug_level = atoi(optarg);
+				if (ts->debug_level > 0)
+					ts->pid_report = 1;
 				break;
 			case 'j': // --pid-report
 				ts->pid_report = 1;
