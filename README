@@ -116,6 +116,7 @@ at http://github.com/gfto/tsdecrypt
 To clone the repository issue the following commands:
 
    git clone git://github.com/gfto/tsdecrypt.git
+   cd tsdecrypt
    git submodule init
    git submodule update
    make
