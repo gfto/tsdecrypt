@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <syslog.h>
+#include <sys/resource.h>
 
 #include <dvbcsa/dvbcsa.h>
 #include <openssl/rand.h>
@@ -780,6 +781,14 @@ int main(int argc, char **argv) {
 	int ntimeouts = 0;
 	time_t timeout_start = time(NULL);
 	int rtp_hdr_pos = 0, num_packets = 0;
+	struct rlimit rl;
+
+	if (getrlimit(RLIMIT_STACK, &rl) == 0) {
+		if (rl.rlim_cur > THREAD_STACK_SIZE) {
+			rl.rlim_cur = THREAD_STACK_SIZE;
+			setrlimit(RLIMIT_STACK, &rl);
+		}
+	}
 
 	memset(rtp_hdr[0], 0, RTP_HDR_SZ);
 	memset(rtp_hdr[1], 0, RTP_HDR_SZ);
@@ -820,8 +829,8 @@ int main(int argc, char **argv) {
 	signal(SIGTERM, signal_quit);
 
 	if (ts.threaded) {
-		pthread_create(&ts.decode_thread, NULL, &decode_thread, &ts);
-		pthread_create(&ts.write_thread, NULL , &write_thread , &ts);
+		pthread_create(&ts.decode_thread, &ts.thread_attr, &decode_thread, &ts);
+		pthread_create(&ts.write_thread , &ts.thread_attr, &write_thread , &ts);
 	}
 
 	ts.emm_last_report = time(NULL) + FIRST_REPORT_SEC;

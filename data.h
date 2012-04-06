@@ -42,6 +42,9 @@
 #define ECM_QUEUE_HARD_LIMIT 10
 #define ECM_QUEUE_SOFT_LIMIT 3
 
+// 64k should be enough for everybody
+#define THREAD_STACK_SIZE (64 * 1024)
+
 struct notify {
 	pthread_t	thread;				/* Thread handle */
 	QUEUE		*notifications;		/* Notification queue */
@@ -272,6 +275,8 @@ struct ts {
 	int					is_cw_error;
 
 	int					threaded;
+
+	pthread_attr_t		thread_attr;
 
 	int					decode_stop;
 	pthread_t			decode_thread;

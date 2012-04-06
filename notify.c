@@ -128,7 +128,7 @@ struct notify *notify_alloc(struct ts *ts) {
 	}
 	strncpy(n->program, ts->notify_program, sizeof(n->program) - 1);
 	n->program[sizeof(n->program) - 1] = '\0';
-	pthread_create(&n->thread, NULL , &notify_thread, n);
+	pthread_create(&n->thread, &ts->thread_attr , &notify_thread, n);
 	return n;
 }
 

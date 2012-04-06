@@ -296,7 +296,7 @@ void camd_start(struct ts *ts) {
 		c->req_queue = queue_new();
 		c->ecm_queue = queue_new();
 		c->emm_queue = queue_new();
-		pthread_create(&c->thread, NULL , &camd_thread, ts);
+		pthread_create(&c->thread, &ts->thread_attr , &camd_thread, ts);
 	}
 }
 

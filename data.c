@@ -105,6 +105,12 @@ void data_init(struct ts *ts) {
 	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) *  8, "write");  // ~324Kb
 
 	ts->input_buffer= list_new("input");
+
+	pthread_attr_init(&ts->thread_attr);
+	size_t stack_size;
+	pthread_attr_getstacksize(&ts->thread_attr, &stack_size);
+	if (stack_size > THREAD_STACK_SIZE)
+		pthread_attr_setstacksize(&ts->thread_attr, THREAD_STACK_SIZE);
 }
 
 void data_free(struct ts *ts) {
@@ -143,4 +149,6 @@ void data_free(struct ts *ts) {
 	// and in order to avoid leaking 43 bytes of memory on exit which makes valgrind
 	// unhappy it is a good idea to free the memory (ONCE!).
 	FREE(ts->camd.newcamd.crypt_passwd);
+
+	pthread_attr_destroy(&ts->thread_attr);
 }
