@@ -1,0 +1,239 @@
+-------
+FFdecsa
+-------
+
+This code is able to decrypt MPEG TS packets with the CSA algorithm. To
+achieve high speed, the decryption core works on many packets at the
+same time, so the interface is more complicated than usual decsa
+implementations.
+
+The FFdecsa.h file defines the external interface of this code.
+
+Basically:
+
+1) you use get_suggested_cluster_size to know the optimal number of
+packets you have to pass for decryption
+
+2) you use set_control_words to set the decryption keys
+
+3) you use decrypt_packets to do the actual decryption
+
+You don't need to always use set_control_words before decrypt_packets,
+if keys aren't changed. 
+
+
+The decrypt_packets function call decrypts many packets at the same
+time. The interface is complicated because the only design goal was
+speed, so it implements zero-copying of packets, out-of-order decryption
+and optimal packet aggregation for better parallelism. This part is the
+most difficult to understand.
+
+--- HOW TO USE int decrypt_packets(unsigned char **cluster); ---
+
+PARAMETERS
+  cluster points to an array of pointers, representing zero or more
+  ranges. Every range has a start and end pointer; a start pointer==NULL
+  terminates the array.
+  So, an array of pointers has this content:
+    start_of_buffer_1, end_of_buffer_1, ... start_of_buffer_N,
+    end_of_buffer_N, NULL
+  example:
+    0x12340000, 0x123400bc, 0x56780a00, 0x5678b78, NULL
+  has two ranges (0x12340000 - 0x123400bc and  0x56780a00 - 0x5678b78),
+  for a total of three packets (starting at 0x12340000, 0x56780a00,
+  0x5678abc)
+RETURNS
+  How many packets can now be consumed by the caller, this is always >=
+  1, unless the cluster contained zero packets (in that case it's
+  obviously zero).
+MODIFIES
+  The cluster is modified to try to exclude packets which shouldn't be
+  submitted again for decryption (because just decrypted or originally
+  not crypted). "Try to exclude" because the returned array will never
+  be bigger than what was passed, so if you passed only a range and some
+  packets in the middle were decrypted making "holes" into the range,
+  the range would have to be split into several ranges, and that will
+  not be done. If you want a strict description of what has to be passed
+  again to decrypt_packets, you have to use ranges with only one packet
+  inside. Note that the first packet will certainly be eliminated from
+  the returned cluster (see also RETURNS).
+
+You can now read the detailed description of operation or just skip to
+the API examples.
+
+
+---------------------------------
+DETAILED DESCRIPTION OF OPERATION
+---------------------------------
+  consider a sequence of packets like this:
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 ...
+   E  E  E  E  E  E  E  E  E  E  E  O  E  O  E  O  O  0  0  0  0  0  0  0  0  c  O  O  O  O  O  O  O  O  O  O  O ...
+  where
+   E = encrypted_even,
+   O = encrypted_odd,
+   e = clear_was_encrypted_even,
+   o = clear_was_encrypted_odd,
+   c = clear
+  and suppose the suggested cluster size is 10 (this could be for a function with internal parallelism 8)
+
+  1) we define the cluster to include packets 0-9 and
+  call decrypt_packets
+  a possible result is that the function call
+  - returns 8 (8 packets available)
+  - the buffer contains now this
+  -----------------------------
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 ...
+   e  e  e  e  e  e  e  e  E  E  E  O  E  O  E  O  O  0  0  0  0  0  0  0  0  c  O  O  O  O  O  O  O  O  O  O  O ...
+                          -----
+  - the modified cluster covers 8-9 [continue reading, but then see note 1 below]
+  so, we can use the first 8 packets of the original cluster (0-7)
+
+  2) now, we define cluster over 8-17 and call decrypt_packets
+  a possible result is:
+  - returns 3 (3 packets available)
+  - the buffer contains now this (!!!)
+                          -----------------------------
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 ...
+   e  e  e  e  e  e  e  e  e  e  e  O  e  O  e  O  O  0  0  0  0  0  0  0  0  c  O  O  O  O  O  O  O  O  O  O  O ...
+                                   --    --    --------
+  - the modified cluster covers 11-11,13-13,15-17 [continue reading, but then see note 1 below]
+  so, we can use the first 3 packets of the original cluster (8-10)
+
+  3) now, we define cluster over 11-20 and call decrypt packets (defining a cluster 11-11,13-13,15-22 would be better)
+  a possible result is:
+  - returns 10 (10 packets available)
+  - the buffer contains now this
+                                   -----------------------------
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 ...
+   e  e  e  e  e  e  e  e  e  e  e  o  e  o  e  o  o  o  o  o  o  0  0  0  0  c  O  O  O  O  O  O  O  O  O  O  O ...
+
+  - the modified cluster is empty
+  so, we can use the first 10 packets of the original cluster (11-20)
+  What it happened is that the second call decrypted packets 12 and 14 but they were
+  not made available because packet 11 was still encrypted,
+  the third call decrypted 11,13,15-20 and included 12 and 14 as available too.
+
+  4) now, we define cluster over 21-30 and call decrypt packets
+  a possible result is:
+  - returns 9 (9 packets available)
+  - the buffer contains now this
+                                                                 -----------------------------
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 ...
+   e  e  e  e  e  e  e  e  e  e  e  o  e  o  e  o  o  o  o  o  o  o  o  o  o  c  o  o  o  o  O  O  O  O  O  O  O ...
+                                                                                            --
+  - the modified cluster covers 30-30
+  so, we can use the first 9 packets of the original cluster (21-29)
+  What happened is that packet 25 could be skipped because it is in clear.
+
+  Note that the suggested cluster size (10) is higher than the maximum number
+  of packets that can be really decrypted (8), but we are able to skip 12 and 14
+  in step 3) and run the decryption on a full 8 packets group.
+  In the same way, we were able to skip 25 in step 4).
+  There are three kinds of "free" packets we can skip:
+  - packets decrypted in a previous call (as 12 and 14)
+  - packets already in clear (as 25)
+  - packets with a payload of less than 8 bytes (clear==encrypted!)
+
+  Note also that we could have defined a better cluster in step 3
+  (11-11,13-13,15-22), using what step 2 had returned. The risk of not
+  having 8 packets to decrypt would have been smaller (consider the case
+  where 19 and 20 were "c").
+
+  Final considerations:
+  - you can use a bigger or smaller cluster than the suggested number of packets
+  - every call to decrypt_packets has a *fixed* CPU cost, so you should try to
+    not run it with a few packets, when possible
+  - decrypt_packets can't decrypt even and odd at the same time; it guarantees
+    that the first packet will be decrypted and tries to decrypt as many packets
+    as possible
+  - clear packets in the middle of encrypted packets don't happen in real world,
+    but E,E,E,O,E,O,O,O sequences do happen (audio/video muxing problems?) and
+    small packets (<8 bytes) happen frequently; the ability to skip is useful.
+
+  note 1:
+    As the returned cluster will not have more ranges than the passed one, what it is
+    described above is not actually true.
+    In the step 1) the returned cluster will cover 8-9, but in step 2) it will
+    cover 11-17 (some extra packets had to remain in); this lack of information
+    prevents us from using an optimal 11-11,13-13,15-22 in step 3). Note that
+    in any case step 3) will decrypt 11,13,15,16,17,18,19,20 thanks to the
+    extra margin we use (we put ten packets (including 19 and 20) even if the
+    parallelism was just 8, and it was a good idea; but if 19 and 20 were of
+    type c, we would have run the decryption with only 6/8 efficiency).
+    This problem can be prevented by using ranges with only one packet: in
+    step 2) we would have passed
+    8-8,9-9,10-10,11-11,12-12,13-13,14-14,15-15,16-16,17-17
+    and got back
+    11-11,13-13,15-17.
+
+
+------------
+API EXAMPLES
+------------
+
+Some examples of how the API can be used (this is not real code, so it
+may have typos or other bugs).
+
+
+Example 1: (big linear buffer, simple use of cluster)
+
+  unsigned char *p;
+  unsigned char *cluster[3];
+  for(p=start;p<end;){
+    cluster[0]=p;cluster[1]=end;
+    cluster[2]=NULL;
+    p+=188*decrypt_packets(cluster);
+  }
+  //consume(start,end);
+
+
+Example 2: (circular buffer, simple use of cluster)
+
+  unsigned char *p;
+  unsigned char *cluster[5];
+
+  while(1){
+    if(read==write){
+      //buffer is empty
+      //write=refill_buffer(write,start,end);
+      continue;
+    }
+    else if(read<write){
+      cluster[0]=read;cluster[1]=write;
+      cluster[2]=NULL;
+    }
+    else{
+      cluster[0]=read;cluster[1]=end;
+      cluster[2]=start;cluster[3]=write;
+      cluster[4]=NULL;
+    }
+    new_read=read+188*decrypt_packets(cluster);
+    if(new_read<=end){
+      //consume(read,new_read);
+    }
+    else{
+      new_read=start+(new_read-end);
+      //consume(read,end);
+      //consume(start,new_read);
+    }
+    read=new_read;
+    if(read==end) read=start;
+  }
+
+
+Example 3: (undefined buffer structure, advanced use of cluster)
+
+  unsigned char *packets[1000000];
+  unsigned char *cluster[142]; //if suggested packets is 70
+  
+  cluster[0]=NULL;
+  for(n=0;n<1000000;){
+    i=0;
+    while(cluster[2*i]!=NULL) i++; //preserve returned ranges
+    for(k=i;k<70&&n<1000000;k++,n++){
+      cluster[2*k]=packets[n];cluster[2*k+1]=packets[n]+188;
+    }
+    cluster[2*k]=NULL;
+    decrypt_packets(cluster);
+  }
+  //consume_all_packets();

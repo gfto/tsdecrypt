@@ -1,0 +1,77 @@
+-------
+FFdecsa
+-------
+
+FFdecsa is a fast implementation of the CSA decryption algorithm for MPEG
+TS packets.
+
+Q: What does FF stands for?
+A: FFdecsa means "Fucking Fast decsa".
+
+Q: Why would you use such a rude name?
+A: Because this code is fucking fast, more than 800% the speed of the best
+   implementation I'm able to find around at the moment.
+
+Q: How it that possible? Are all other programmers stupid?
+A: No, they just tried to save a cycle or two tweaking a fundamentally wrong
+   implementation. The algorithm has to be implemented in a totally different
+   way to achieve good speed.
+
+Q: Do you use multimedia instructions?
+A: I use every trick I could come up with, including multimedia instructions.
+   They are not fundamental in achieving speed, a version without them runs
+   at 6x the speed of the best implementation around (which uses MMX).
+
+Q: So how did you do that?
+A: By using a different approach for the implementation. This code is not
+   exploiting some new CSA vulnerability, it is just doing the same
+   calculations better. Think about replacing bubble sort with quick sort.
+
+Q: You're joking, it's impossible to gain so much speed.
+A: Speed test are available, technical documentation is available, source
+   code is available. Try it yourself.
+   If you want details, these are some of the documented tricks I used
+   (more details in the docs directory):
+    TRICK NUMBER 0: emulate the hardware
+    TRICK NUMBER 1: virtual shift registers
+    TRICK NUMBER 2: parallel bitslice
+    TRICK NUMBER 3: multimedia instructions
+    TRICK NUMBER 4: parallel byteslice
+    TRICK NUMBER 5: efficient bit permutation
+    TRICK NUMBER 6: efficient normal<->slice conversion
+    TRICK NUMBER 7: try hard to process packets together
+    TRICK NUMBER 8: try to avoid doing the same thing many times
+    TRICK NUMBER 9: compiler
+    TRICK NUMBER a: a lot of brain work
+
+Q: How can be this code useful?
+A: You can use this code in place of the old slow implementations and save a
+   lot of CPU power.
+
+Q: Just that?
+A: Well, new applications are possible.
+   Decrypting a whole transponder is easily doable now. Well, a $50 CPU can
+   decrypt four transponder at the same time if you have four DVB boards (but
+   I couldn't test that).
+
+Q: You're cheating, this code is fake, I don't believe one word.
+A: Go away. This is technical stuff for people with brains.
+
+Q: This code is great, may I distribute your code in original or modified
+   form?
+A: Only if you respect the license.
+
+Q: May I use your code in my player/library/plugin...?
+A: Again, you have to respect the license.
+
+Q: Are you an extraterrestrial programmer?
+A: No, just a Turkish guy with a PC to play with :-)
+
+Q: Why did you spend your time doing this?
+A: Because I thought that my approach was doable and I was sure it would
+   have been much faster, so I had to implement it to confirm I was right.
+   I got 8x the speed and that's enough to be proud of it. And I could not
+   just keep the code for myself only.
+
+Q: What is the answer to the meaning of the universe?
+A: 42,43,71,5f,65,85,f6,76,0d,13,28,96,...

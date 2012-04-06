@@ -1,0 +1,15 @@
+-------
+FFdecsa
+-------
+
+First, you need to know how decsa works, study the source of a classical
+implementation. Then you have to understand how things are done in
+slicing mode. Read all the documentation and have a working classical
+implementation to compare partial results. There are comments spread
+around the code. Some things are difficult to understand without paper
+notes; for example the matrix transpositions and meaning of array
+indices.
+
+Sorry, it is hard to understand and modify ...
+
+... but it was harder to design and implement!!!

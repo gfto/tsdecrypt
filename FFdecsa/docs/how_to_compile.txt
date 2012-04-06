@@ -1,0 +1,114 @@
+-------
+FFdecsa
+-------
+
+Compiling is as easy as running a make command, if you have gcc and are
+using a little endian machine. 64 bit machines have not been tested but
+may work with little or no changes; big endian machines will certainly
+give incorrect results (read the technical_background.txt to know where
+the problem is).
+
+Before compiling you could edit the Makefile to tweak compiler flags for
+optimal performance. If you want to play with different bit-grouping
+strategies you have to edit FFdecsa_DBG.c and change the "our choice"
+definition. This is highly critical for performance.
+
+After compilation run the FFdecsa_test application. It will test correct
+decryption and print the meausered speed (use "nice --19 ./FFdecsa_test"
+on an idle machine for better results). Or just use "make test".
+
+gcc >=3.3.3 is highly recommended. Older versions could give performance
+problems.
+
+icc is currently unusable. In the initial phases of development of
+FFdecsa icc was able to compile the code and gave interesting speed
+results when using the 8charA grouping mode (array of 8 characters are
+automatically manipulated through MMX instructions). At some point the
+code began to work incorrectly because of a compiler bug (but I found a
+workaround). Then, the performance dropped with no reason; I found a
+workaround by adding an unused variable (alignment problem, grep for icc
+in the code to see where it happens). Then, with the introduction of
+group modes based on intrinsics, gcc was finally able to go beyond the
+speed record originally set by icc. Additional code tweaks added more
+speed to gcc, while icc started to segfault on compilation (both version
+7 and 8). In conclusion, icc is bugged and this code is too hard for it.
+gcc on the other hand is great. I tried to inspect generated assembler
+to find weak spots, and the generated code is very good indeed.
+
+Note: the code can be compiled with gcc or g++. g++ is 3% faster for
+some reason.
+
+You should not get any errors or warnings. I only get two "inlining
+failed" warnings on two functions I asked to be inlined but gcc doesn't
+want to inline.
+
+The build process creates additional temp files by running grep
+commands. This is how debugging output is handled. All the lines
+containing DBG are removed and the temp file is compiled (so the line
+numbers change between temp and original files). Don't edit the temp
+files, they will be overwritten. If you don't remove the DBG lines (for
+example, by changing "grep -v DBG" into "grep -v aaDBG" in Makefile) a
+lot of output will be generated. This is useful to understand what's
+wrong when the FFdecsa_test is failing. I included a reference "known
+good" output in the debug_output directory. Extra debug output is
+commented out in the code.
+
+The debug output functionality could be... bugged. This is because I
+tested everything using hard coded int grouping mode and then
+generalized the debug output to abstract grouping modes. A bug where 4
+bytes are printed instead of 8 could be present somewhere. I think it
+isn't, but you've been warned.
+
+This code was only tried on Linux.
+It should work on Windows or other platforms, but you may encounter
+problems related to the compiler quality. If you want to try, begin with
+the int grouping mode. It is only 30% slower then the best (MMX) and it
+should be easily portable because no intrinsics are used. I'm
+particularly interested in hearing what kind of performance can be
+obtained on x86_64 processors in int, long long int, mmx, 2mmx, sse
+modes.
+
+
+As a reference, here are the results I get on an Athlon XP 2400+ (this
+processor runs at 2000MHz); other processors belonging to the Athlon XP
+architecture, including Durons, should have the same speed per MHz.
+Cache size and bus speed don't matter.
+
+CPU: AMD Athlon XP 2400+
+
+Compiler: g++ (gcc version 3.3.3 20040412 (Red Hat Linux 3.3.3-7))
+
+Flags: -O3 -march=athlon-xp -fexpensive-optimizations -funroll-loops
+       --param max-unrolled-insns=500
+
+grouping mode           speed (Mbit/s)    notes
+---------------------------------------------------------------------
+PARALLEL_32_4CHAR            14
+PARALLEL_32_4CHARA           12
+PARALLEL_32_INT             125           very good and very portable
+PARALLEL_64_8CHAR            17
+PARALLEL_64_8CHARA           15           needs a vectorizing compiler
+PARALLEL_64_2INT             75           x86 has too few registers
+PARALLEL_64_LONG             97           try this on x86_64
+PARALLEL_64_MMX             165           the best
+PARALLEL_128_16CHAR           6
+PARALLEL_128_16CHARA          7
+PARALLEL_128_4INT            69
+PARALLEL_128_2LONG           52
+PARALLEL_128_2MMX            36           slower than expected
+PARALLEL_128_SSE            156           just slower than 64_MMX
+
+Best speeds are obtained with native data types: int, mmx, sse (this
+could be a compiler artifact).
+
+64 bit processors should try 64_LONG.
+
+Vectorizing compilers should like *CHARA.
+
+64_MMX is faster than 128_SSE on the Athlon; perhaps SSE instruction are
+internally split into 64 bit chunks. Could be different on x86_64 or
+Intel processors.
+
+128_SSE has a 64 bit (MMX) batch type because SSE has no shifting
+instructions, they are only available on SSE2. As the Athlon XP doesn't
+support SSE2, I couldn't experiment with that.

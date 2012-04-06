@@ -1,0 +1,21 @@
+-------
+FFdecsa
+-------
+
+Please use the name of the release you're basing on as a base name and
+add your suffix.
+
+For example if john modifies
+  FFdecsa-1.0.0
+he should release
+  FFdecsa-1.0.0-john_0.3
+or
+  FFdecsa-1.0.0-john_0.4
+
+If paul modifies john's version the correct name would be like
+  FFdecsa-1.0.0-john_0.4-paul_0.1
+
+This is to avoid many different versions with random version numbers, as
+development is not centralized.
+
+Thank you.

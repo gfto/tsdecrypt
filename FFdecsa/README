@@ -1,0 +1,50 @@
+-------
+FFdecsa
+-------
+version 1.0
+Copyright 2003-2004  fatih89r
+released under GPL
+
+
+FFdecsa is a fast implementation of a CSA decryption algorithm for MPEG
+TS packets. It is shockingly fast, more than 800% the speed of the
+fastest implementation I can find around. (read the docs to know what FF
+stands for)
+
+On an AthlonXP 2400 (2000MHz) it achieves 165Mbit/s; the previous record
+was around 20Mbit/s.
+
+This means that:
+- decrypting a 8Mbit/s stream takes 5% of CPU instead of 40%
+- decrypting a full transponder (with all its channels or with a big
+  HDTV stream) carrying 38Mbit/s takes 23% of CPU instead of 190%
+  (>100%, so undecryptable in real time)
+- a very slow processor can decrypt one channel with no problems
+- offline decoding of one hour of a 5Mbit/s channel takes less than
+  two minutes (30x than realtime)
+- offline decoding will work at more than 20MB/s (megabytes/s),
+  nearly as fast as a file copy
+
+The docs directory contains useful stuff:
+
+  FAQ.txt
+    to know something more about this software
+
+  how_to_compile.txt
+    if you want to compile this code (and get optimal speed)
+
+  how_to_use.txt
+    if you want to use this code
+
+  technical_background.txt
+    if you want to understand how this code works or you want to
+    modify/improve it
+
+  how_to_understand.txt
+    if you want to understand the code to make modifications
+
+  how_to_release.txt
+    if you want to release modified versions of the code
+
+
+fatih89r

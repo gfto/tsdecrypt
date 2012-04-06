@@ -1,0 +1,341 @@
+-------
+FFdecsa
+-------
+
+This doc is for people who looked into the source code and found it
+difficult to believe that this is a decsa algorithm, as it appears
+completely different from other decsa implementations.
+
+It appears different because it is different. Being different is what
+enables it to be a lot faster than all the others (currently it has more
+than 800% the speed of the best version I was able to find)
+
+The csa algo was designed to be run in hardware, but people are now
+running it in software.
+
+Hardware has data lines carrying bits and functional blocks doing
+calculations (logic operations, adders, shifters, table lookup, ...),
+software instead uses memory to contain data values and executes a
+sequence of instructions to transform the values. As a consequence,
+writing a software implementation of a hardware algorithm can be
+inefficient.
+
+For example, if you have 32 data lines, you can permutate the bits with
+zero cost in hardware (you just permute the physical traces), but if you
+have the bits in a 32 bit variable you have to use 32 "and" operations
+with 32 different masks, 32 shifts and 31 "or" operations (if you
+suggest using "if"s testing the bits one by one you know nothing about
+how jump prediction works in modern processors).
+
+So the approach is *emulating the hardware*.
+
+Then there are some additional cool tricks.
+
+TRICK NUMBER 0: emulate the hardware
+------------------------------------
+We will work on bits one by one, that is a 4 bit word is now four
+variables. In this way we revert complex software operations into
+hardware emulation:
+
+  software                      hardware
+  -------------------------------------------
+  copy values                   copy values
+  logic op                      logic op
+  (bit permut.) ands+shifts+ors copy values
+  additions                     logic op emulating adders
+  (comparisons) if              logic op selecting one of the two results
+  lookup tables                 logic op synthetizing a ROM (*)
+
+(*) sometimes lookup tables can be converted to logic expressions
+
+The sbox in the stream cypher have been converted to efficient logic
+operations using a custom written software (look into logic directory)
+and is responsible for a lot of speed increase. Maybe there exists a
+slightly better way to express the sbox as logical expressions, but it
+would be a minuscule improvement. The sbox in the block cypher can't be
+converted to efficient logic operations (8 bits of inputs are just too
+much) and is implemeted with a traditional lookup in an array.
+
+But there is a problem; if we want to process bits, but our external
+input and output wants bytes. We need conversion routines. Conversion
+routines are similar to the awful permutations we described before, so
+this has to be done efficiently someway.
+
+
+TRICK NUMBER 1: virtual shift registers
+---------------------------------------
+Shift registers are normally implemented by moving all data around.
+Better leave the data in the same memory locations and redefine where
+the start of the register is (updating a pointer). That is called
+virtual shift register.
+
+
+TRICK NUMBER 2: parallel bitslice
+---------------------------------
+Implementing the algorithm as described in tricks 1 and 2 give us about
+15% of the speed of a traditional implementation. This happens because
+we work on only one bit, even if our CPU is 32 bit wide. But *we can
+process 32 different packets at the same time*. This is called
+"bitslice" method. It can be done only if the program flow is not
+dependent of the data (if, while,...). Luckily this is true.
+Things like
+  if(a){
+    b=c&d;
+  }
+  else{
+    b=e&f;
+  }
+can be coded as (think of how hardware would implement this)
+  b1=c&d;
+  b2=e&f;
+  b=b2^(a&(b1^b2));
+and things like
+  if(a){
+    b=c&d
+  }
+can be transformed in the same way, as they may be written as
+  if(a){
+    b=c&d
+  }
+  else{
+    b=b;
+  }
+It could look wasteful, but it is not; and destroys data dependency.
+
+Our codes takes the same time as before, but produces 32 results, so
+speed is now 480% the speed of a traditional implementation.
+
+
+TRICK NUMBER 3: multimedia instructions
+---------------------------------------
+If our CPU is 32 bit but it can also process larger blocks of data
+efficiently (multimedia instructions), we can use them. We only need
+logic ops and these are typically available.
+
+We can use MMX and work on 64 packets, or SSE and work on 128 packets.
+The speed doesn't automatically double going from 32 to 64 because the
+integer registers of the processor are normally faster. However, some
+speed is gained in this way.
+
+Multimedia instructions are often used by writing assembler by hand, but
+compilers are very good in doing register allocation, loop unrolling and
+instruction scheduling, so it is better to write the code in C and use
+native multimedia data types (intrinsics).
+
+Depending on number of available registers, execution latency, number of
+execution units in the CPU, it may be good to process more than one data
+block at the same time, for example 2 64bit MMX values. In this case we
+work on 128 bits by simulating a 128 bit op with two consecutive 64 bit
+op. This may or may not help (apparently not because x86 architecture
+has a small number of registers).
+
+We can also try working on 96 bit, pairing a MMX and an int op, or 192
+bit by using MMX and SSE. While this is doable in theory and could
+exploit different execution units in the CPU, speed doesn't improve
+(because of cache line handling problems inside the CPU, maybe).
+
+Besides int, MMX, SSE, we can use long long int (64 bit) and, why not,
+unsigned char.
+
+Using groups of unsigned chars (8 or 16) could give the compiler an
+opportunity to insert multimedia instructions automatically. For
+example, icc can use one MMX istruction to do
+  unsigned char a[8],b[8],c[8];
+  for(i=0;i<8;i++){
+    a[i]=b[i]&c[i];
+  }
+Some compilers (like icc) are efficient in this case, but using
+intrinsics manually is generally faster.
+
+All these experiments can be easily done if the code is written in a way
+which abstracts the data type used. This is not easy but doable, all the
+operations on data become (inlined) function calls or preprocessor
+macros. Good compilers are able to simplify all the abstraction at
+compile time and generate perfect code (gcc is great).
+
+The data abstraction used in the code is called "group".
+
+
+TRICK NUMBER 4: parallel byteslice
+----------------------------------
+The bitslice method works wonderfully on the stream cypher, but can't be
+applied to the block cypher because of the evil big look up table.
+
+As we have to convert input data from normal to bitslice before starting
+processing and from bitslice to normal before output, we convert the
+stream cypher output to normal before the block calculations and do the
+block stage in a traditional way.
+
+There are some xors in the block cypher; so we arrange bytes from
+different packets side by side and use multimedia instructions to work
+on many bytes at the same time. This is not exactly bitslice, maybe it
+is called byteslice. The conversion routines are similar (just a bit
+simpler).
+
+The data type we use to do this in the code is called "batch".
+
+The virtual shift register described in trick number 2 is useful too.
+
+The look up table is the only thing which is done serially one byte at a
+time. Luckily if we do it on 32 or 64 bytes the loop is heavily
+unrolled, and the compiler and the CPU manage to get a good speed
+because there is little dependency between instructions.
+
+
+TRICK NUMBER 5: efficient bit permutation
+-----------------------------------------
+The block cypher has a bit permutation part. As we are not in a bit
+sliced form at that point, permuting bits in a byte takes 8 masks, 8
+and, 7 or; but three bits move in the same direction, so we make it with
+6 masks, 6 and, 5 or. Batch processing through multimedia instructions
+is applicable too.
+
+
+TRICK NUMBER 6: efficient normal<->slice conversion
+---------------------------------------------------
+The bitslice<->normal conversion routines are a sort of transposition
+operation, that is you have bits in rows and want them in columns. This
+can be done efficiently. For example, transposition of 8 bytes (matrix
+of 8x8=64 bits) can be done this way (we want to exchange bit[i][j] with
+bit[j][i] and we assume bit 0 is the MSB in the byte):
+
+  // untested code, may be bugged
+  unsigned char a[8];
+  unsigned char b[8];
+  for(i=0;i<8;i++) b[i]=0;
+  for(i=0;i<8;i++){
+    for(j=0;j<8;j++){
+      b[i]|=((a[j]>>(7-i)&1))<<(7-j);
+    }
+  }
+
+but it is slow (128 shifts, 64 and, 64 or), or
+
+  // untested code, may be bugged
+  unsigned char a[8];
+  unsigned char b[8];
+  for(i=0;i<8;i++) b[i]=0;
+  for(i=0;i<8;i++){
+    for(j=0;j<8;j++){
+      if(a[j]&(1<<(7-i))) b[i]|=1<<(7-j);
+    }
+  }
+
+but is very very slow (128 shifts, 64 and, 64 or, 128 unpredictable
+if!), or using a>>=1 and b<<=1, which gains you nothing, or
+
+  // untested code, may be bugged
+  unsigned char a[8];
+  unsigned char b[8];
+  unsigned char top,bottom;
+  for(j=0;j<1;j++){
+    for(i=0;i<4;i++){
+      top=   a[8*j+i];
+      bottom=a[8*j+4+i];
+      a[8*j+i]=   (top&0xf0)    |((bottom&0xf0)>>4);
+      a[8*j+4+i]=((top&0x0f)<<4)| (bottom&0x0f);
+    }
+  }
+  for(j=0;j<2;j++){
+    for(i=0;i<2;i++){
+      top=   a[4*j+i];
+      bottom=a[4*j+2+i];
+      a[4*j+i]  = (top&0xcc)    |((bottom&0xcc)>>2);
+      a[4*j+2+i]=((top&0x33)<<2)| (bottom&0x33);
+    }
+  }
+  for(j=0;j<4;j++){
+    for(i=0;i<1;i++){
+      top=   a[2*j+i];
+      bottom=a[2*j+1+i];
+      a[2*j+i]  = (top&0xaa)    |((bottom&0xaa)>>1);
+      a[2*j+1+i]=((top&0x55)<<1)| (bottom&0x55);
+    }
+  }
+  for(i=0;i<8;i++) b[i]=a[i]; //easy to integrate into one of the stages above
+
+which is very fast (24 shifts, 48 and, 24 or) and has redundant loops
+and address calculations which will be optimized away by the compiler.
+It can be written as 3 nested loops but it becomes less readable and
+makes it difficult to have results in b without an extra copy. The
+compiler always unrolls heavily.
+
+The gain is much bigger when operating with 32 bit or 64 bit values (we
+are going from N^2 to Nlog(N)). This method is used for rectangular
+matrixes too (they have to be seen as square matrixes side by side).
+Warning: this code is not *endian independent* if you use ints to work
+on 4 bytes. Running it on a big endian processor will give you a
+different and strange kind of bit rotation if you don't modify masks and
+shifts.
+
+This is done in the code using int or long long int. It should be
+possible to use MMX instead of long long int and it could be faster, but
+this code doesn't cost a great fraction of the total time. There are
+problems with the shifts, as multimedia instructions do not have all
+possible kind of shift we need (SSE has none!).
+
+
+TRICK NUMBER 7: try hard to process packets together
+----------------------------------------------------
+As we are able to process many packets together, we have to avoid
+running with many slots empty. Processing one packet or 64 packets takes
+the same time if the internal parallelism is 64! So we try hard to
+aggregate packets that can be processed together; for simplicity reasons
+we don't mix packets with even and odd parity (different keys), even if
+it should be doable with a little effort. Sometimes the transition from
+even to odd parity and viceversa is not sharp, but there are sequences
+like EEEEEOEEOEEOOOO. We try to group all the E together even if there
+are O between them. This out-of-order processing complicates the
+interface to the applications a bit but saves us three or four runs with
+many empty slots.
+
+We have also logic to process together packets with a different size of
+the payload, which is not always 184 bytes. This involves sorting the
+packets by size before processing and careful operation of the 23
+iteration loop to exclude some packets from the calculations. It is not
+CPU heavy.
+
+Packets with payload <8 bytes are identical before and after decryption
+(!), so we skip them without using a slot. (according to DVB specs these
+kind of packets shouldn't happen, but they are used in the real world).
+
+
+TRICK NUMBER 8: try to avoid doing the same thing many times
+------------------------------------------------------------
+Some calculations related to keys are only done when the keys are set,
+then all the values depending on keys are stored in a convenient form
+and used everytime we convert a group of packets.
+
+
+TRICK NUMBER 9: compiler
+------------------------
+
+Compilers have a lot of optimization options. I used -march to target my
+CPU and played with unsual options. In particular
+  "--param max-unrolled-insns=500"
+does a good job on the tricky table lookup in the block cypher. Bigger
+values unroll too much somewhere and loose speed. All the testing has
+been done on an AthlonXP CPU with a specific version of gcc
+  gcc version 3.3.3 20040412 (Red Hat Linux 3.3.3-7)
+Other combinations of CPU and compiler can give different speeds. If the
+compiler is not able to simplify the group and batch structures and
+stores everything in memory instead of registers, performance will be
+low.
+
+Absolutely use a good compiler!
+
+Note: the same code can be compiled in C or C++ mode. g++ gives a 3%
+speed increase compared to gcc (I suppose some stricter constraint on
+array and pointers in C++ mode gives the optimizer more freedom).
+
+
+TRICK NUMBER a: a lot of brain work
+-----------------------------------
+The code started as very slow but correct implementation and was then
+tweaked for months with a lot of experimentation and by adding all the
+good ideas one after another to achieve little steps toward the best
+speed possible, while continously testing that nothing had been broken.
+
+Many hours were spent on this code.
+
+Enjoy the result.
