@@ -1,7 +1,8 @@
 CC = $(CROSS)$(TARGET)cc
 STRIP = $(CROSS)$(TARGET)strip
 MKDEP = $(CC) -M -o $*.d $<
-RM = /bin/rm -f
+RM = rm -f
+MV = mv -f
 
 BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
@@ -20,7 +21,6 @@ CFLAGS ?= -O2 -ggdb \
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
  -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
-DEFS += -DUSE_LIBDVBCSA=1
 
 PREFIX ?= /usr/local
 
@@ -47,20 +47,48 @@ tsdecrypt_SRC = data.c \
  tables.c \
  notify.c \
  tsdecrypt.c
-tsdecrypt_LIBS = -lcrypto -ldvbcsa -lpthread
-tsdecrypt_OBJS = $(FUNCS_LIB) $(TS_LIB) $(tsdecrypt_SRC:.c=.o)
+tsdecrypt_LIBS = -lcrypto -lpthread
+
+# If the file do not exist, libdvbcsa will be used
+-include FFdecsa.opts
+
+tsdecrypt_OBJS = $(FFDECSA_OBJ) $(FUNCS_LIB) $(TS_LIB) $(tsdecrypt_SRC:.c=.o)
 
 ifeq "$(shell uname -s)" "Linux"
 tsdecrypt_LIBS += -lcrypt -lrt
 endif
 
-CLEAN_OBJS = tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
+ifeq "$(DECRYPT_LIB)" "ffdecsa"
+DEFS += -DDLIB=\"FFdecsa_$(FFDECSA_MODE)\"
+DEFS += -DUSE_FFDECSA=1
+else
+DEFS += -DDLIB=\"libdvbcsa\"
+DEFS += -DUSE_LIBDVBCSA=1
+tsdecrypt_LIBS += -ldvbcsa
+endif
+
+CLEAN_OBJS = $(FFDECSA_OBJ) tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
 
 PROGS = tsdecrypt
 
-.PHONY: distclean clean install uninstall
+.PHONY: ffdecsa dvbcsa help distclean clean install uninstall
 
 all: $(PROGS)
+
+ffdecsa: clean
+	$(Q)echo "Switching build to FFdecsa."
+	@-if test -e FFdecsa.opts.saved; then $(MV) FFdecsa.opts.saved FFdecsa.opts; fi
+	@-if ! test -e FFdecsa.opts; then ./FFdecsa_init "$(CROSS)$(TARGET)" "$(CC)"; fi
+	$(Q)$(MAKE) -s tsdecrypt
+
+ffdecsa_force:
+	$(Q)$(RM) FFdecsa.opts
+	$(Q)$(MAKE) -s ffdecsa
+
+dvbcsa: clean
+	$(Q)echo "Switching build to libdvbcsa."
+	@-if test -f FFdecsa.opts; then $(MV) FFdecsa.opts FFdecsa.opts.saved; fi
+	$(Q)$(MAKE) -s tsdecrypt
 
 $(FUNCS_LIB): $(FUNCS_DIR)/libfuncs.h
 	$(Q)echo "  MAKE	$(FUNCS_LIB)"
@@ -79,6 +107,10 @@ tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  CC	tsdecrypt	$<"
 	$(Q)$(CC) $(CFLAGS) $(DEFS) -c $<
 
+FFdecsa/FFdecsa.o:
+	$(Q)echo "  MAKE	FFdecsa"
+	$(Q)$(MAKE) -s -C FFdecsa FLAGS=$(FFDECSA_FLAGS) PARALLEL_MODE=$(FFDECSA_MODE) COMPILER=$(CROSS)$(CC) FFdecsa.o
+
 -include $(tsdecrypt_SRC:.c=.d)
 
 strip:
@@ -92,6 +124,7 @@ clean:
 distclean: clean
 	$(Q)$(MAKE) -s -C $(TS_DIR) clean
 	$(Q)$(MAKE) -s -C $(FUNCS_DIR) clean
+	$(Q)$(RM) FFdecsa.opts
 
 install: all strip
 	@install -d "$(INSTALL_PRG_DIR)"

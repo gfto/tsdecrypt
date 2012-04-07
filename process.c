@@ -115,11 +115,13 @@ static void decode_packet(struct ts *ts, uint8_t *ts_packet) {
 
 static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 	int i;
-	int batch_sz = csa_get_batch_size(); // 32?
+	int batch_sz = csa_get_batch_size(); // Tested with 32 for libdvbcsa, 70 for FFdecsa (must be multiplied by 2)
 	int even_packets = 0;
 	int odd_packets  = 0;
 	struct csa_batch even_pcks[batch_sz + 1];
 	struct csa_batch odd_pcks [batch_sz + 1];
+	uint8_t *ff_even_pcks[batch_sz * 2 + 1];
+	uint8_t *ff_odd_pcks [batch_sz * 2 + 1];
 
 	int scramble_idx_old = 0;
 
@@ -147,6 +149,18 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 					}
 					ts_packet_set_not_scrambled(ts_packet);
 				}
+				if (use_ffdecsa) {
+					if (scramble_idx == 2) { // scramble_idx 2 == even key
+						ff_even_pcks[even_packets * 2    ] = ts_packet;
+						ff_even_pcks[even_packets * 2 + 1] = ts_packet + 188;
+						even_packets++;
+					}
+					if (scramble_idx == 3) { // scramble_idx 3 == odd key
+						ff_odd_pcks[odd_packets * 2    ] = ts_packet;
+						ff_odd_pcks[odd_packets * 2 + 1] = ts_packet + 188;
+						odd_packets++;
+					}
+				}
 				if (scramble_idx_old != scramble_idx && !ts->camd.constant_codeword) {
 					struct timeval tv;
 					gettimeofday(&tv, NULL);
@@ -169,11 +183,19 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 			even_pcks[even_packets].data = NULL; // Last one...
 			csa_decrypt_multiple_even(ts->key.csakey, even_pcks);
 		}
+		if (use_ffdecsa) {
+			ff_even_pcks[even_packets * 2] = NULL;
+			csa_decrypt_multiple_ff(ts->key.csakey, ff_even_pcks);
+		}
 	}
 	if (odd_packets) {
 		if (use_dvbcsa) {
 			odd_pcks[odd_packets].data = NULL; // Last one...
 			csa_decrypt_multiple_odd(ts->key.csakey, odd_pcks);
+		}
+		if (use_ffdecsa) {
+			ff_odd_pcks[odd_packets * 2] = NULL;
+			csa_decrypt_multiple_ff(ts->key.csakey, ff_odd_pcks);
 		}
 	}
 

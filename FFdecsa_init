@@ -1,0 +1,151 @@
+#!/bin/sh
+# Compile FFdecsa in different modes to find the fastest
+# This script is based on the conigure script from getstream_a84
+# Copyright (C) 2012 Unix Solutions Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+
+cd $(dirname $0)
+
+CROSS="$1"
+CC="${2:-cc}"
+FFDECSA_CFLAGS="-O3 -fexpensive-optimizations -funroll-loops"
+
+MAX_MODE="PARALLEL_32_INT"
+
+FFDECSA_MODES="PARALLEL_32_INT"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_64_2INT"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_64_LONG"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_64_MMX"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_128_2LONG"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_128_2MMX"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_128_SSE"
+FFDECSA_MODES="$FFDECSA_MODES PARALLEL_128_SSE2"
+
+# Internal variables
+OUTPUT_FILE="FFdecsa.opts"
+FFDECSA_DIR="FFdecsa"
+LPREFIX="[FFdecsa]"
+MAX_SPEED=0
+TMPDIR=`mktemp -d FFdecsa.build.XXXXXXXX` || exit 1
+
+trap "{ rm -rf $TMPDIR ; exit 1; }" INT TERM
+
+cp $FFDECSA_DIR/Makefile $FFDECSA_DIR/*.{c,h} $TMPDIR
+
+log()  { printf "%s %-26s : %s\n" "$LPREFIX" "$1" "$2"; }
+logn() { printf "%s %-26s : %s"   "$LPREFIX" "$1" "$2"; }
+
+log "Using compiler" "$CROSS$CC"
+log "FFdecsa modes" "$FFDECSA_MODES"
+
+cpu_have() {
+	# Check whether option is supported by the host CPU
+	grep "^flags.* $1 " /proc/cpuinfo >/dev/null 2>&1
+	eval test $? -eq 0
+}
+
+cc_check() {
+	# Check whether option is supported by the target CC
+	$CROSS$CC $1 -xc -o /dev/null - 2>/dev/null << EOF
+int main(void) { return 0; }
+EOF
+	eval test $? -eq 0
+}
+
+test_ffdecsa_mode() {
+	MODE="$1"
+	logn "Testing $MODE"
+
+	ERRLOG="FFdecsa_build_$MODE.log"
+	MAKECMD="make -C $TMPDIR FFdecsa_test PARALLEL_MODE=$MODE FLAGS=\"$FFDECSA_CFLAGS\" COMPILER=\"$CROSS$CC\""
+	eval $MAKECMD >/dev/null 2>$TMPDIR/$ERRLOG
+
+	if [ $? -ne 0 ]
+	then
+		echo "ERROR: build failed, check $ERRLOG"
+		(echo "$MAKECMD" ; echo ; cat $TMPDIR/$ERRLOG) > $ERRLOG
+		return
+	fi
+
+	if [ "$CROSS" != "" ]
+	then
+		cp $TMPDIR/FFdecsa_test FFdecsa_test_$MODE
+		echo "CROSS COMPILE OK: You can run FFdecsa_test_$MODE on the target machine"
+		return
+	fi
+
+	RESULTS_FILE="$TMPDIR/test_results.txt"
+	$TMPDIR/FFdecsa_test >/dev/null 2>$RESULTS_FILE
+	if [ $? -ne 0 ]
+	then
+		echo "ERROR: test run failed"
+		return
+	fi
+
+	grep FAILED $RESULTS_FILE >/dev/null 2>&1
+	if test $? -ne 1; then
+		echo "ERROR: test failed"
+		return
+	fi
+
+	SPEED=`grep "speed=.*Mbit" $RESULTS_FILE | sed -e 's/^.*=\([0-9]*\)\.[0-9]* Mbit.*$/\1/'`
+	echo "OK $SPEED Mbit/s"
+	if [ $SPEED -gt $MAX_SPEED ]
+	then
+		MAX_SPEED=$SPEED
+		MAX_MODE=$MODE
+	fi
+}
+
+# Check CPU and compiler flags
+if cc_check -march=native
+then
+	FFDECSA_CFLAGS="$FFDECSA_CFLAGS -march=native"
+elif cc_check -march=pentium; then
+	FFDECSA_CFLAGS="$FFDECSA_CFLAGS -march=pentium"
+fi
+
+OPTS=""
+FLAGS=""
+for flag in mmx sse sse2
+do
+	if cpu_have $flag
+	then
+		OPTS="$OPTS $flag"
+		if cc_check -m$flag
+		then
+			FFDECSA_CFLAGS="$FFDECSA_CFLAGS -m$flag"
+		fi
+	fi
+done
+
+log "Host CPU" "$(uname -m) $OPTS"
+log "FFdecsa CFLAGS" "$FFDECSA_CFLAGS"
+
+for MODE in $FFDECSA_MODES
+do
+	test_ffdecsa_mode $MODE
+	make -C $TMPDIR clean >/dev/null 2>&1
+done
+
+log "Choosing PARALLEL_MODE" "$MAX_MODE ($MAX_SPEED Mbps)"
+
+echo "# This file is included from Makefile
+DECRYPT_LIB = ffdecsa
+FFDECSA_OBJ = FFdecsa/FFdecsa.o" > $OUTPUT_FILE
+echo "FFDECSA_MODE = $MAX_MODE" >> $OUTPUT_FILE
+echo "FFDECSA_FLAGS = \"$FFDECSA_CFLAGS\"" >> $OUTPUT_FILE
+
+rm -rf $TMPDIR

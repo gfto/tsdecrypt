@@ -1,4 +1,5 @@
 current : Version -next
+ * Add FFdecsa support. FFdecsa decrypts ~2 times faster than libdvcsa.
  * Add --const-cw (-Y) option. This option allows using of constant
    code word for decryption.
 
