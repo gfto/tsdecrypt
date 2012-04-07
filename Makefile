@@ -36,6 +36,7 @@ TS_DIR = libtsfuncs
 TS_LIB = $(TS_DIR)/libtsfuncs.a
 
 tsdecrypt_SRC = data.c \
+ csa.c \
  udp.c \
  util.c \
  camd.c \

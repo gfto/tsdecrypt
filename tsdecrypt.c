@@ -27,13 +27,13 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
-#include <dvbcsa/dvbcsa.h>
 #include <openssl/rand.h>
 
 #include "libfuncs/libfuncs.h"
 
 #include "data.h"
 #include "util.h"
+#include "csa.h"
 #include "camd.h"
 #include "process.h"
 #include "udp.h"
@@ -67,51 +67,6 @@ static void LOG_func(const char *msg) {
 		syslog(LOG_INFO, msg, strlen(msg));
 	if (remote_syslog)
 		LOG(msg);
-}
-
-/* The following routine is taken from benchbitslice in libdvbcsa */
-void run_benchmark(void) {
-	struct timeval t0, t1;
-	struct dvbcsa_bs_key_s *ffkey = dvbcsa_bs_key_alloc();
-	unsigned int n, i, c = 0, pkt_len = 0;
-	unsigned int gs = dvbcsa_bs_batch_size();
-	uint8_t data[gs + 1][184];
-	struct dvbcsa_bs_batch_s pcks[gs + 1];
-	uint8_t cw[8] = { 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, };
-
-	srand(time(0));
-
-	puts("* Single threaded libdvbcsa benchmark *");
-
-	dvbcsa_bs_key_set (cw, ffkey);
-
-	printf(" - Generating batch with %i randomly sized packets\n\n", gs);
-	for (i = 0; i < gs; i++) {
-		pcks[i].data = data[i];
-		pcks[i].len = 100 + rand() % 85;
-		memset(data[i], rand(), pcks[i].len);
-		pkt_len += pcks[i].len;
-	}
-	pcks[i].data = NULL;
-
-	gettimeofday(&t0, NULL);
-	for (n = (1 << 12) / gs; n < (1 << 19) / gs; n *= 2) {
-		printf(" - Decrypting %u TS packets\n", n * gs);
-		for (i = 0; i < n; i++) {
-			dvbcsa_bs_decrypt(ffkey, pcks, 184);
-		}
-		c += n * gs;
-	}
-	gettimeofday(&t1, NULL);
-
-	printf("\n* %u packets proceded: %.1f Mbits/s\n\n", c,
-		(float)(c * 188 * 8) / (float)timeval_diff_usec(&t0, &t1)
-		/*(float)((t1.tv_sec * 1000000 + t1.tv_usec) - (t0.tv_sec * 1000000 + t0.tv_usec)) */
-	);
-
-	dvbcsa_bs_key_free(ffkey);
-
-	puts("* Done *");
 }
 
 static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:Y:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
@@ -497,7 +452,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->pid_report = 1;
 				break;
 			case 'b': // --bench
-				run_benchmark();
+				csa_benchmark();
 				exit(EXIT_SUCCESS);
 
 			case 'h': // --help
