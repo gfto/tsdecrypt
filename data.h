@@ -57,7 +57,7 @@ struct notify {
 struct key {
 	uint8_t				cw[CODEWORD_LENGTH];
 	int					is_valid_cw;
-	struct dvbcsa_key_s	*csakey[2];
+	struct dvbcsa_key_s	*s_csakey[2];
 	struct dvbcsa_bs_key_s	*bs_csakey[2];
 	time_t					ts;				// At what time the key is set
 	struct timeval			ts_keyset;		// At what time the key is set

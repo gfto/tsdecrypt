@@ -52,8 +52,8 @@ void data_init(struct ts *ts) {
 
 	// Key
 	memset(&ts->key, 0, sizeof(ts->key));
-	ts->key.csakey[0] = dvbcsa_key_alloc();
-	ts->key.csakey[1] = dvbcsa_key_alloc();
+	ts->key.s_csakey[0] = dvbcsa_key_alloc();
+	ts->key.s_csakey[1] = dvbcsa_key_alloc();
 
 	ts->key.bs_csakey[0] = dvbcsa_bs_key_alloc();
 	ts->key.bs_csakey[1] = dvbcsa_bs_key_alloc();
@@ -130,8 +130,8 @@ void data_free(struct ts *ts) {
 	ts_privsec_free(&ts->last_ecm);
 	ts_privsec_free(&ts->tmp_ecm);
 
-	dvbcsa_key_free(ts->key.csakey[0]);
-	dvbcsa_key_free(ts->key.csakey[1]);
+	dvbcsa_key_free(ts->key.s_csakey[0]);
+	dvbcsa_key_free(ts->key.s_csakey[1]);
 
 	dvbcsa_bs_key_free(ts->key.bs_csakey[0]);
 	dvbcsa_bs_key_free(ts->key.bs_csakey[1]);

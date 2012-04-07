@@ -107,7 +107,7 @@ static void decode_packet(struct ts *ts, uint8_t *ts_packet) {
 			// scramble_idx 3 == odd key
 			ts_packet_set_not_scrambled(ts_packet);
 			uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
-			dvbcsa_decrypt(ts->key.csakey[scramble_idx - 2], ts_packet + payload_ofs, 188 - payload_ofs);
+			dvbcsa_decrypt(ts->key.s_csakey[scramble_idx - 2], ts_packet + payload_ofs, 188 - payload_ofs);
 		} else {
 			// Can't decrypt the packet just make it NULL packet
 			if (ts->pid_filter)
