@@ -20,6 +20,7 @@ CFLAGS ?= -O2 -ggdb \
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
  -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
+DEFS += -DUSE_LIBDVBCSA=1
 
 PREFIX ?= /usr/local
 

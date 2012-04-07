@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "data.h"
+#include "csa.h"
 #include "camd.h"
 
 void data_init(struct ts *ts) {
@@ -52,12 +53,7 @@ void data_init(struct ts *ts) {
 
 	// Key
 	memset(&ts->key, 0, sizeof(ts->key));
-	ts->key.s_csakey[0] = dvbcsa_key_alloc();
-	ts->key.s_csakey[1] = dvbcsa_key_alloc();
-
-	ts->key.bs_csakey[0] = dvbcsa_bs_key_alloc();
-	ts->key.bs_csakey[1] = dvbcsa_bs_key_alloc();
-
+	ts->key.csakey = csa_key_alloc();
 	gettimeofday(&ts->key.ts_keyset, NULL);
 
 	// CAMD
@@ -101,8 +97,8 @@ void data_init(struct ts *ts) {
 	ts->output.ttl  = 1;
 	ts->output.tos  = -1;
 
-	ts->decode_buf  = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) * 16, "decode"); // ~658Kb
-	ts->write_buf   = cbuf_init((7 * dvbcsa_bs_batch_size() * 188) *  8, "write");  // ~324Kb
+	ts->decode_buf  = cbuf_init((7 * csa_get_batch_size() * 188) * 16, "decode"); // ~658Kb
+	ts->write_buf   = cbuf_init((7 * csa_get_batch_size() * 188) *  8, "write");  // ~324Kb
 
 	ts->input_buffer= list_new("input");
 
@@ -130,11 +126,7 @@ void data_free(struct ts *ts) {
 	ts_privsec_free(&ts->last_ecm);
 	ts_privsec_free(&ts->tmp_ecm);
 
-	dvbcsa_key_free(ts->key.s_csakey[0]);
-	dvbcsa_key_free(ts->key.s_csakey[1]);
-
-	dvbcsa_bs_key_free(ts->key.bs_csakey[0]);
-	dvbcsa_bs_key_free(ts->key.bs_csakey[1]);
+	csa_key_free(&ts->key.csakey);
 
 	cbuf_free(&ts->decode_buf);
 	cbuf_free(&ts->write_buf);

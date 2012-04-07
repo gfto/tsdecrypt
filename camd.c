@@ -24,11 +24,10 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#include <dvbcsa/dvbcsa.h>
-
 #include "libfuncs/libfuncs.h"
 
 #include "data.h"
+#include "csa.h"
 #include "util.h"
 #include "camd.h"
 #include "notify.h"
@@ -62,7 +61,7 @@ int camd_tcp_connect(struct in_addr ip, int port) {
 	return fd;
 }
 
-void camd_set_cw(struct ts *ts, unsigned char *new_cw, int check_validity) {
+void camd_set_cw(struct ts *ts, uint8_t *new_cw, int check_validity) {
 	struct camd *c = &ts->camd;
 
 	c->ecm_recv_errors = 0;
@@ -71,15 +70,11 @@ void camd_set_cw(struct ts *ts, unsigned char *new_cw, int check_validity) {
 	c->key->ts = c->key->ts_keyset.tv_sec;
 	ts->cw_last_warn = c->key->ts;
 
-	if (!check_validity || memcmp(c->key->cw, invalid_cw, 8) != 0) {
-		dvbcsa_key_set   (new_cw, c->key->s_csakey[0]);
-		dvbcsa_bs_key_set(new_cw, c->key->bs_csakey[0]);
-	}
+	if (!check_validity || memcmp(c->key->cw, invalid_cw, 8) != 0)
+		csa_set_even_cw(c->key->csakey, new_cw);
 
-	if (!check_validity || memcmp(c->key->cw + 8, invalid_cw, 8) != 0) {
-		dvbcsa_key_set(new_cw + 8, c->key->s_csakey[1]);
-		dvbcsa_bs_key_set(new_cw + 8, c->key->bs_csakey[1]);
-	}
+	if (!check_validity || memcmp(c->key->cw + 8, invalid_cw, 8) != 0)
+		csa_set_odd_cw(c->key->csakey, new_cw + 8);
 }
 
 static int camd_recv_cw(struct ts *ts) {

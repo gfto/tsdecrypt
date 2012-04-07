@@ -20,6 +20,7 @@
 #include <sys/uio.h>
 
 #include "data.h"
+#include "csa.h"
 #include "tables.h"
 #include "util.h"
 
@@ -107,7 +108,7 @@ static void decode_packet(struct ts *ts, uint8_t *ts_packet) {
 			// scramble_idx 3 == odd key
 			ts_packet_set_not_scrambled(ts_packet);
 			uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
-			dvbcsa_decrypt(ts->key.s_csakey[scramble_idx - 2], ts_packet + payload_ofs, 188 - payload_ofs);
+			csa_decrypt_single_packet(ts->key.csakey, ts_packet + payload_ofs, 188 - payload_ofs, scramble_idx - 2);
 		} else {
 			// Can't decrypt the packet just make it NULL packet
 			if (ts->pid_filter)
@@ -118,11 +119,11 @@ static void decode_packet(struct ts *ts, uint8_t *ts_packet) {
 
 static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 	int i;
-	int batch_sz = dvbcsa_bs_batch_size(); // 32?
+	int batch_sz = csa_get_batch_size(); // 32?
 	int even_packets = 0;
 	int odd_packets  = 0;
-	struct dvbcsa_bs_batch_s even_pcks[batch_sz + 1];
-	struct dvbcsa_bs_batch_s odd_pcks [batch_sz + 1];
+	struct csa_batch even_pcks[batch_sz + 1];
+	struct csa_batch odd_pcks [batch_sz + 1];
 
 	int scramble_idx_old = 0;
 
@@ -136,18 +137,20 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 				int scramble_idx = ts_packet_get_scrambled(ts_packet);
 				if (!scramble_idx_old)
 					scramble_idx_old = scramble_idx;
-				uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
-				if (scramble_idx == 2) { // scramble_idx 2 == even key
-					even_pcks[even_packets].data = ts_packet + payload_ofs;
-					even_pcks[even_packets].len  = 188 - payload_ofs;
-					even_packets++;
+				if (use_dvbcsa) {
+					uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
+					if (scramble_idx == 2) { // scramble_idx 2 == even key
+						even_pcks[even_packets].data = ts_packet + payload_ofs;
+						even_pcks[even_packets].len  = 188 - payload_ofs;
+						even_packets++;
+					}
+					if (scramble_idx == 3) { // scramble_idx 3 == odd key
+						odd_pcks[odd_packets].data = ts_packet + payload_ofs;
+						odd_pcks[odd_packets].len  = 188 - payload_ofs;
+						odd_packets++;
+					}
+					ts_packet_set_not_scrambled(ts_packet);
 				}
-				if (scramble_idx == 3) { // scramble_idx 3 == odd key
-					odd_pcks[odd_packets].data = ts_packet + payload_ofs;
-					odd_pcks[odd_packets].len  = 188 - payload_ofs;
-					odd_packets++;
-				}
-				ts_packet_set_not_scrambled(ts_packet);
 				if (scramble_idx_old != scramble_idx && !ts->camd.constant_codeword) {
 					struct timeval tv;
 					gettimeofday(&tv, NULL);
@@ -166,12 +169,16 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 
 	// Decode packets
 	if (even_packets) {
-		even_pcks[even_packets].data = NULL; // Last one...
-		dvbcsa_bs_decrypt(ts->key.bs_csakey[0], even_pcks, 184);
+		if (use_dvbcsa) {
+			even_pcks[even_packets].data = NULL; // Last one...
+			csa_decrypt_multiple_even(ts->key.csakey, even_pcks);
+		}
 	}
 	if (odd_packets) {
-		odd_pcks[odd_packets].data = NULL; // Last one...
-		dvbcsa_bs_decrypt(ts->key.bs_csakey[1], odd_pcks, 184);
+		if (use_dvbcsa) {
+			odd_pcks[odd_packets].data = NULL; // Last one...
+			csa_decrypt_multiple_odd(ts->key.csakey, odd_pcks);
+		}
 	}
 
 	// Fill write buffer
@@ -192,7 +199,7 @@ void *decode_thread(void *_ts) {
 	struct ts *ts = _ts;
 	uint8_t *data;
 	int data_size;
-	int req_size = 188 * dvbcsa_bs_batch_size();
+	int req_size = 188 * csa_get_batch_size();
 
 	set_thread_name("tsdec-decode");
 

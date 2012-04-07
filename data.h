@@ -25,8 +25,6 @@
 #include <openssl/des.h>
 #include <openssl/md5.h>
 
-#include <dvbcsa/dvbcsa.h>
-
 #include "libfuncs/libfuncs.h"
 #include "libtsfuncs/tsfuncs.h"
 
@@ -54,11 +52,12 @@ struct notify {
 
 #define CODEWORD_LENGTH 16
 
+typedef void csakey_t;
+
 struct key {
 	uint8_t				cw[CODEWORD_LENGTH];
+	csakey_t			*csakey;
 	int					is_valid_cw;
-	struct dvbcsa_key_s	*s_csakey[2];
-	struct dvbcsa_bs_key_s	*bs_csakey[2];
 	time_t					ts;				// At what time the key is set
 	struct timeval			ts_keyset;		// At what time the key is set
 };

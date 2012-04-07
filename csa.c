@@ -22,9 +22,63 @@
 #include <inttypes.h>
 #include <sys/time.h>
 
-#include <dvbcsa/dvbcsa.h>
-
 #include "libfuncs/libfuncs.h"
+
+#include "csa.h"
+
+csakey_t *csa_key_alloc(void) {
+	struct csakey *key = calloc(1, sizeof(struct csakey));
+	key->s_csakey[0] = dvbcsa_key_alloc();
+	key->s_csakey[1] = dvbcsa_key_alloc();
+	key->bs_csakey[0] = dvbcsa_bs_key_alloc();
+	key->bs_csakey[1] = dvbcsa_bs_key_alloc();
+	return (csakey_t *)key;
+}
+
+void csa_key_free(csakey_t **pcsakey) {
+	struct csakey *key = *((struct csakey **)pcsakey);
+	if (key) {
+		dvbcsa_key_free(key->s_csakey[0]);
+		dvbcsa_key_free(key->s_csakey[1]);
+		dvbcsa_bs_key_free(key->bs_csakey[0]);
+		dvbcsa_bs_key_free(key->bs_csakey[1]);
+		FREE(*pcsakey);
+	}
+}
+
+inline unsigned int csa_get_batch_size(void) {
+	if (use_dvbcsa) {
+		return dvbcsa_bs_batch_size(); // 32?
+	}
+	return 0;
+}
+
+inline void csa_set_even_cw(csakey_t *csakey, uint8_t *even_cw) {
+	struct csakey *key = (struct csakey *)csakey;
+	dvbcsa_key_set(even_cw, key->s_csakey[0]);
+	dvbcsa_bs_key_set(even_cw, key->bs_csakey[0]);
+}
+
+inline void csa_set_odd_cw(csakey_t *csakey, uint8_t *odd_cw) {
+	struct csakey *key = (struct csakey *)csakey;
+	dvbcsa_key_set(odd_cw, key->s_csakey[1]);
+	dvbcsa_bs_key_set(odd_cw, key->bs_csakey[1]);
+}
+
+inline void csa_decrypt_single_packet(csakey_t *csakey, uint8_t *payload_start, unsigned int payload_len, unsigned int key_idx) {
+	struct csakey *key = (struct csakey *)csakey;
+	dvbcsa_decrypt(key->s_csakey[key_idx], payload_start, payload_len);
+}
+
+inline void csa_decrypt_multiple_even(csakey_t *csakey, struct csa_batch *batch) {
+	struct csakey *key = (struct csakey *)csakey;
+	dvbcsa_bs_decrypt(key->bs_csakey[0], (struct dvbcsa_bs_batch_s *)batch, 184);
+}
+
+inline void csa_decrypt_multiple_odd(csakey_t *csakey, struct csa_batch *batch) {
+	struct csakey *key = (struct csakey *)csakey;
+	dvbcsa_bs_decrypt(key->bs_csakey[1], (struct dvbcsa_bs_batch_s *)batch, 184);
+}
 
 /* The following routine is taken from benchbitslice in libdvbcsa */
 void csa_benchmark(void) {
