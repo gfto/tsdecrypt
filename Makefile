@@ -143,3 +143,24 @@ uninstall:
 		echo "RM       $(INSTALL_DOC_DIR)/$$FILE"; \
 		rm "$(INSTALL_DOC_DIR)/$$FILE"; \
 	done
+
+help:
+	$(Q)echo -e "\
+tsdecrypt $(VERSION) ($(GIT_VER)) build\n\n\
+Build targets:\n\
+  tsdecrypt|all   - Build tsdecrypt with whatever decryption library was chosen\n\
+\n\
+  dvbcsa          - Build tsdecrypt with libdvbcsa [default]\n\
+  ffdecsa         - Build tsdecrypt with shipped FFdecsa.\n\
+\n\
+  install         - Install tsdecrypt in PREFIX ($(PREFIX))\n\
+  uninstall       - Uninstall tsdecrypt from PREFIX\n\
+\n\
+Cleaning targets:\n\
+  clean           - Remove tsdecrypt generated files but keep the decryption\n\
+                    library config\n\
+  distclean       - Remove all generated files and reset decryption library to\n\
+                    dvbcsa.\n\
+\n\
+  make V=1          Enable verbose build\n\
+  make PREFIX=dir   Set install prefix\n"
