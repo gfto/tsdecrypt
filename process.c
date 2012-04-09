@@ -104,11 +104,7 @@ static void decode_packet(struct ts *ts, uint8_t *ts_packet) {
 	int scramble_idx = ts_packet_get_scrambled(ts_packet);
 	if (scramble_idx > 1) {
 		if (ts->key.is_valid_cw) {
-			// scramble_idx 2 == even key
-			// scramble_idx 3 == odd key
-			ts_packet_set_not_scrambled(ts_packet);
-			uint8_t payload_ofs = ts_packet_get_payload_offset(ts_packet);
-			csa_decrypt_single_packet(ts->key.csakey, ts_packet + payload_ofs, 188 - payload_ofs, scramble_idx - 2);
+			csa_decrypt_single_packet(ts->key.csakey, ts_packet);
 		} else {
 			// Can't decrypt the packet just make it NULL packet
 			if (ts->pid_filter)

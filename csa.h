@@ -58,9 +58,7 @@ unsigned int	csa_get_batch_size	(void);
 void			csa_set_even_cw		(csakey_t *csakey, uint8_t *even_cw);
 void			csa_set_odd_cw		(csakey_t *csakey, uint8_t *odd_cw);
 
-// key_idx 0 == even key
-// key_idx 1 == odd key
-void			csa_decrypt_single_packet	(csakey_t *csakey, uint8_t *payload, unsigned int payload_len, unsigned int key_idx);
+void			csa_decrypt_single_packet	(csakey_t *csakey, uint8_t *ts_packet);
 void			csa_decrypt_multiple_even	(csakey_t *csakey, struct csa_batch *batch);
 void			csa_decrypt_multiple_odd	(csakey_t *csakey, struct csa_batch *batch);
 

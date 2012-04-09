@@ -65,9 +65,14 @@ inline void csa_set_odd_cw(csakey_t *csakey, uint8_t *odd_cw) {
 	dvbcsa_bs_key_set(odd_cw, key->bs_csakey[1]);
 }
 
-inline void csa_decrypt_single_packet(csakey_t *csakey, uint8_t *payload_start, unsigned int payload_len, unsigned int key_idx) {
+inline void csa_decrypt_single_packet(csakey_t *csakey, uint8_t *ts_packet) {
 	struct csakey *key = (struct csakey *)csakey;
-	dvbcsa_decrypt(key->s_csakey[key_idx], payload_start, payload_len);
+	if (use_dvbcsa) {
+		unsigned int key_idx = ts_packet_get_scrambled(ts_packet) - 2;
+		unsigned int payload_offset = ts_packet_get_payload_offset(ts_packet);
+		ts_packet_set_not_scrambled(ts_packet);
+		dvbcsa_decrypt(key->s_csakey[key_idx], ts_packet + payload_offset, 188 - payload_offset);
+	}
 }
 
 inline void csa_decrypt_multiple_even(csakey_t *csakey, struct csa_batch *batch) {
