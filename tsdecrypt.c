@@ -69,9 +69,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:Y:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: Qamnquv0123456789
+// Unused short options: amnquv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -103,6 +103,7 @@ static const struct option long_options[] = {
 	{ "ca-system",			required_argument, NULL, 'c' },
 	{ "caid",				required_argument, NULL, 'C' },
 	{ "const-cw",			required_argument, NULL, 'Y' },
+	{ "biss-key",			required_argument, NULL, 'Q' },
 
 	{ "camd-proto",			required_argument, NULL, 'A' },
 	{ "camd-server",		required_argument, NULL, 's' },
@@ -175,6 +176,8 @@ static void show_help(struct ts *ts) {
 	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
 	printf(" -Y --const-cw <codeword>   | Set constant code word for decryption.\n");
 	printf("                            . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8\n");
+	printf(" -Q --biss-key <biss-key>   | Set BISS key for decryption.\n");
+	printf("                            . Example key: 112233445566\n");
 	printf("\n");
 	printf("CAMD server options:\n");
 	printf(" -A --camd-proto <proto>    | Set CAMD network protocol.\n");
@@ -366,6 +369,28 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					fprintf(stderr, "ERROR: Invalid hex string for constant code word: %s\n", optarg);
 					exit(EXIT_FAILURE);
 				}
+				camd_set_cw(ts, ts->camd.key->cw, 0);
+				ts->camd.key->is_valid_cw = 1;
+				break;
+			case 'Q': // --biss-key
+				ts->camd.constant_codeword = 1;
+				if (strlen(optarg) > 2 && optarg[0] == '0' && optarg[1] == 'x')
+					optarg += 2;
+				if (strlen(optarg) != BISSKEY_LENGTH * 2) {
+					fprintf(stderr, "ERROR: BISS key should be %u characters long.\n", BISSKEY_LENGTH * 2);
+					exit(EXIT_FAILURE);
+				}
+				uint8_t *key = ts->camd.key->cw;
+				if (decode_hex_string(optarg, key, strlen(optarg)) < 0) {
+					fprintf(stderr, "ERROR: Invalid hex string for BISS key: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				// Calculate BISS KEY crc
+				memmove(key + 4, key + 3, 3);
+				key[3] = (uint8_t)(key[0] + key[1] + key[2]);
+				key[7] = (uint8_t)(key[4] + key[5] + key[6]);
+				// Even and odd keys are the same
+				memcpy(key + 8, key, 8);
 				camd_set_cw(ts, ts->camd.key->cw, 0);
 				ts->camd.key->is_valid_cw = 1;
 				break;

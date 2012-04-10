@@ -51,6 +51,7 @@ struct notify {
 };
 
 #define CODEWORD_LENGTH 16
+#define BISSKEY_LENGTH 6
 
 typedef void csakey_t;
 

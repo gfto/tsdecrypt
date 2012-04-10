@@ -1,4 +1,5 @@
 current : Version -next
+ * Add --biss-key (-Q) option. This option enables BISS decryption.
  * Add "make help", which lists different targets.
  * Add FFdecsa support. In most cases FFdecsa decrypts faster than libdvcsa.
    To compile with FFdecsa suppoort use "make ffdecsa".
