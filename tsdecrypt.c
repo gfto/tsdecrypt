@@ -376,19 +376,29 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->camd.constant_codeword = 1;
 				if (strlen(optarg) > 2 && optarg[0] == '0' && optarg[1] == 'x')
 					optarg += 2;
-				if (strlen(optarg) != BISSKEY_LENGTH * 2) {
-					fprintf(stderr, "ERROR: BISS key should be %u characters long.\n", BISSKEY_LENGTH * 2);
-					exit(EXIT_FAILURE);
-				}
 				uint8_t *key = ts->camd.key->cw;
-				if (decode_hex_string(optarg, key, strlen(optarg)) < 0) {
-					fprintf(stderr, "ERROR: Invalid hex string for BISS key: %s\n", optarg);
-					exit(EXIT_FAILURE);
+				// Sometimes the BISS keys are entered with their checksums already calculated (16 symbols, 8 bytes)
+				// This is the same as constant cw with the same key for even and odd
+				if (strlen(optarg) == (BISSKEY_LENGTH + 2) * 2) {
+					if (decode_hex_string(optarg, key, strlen(optarg)) < 0) {
+						fprintf(stderr, "ERROR: Invalid hex string for BISS key: %s\n", optarg);
+						exit(EXIT_FAILURE);
+					}
+				} else {
+					// BISS key without checksum (12 symbols, 6 bytes)
+					if (strlen(optarg) != BISSKEY_LENGTH * 2) {
+						fprintf(stderr, "ERROR: BISS key should be %u characters long.\n", BISSKEY_LENGTH * 2);
+						exit(EXIT_FAILURE);
+					}
+					if (decode_hex_string(optarg, key, strlen(optarg)) < 0) {
+						fprintf(stderr, "ERROR: Invalid hex string for BISS key: %s\n", optarg);
+						exit(EXIT_FAILURE);
+					}
+					// Calculate BISS KEY crc
+					memmove(key + 4, key + 3, 3);
+					key[3] = (uint8_t)(key[0] + key[1] + key[2]);
+					key[7] = (uint8_t)(key[4] + key[5] + key[6]);
 				}
-				// Calculate BISS KEY crc
-				memmove(key + 4, key + 3, 3);
-				key[3] = (uint8_t)(key[0] + key[1] + key[2]);
-				key[7] = (uint8_t)(key[4] + key[5] + key[6]);
 				// Even and odd keys are the same
 				memcpy(key + 8, key, 8);
 				camd_set_cw(ts, ts->camd.key->cw, 0);
