@@ -356,6 +356,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'Y': // --const-cw
 				ts->camd.constant_codeword = 1;
+				if (strlen(optarg) > 2 && optarg[0] == '0' && optarg[1] == 'x')
+					optarg += 2;
 				if (strlen(optarg) != CODEWORD_LENGTH * 2) {
 					fprintf(stderr, "ERROR: Constant code word should be %u characters long.\n", CODEWORD_LENGTH * 2);
 					exit(EXIT_FAILURE);
@@ -398,6 +400,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->camd.pass = optarg;
 				break;
 			case 'B': // --camd-des-key
+				if (strlen(optarg) > 2 && optarg[0] == '0' && optarg[1] == 'x')
+					optarg += 2;
 				if (strlen(optarg) != DESKEY_LENGTH) {
 					fprintf(stderr, "ERROR: des key should be %u characters long.\n", DESKEY_LENGTH);
 					exit(EXIT_FAILURE);
