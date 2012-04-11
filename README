@@ -1,22 +1,97 @@
 tsdecrypt
 =========
 tsdecrypt reads incoming mpeg transport stream over UDP/RTP and then
-decrypts it using libdvbcsa and keys obtained from OSCAM or similar cam
-server. tsdecrypt communicates with CAM server using cs378x (camd35 over
-tcp) protocol or newcamd protocol.
+decrypts it using using code words obtained from OSCAM or similar cam
+server. tsdecrypt communicates with CAM server using cs378x (camd35
+over tcp) protocol or newcamd protocol.
 
 License
 =======
 tsdecrypt is released under GNU GPL v2.
 
-Installation
+Dependencies
 ============
-tsdecrypt depends on two external libraries - openssl and libdvbcsa.
-You probably already have openssl installed, libdvbcsa can be downloaded
-from http://www.videolan.org/developers/libdvbcsa.html
+tsdecrypt depends on openssl. It uses rand, MD5, DES and AES functions.
+You probably already have openssl installed. If you are seeing compilation
+errors related to missing openssl headers you should install openssl-dev
+or similar packet depending on your Linux distribution.
 
-Documentation
-=============
+If you are not using shipped FFdecsa then the other tsdecrypt dependency
+is libdvbcsa. libdvbcsa can be downloaded from
+http://www.videolan.org/developers/libdvbcsa.html
+
+FFdecsa vs libdvbcsa
+====================
+tsdecrypt supports two different CSA decryption libraries.
+
+libdvbcsa is an external library from VideoLAN project released under
+LGPL, FFdecsa is shipped with tsdecrypt.
+
+libdvbcsa
+=========
+libdvbcsa is better tested and have served tsdcrypt for a long time so
+it is still the default decryption library. Also it is faster with file
+input.
+
+To compile tsdecrypt with libdvbcsa run 'make' or if you have tested
+FFdecsa compilation and want to switch to libdvbcsa run 'make dvbcsa'.
+'make distclean' switches decryption library back to libdvbcsa.
+
+FFdecsa
+=======
+FFdecsa support was added after tsdecrypt v7.0. FFdecsa can be up to 40%
+faster than libdvbcsa especially on 32-bit hardware. If you want to use
+FFDecsa you have to run 'make ffdecsa'.
+
+The setup script will test which FFDecsa algorithm is the fastest for
+your CPU and will configure tsdecrypt compilation to stop using libdvbcsa.
+Most likely the script will choose PARALLEL_128_SSE or PARALLEL_128_SSE2.
+Once the script have finished it stores its decision in FFdecsa.opts file
+and as long as this file exists tsdecrypt will be compiled with FFdecsa.
+You can force regeneration by deleting running 'make ffdecsa_force' or
+'make distclean ffdecsa'.
+
+FFDecsa is considerably slower than libdvbcsa when tsdecrypt's input
+is a file or stdin (single packet decryption mode). If you are
+decrypting already recorded files you are better of using libdvbcsa.
+
+When tsdecrypt is run it reports which decryption library is used in its
+version string. You can use --bench option to test decryption speed.
+
+Development
+===========
+The development is done using git. tsdecrypt repository is hosted
+at http://github.com/gfto/tsdecrypt
+
+To clone the repository issue the following commands:
+
+   git clone git://github.com/gfto/tsdecrypt.git
+   cd tsdecrypt
+   git submodule init
+   git submodule update
+   make
+
+The code is developed and tested under modern Linux. It is also
+compiled from time to time under OS X but is not tested there.
+
+To see all Makefile targets run 'make help'.
+
+Updating the code
+=================
+To update cloned tsdecrypt, go to the directory where the repository
+is cloned and run the following commands:
+
+   git fetch origin
+   git merge origin/master
+   git submodule update
+   make clean all
+
+tsdecrypt's master branch should always be useful so it is safe to
+use it isntead of official release. The master branch will always
+be better than any released version.
+
+Command line parameters
+=======================
 tsdecrypt is controlled using command line parameters. For more information
 about the parameters see the man page. Here is a list of supported command
 line parameters:
@@ -110,32 +185,6 @@ Misc options:
  -h --help                  | Show help screen.
  -V --version               | Show program version.
 
-Development
-===========
-The development is done using git. tsdecrypt repository is hosted
-at http://github.com/gfto/tsdecrypt
-
-To clone the repository issue the following commands:
-
-   git clone git://github.com/gfto/tsdecrypt.git
-   cd tsdecrypt
-   git submodule init
-   git submodule update
-   make
-
-The code is developed and tested under modern Linux. It is also
-compiled from time to time under OS X but is not tested there.
-
-Updating the code
-=================
-To update cloned tsdecrypt, go to the directory where the repository
-is cloned and run the following commands:
-
-   git fetch origin
-   git merge origin/master
-   git submodule update
-   make distclean all
-
 Examples
 ========
 To get a quick start here are some example command lines. The default
@@ -155,12 +204,36 @@ Examples:
 
    # Same as above but do not filter output stream thus allowing
    # EIT/TOT/NIT, etc tables to passthrough
-   tsdecrypt --output-filter --emm -camd-server 10.0.1.1 \
+   tsdecrypt --no-output-filter --emm --camd-server 10.0.1.1 \
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Choose program/service_id to decrypt. Useful when the input is MPTS
+   tsdecrypt --camd-server 10.0.1.1 --input-service 1234 \
        --input 239.0.50.11:5000 --output 239.78.78.78:5000
 
    # Read stream over RTP and process VIACCESS encoded channel
    tsdecrypt --ca-system VIACCESS --emm --camd-server 10.0.1.1:2233 \
        --input-rtp --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Decrypt stream encypted with CAID 0x0963 (NDS, sky)
+   tsdecrypt --camd-server 10.0.1.1 --ca-system NDS --caid 0x0963 \
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Send only EMMs to OSCAM for CAID 0x0963 (NDS, sky)
+   tsdecrypt --camd-server 10.0.1.1 --emm-only --caid 0x0963 \
+       --input 239.0.50.11:5000 --output /dev/null
+
+   # Decrypt stream encypted with CAID 0x0963 (Bulcrypt)
+   tsdecrypt --camd-server 10.0.1.1 --caid 0x5581 \
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Decrypt BISS encrypted stream
+   tsdecrypt --biss-key 0x112233445566 --input 239.0.50.11:5000 \
+       --output 239.78.78.78:5000
+
+   # Decrypt file encypted with constant code word
+   tsdecrypt --const-cw 0x00000000000000001111111111111111 \
+       --input encrypted-file.ts --output decrypted-file.ts
 
 
 OSCAM cs378x configuration
@@ -227,7 +300,8 @@ tsdecrypt:
 
 Please configure your software to stream ECMs and EMMs. For dvblast
 (version 2.0 and above) the correct options are --ecm-passthrough and
---emm-passthrough.
+--emm-passthrough. Note that dvblast 2.1 have broken ecm passthrough
+so use at least version 2.2.
 
 Releases
 ========
