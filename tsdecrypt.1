@@ -6,7 +6,7 @@ tsdecrypt - Decrypt mpeg transport stream.
 [\fIoptions\fR]
 .SH DESCRIPTION
 tsdecrypt reads incoming mpeg transport stream over UDP/RTP or file and
-then decrypts it using libdvbcsa and keys obtained from OSCAM or similar
+then decrypts it by after retriving code words from OSCAM or similar
 CAMD server. tsdecrypt communicates with CAM server using cs378x (camd35
 over tcp) protocol or newcamd protocol.
 .SH OPTIONS
@@ -55,7 +55,7 @@ When this option is used, tsdecrypt on exit reports how much packets
 were received on each PID.
 .TP
 \fB\-b\fR, \fB\-\-bench\fR
-Bechmark libdvbcsa decryption. The benchmark is single threaded.
+Bechmark the CSA decryption. The benchmark is single threaded.
 If you want to fully test your CPU, run couple of tsdecrypts in parallel.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
