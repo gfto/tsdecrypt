@@ -1,9 +1,9 @@
 2012-04-12 : Version 8.0
  * Add --biss-key (-Q) option. This option enables BISS decryption.
  * Add FFdecsa support. In most cases FFdecsa decrypts faster than libdvcsa.
-   To compile with FFdecsa suppoort use "make ffdecsa".
+   To compile with FFdecsa support use "make ffdecsa".
  * Add --const-cw (-Y) option. This option allows using of constant
-   code word for decryption.
+   code words for decryption.
  * Add "make help" target.
  * Display better timing information for ECMs and code word changes.
  * Filter special symbols in provider and service names before printing them.
