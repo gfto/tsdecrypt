@@ -70,10 +70,10 @@ void camd_set_cw(struct ts *ts, uint8_t *new_cw, int check_validity) {
 	c->key->ts = c->key->ts_keyset.tv_sec;
 	ts->cw_last_warn = c->key->ts;
 
-	if (!check_validity || memcmp(c->key->cw, invalid_cw, 8) != 0)
+	if (!check_validity || memcmp(new_cw, invalid_cw, 8) != 0)
 		csa_set_even_cw(c->key->csakey, new_cw);
 
-	if (!check_validity || memcmp(c->key->cw + 8, invalid_cw, 8) != 0)
+	if (!check_validity || memcmp(new_cw + 8, invalid_cw, 8) != 0)
 		csa_set_odd_cw(c->key->csakey, new_cw + 8);
 }
 
