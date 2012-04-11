@@ -87,7 +87,7 @@ is cloned and run the following commands:
    make clean all
 
 tsdecrypt's master branch should always be useful so it is safe to
-use it isntead of official release. The master branch will always
+use it instead of official release. The master branch will always
 be better than any released version.
 
 Command line parameters
@@ -223,7 +223,7 @@ Examples:
    tsdecrypt --camd-server 10.0.1.1 --emm-only --caid 0x0963 \
        --input 239.0.50.11:5000 --output /dev/null
 
-   # Decrypt stream encypted with CAID 0x0963 (Bulcrypt)
+   # Decrypt stream encypted with CAID 0x5581 (Bulcrypt)
    tsdecrypt --camd-server 10.0.1.1 --caid 0x5581 \
        --input 239.0.50.11:5000 --output 239.78.78.78:5000
 
