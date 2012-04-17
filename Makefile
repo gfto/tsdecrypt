@@ -28,7 +28,7 @@ INSTALL_PRG = tsdecrypt
 INSTALL_PRG_DIR = $(subst //,/,$(DESTDIR)/$(PREFIX)/bin)
 
 INSTALL_DOC = tsdecrypt.1
-INSTALL_DOC_DIR = $(subst //,/,$(DESTDIR)/$(PREFIX)/man/man1)
+INSTALL_DOC_DIR = $(subst //,/,$(DESTDIR)/$(PREFIX)/share/man/man1)
 
 FUNCS_DIR = libfuncs
 FUNCS_LIB = $(FUNCS_DIR)/libfuncs.a
