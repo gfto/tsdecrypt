@@ -42,7 +42,7 @@ TMPDIR=`mktemp -d FFdecsa.build.XXXXXXXX` || exit 1
 
 trap "{ rm -rf $TMPDIR ; exit 1; }" INT TERM
 
-cp $FFDECSA_DIR/Makefile $FFDECSA_DIR/*.{c,h} $TMPDIR
+cp $FFDECSA_DIR/Makefile $FFDECSA_DIR/*.c $FFDECSA_DIR/*.h $TMPDIR
 
 log()  { printf "%s %-26s : %s\n" "$LPREFIX" "$1" "$2"; }
 logn() { printf "%s %-26s : %s"   "$LPREFIX" "$1" "$2"; }

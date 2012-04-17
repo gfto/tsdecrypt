@@ -67,7 +67,7 @@ DEFS += -DUSE_LIBDVBCSA=1
 tsdecrypt_LIBS += -ldvbcsa
 endif
 
-CLEAN_OBJS = $(FFDECSA_OBJ) tsdecrypt $(tsdecrypt_SRC:.c=.{o,d})
+CLEAN_OBJS = $(FFDECSA_OBJ) tsdecrypt $(tsdecrypt_SRC:.c=.o) $(tsdecrypt_SRC:.c=.d)
 
 PROGS = tsdecrypt
 
