@@ -1,6 +1,6 @@
 .TH TSDECRYPT "1" "April 2012" "tsdecrypt 8.0" "User Commands"
 .SH NAME
-tsdecrypt - Decrypt mpeg transport stream.
+tsdecrypt \- Decrypt mpeg transport stream.
 .SH SYNOPSIS
 .B tsdecrypt
 [\fIoptions\fR]
@@ -15,7 +15,7 @@ over tcp) protocol or newcamd protocol.
 .PP
 .TP
 \fB\-i\fR, \fB\-\-ident\fR <ident>
-Set ident that will be used when logging to syslog. The prefered format
+Set ident that will be used when logging to syslog. The preferred format
 for the ident is PROVIDER/CHANNEL.
 .TP
 \fB\-d\fR, \fB\-\-daemon\fR <pidfile>
@@ -25,7 +25,7 @@ When started become a daemon and write pid file to <pidfile>.
 Execute \fB<program>\fR when predefined events happen. In order for
 this option to work \fB\-\-ident\fR should also be used.
 
-You can use \fBnotify-script.example\fR file as notification program
+You can use \fBnotify\-script.example\fR file as notification program
 and an example on how to create your own notification script.
 
 See \fBEVENTS\fR section for detailed description of the events.
@@ -35,7 +35,7 @@ Write log messages to local syslog.
 .TP
 \fB\-l\fR, \fB\-\-syslog\-host\fR <addr>
 Set syslog host. tsdecrypt sends messages to this host over tcp in
-syslog compatible format. syslog-ng was tested as receiving syslog server.
+syslog compatible format. syslog\-ng was tested as receiving syslog server.
 .TP
 \fB\-L\fR, \fB\-\-syslog\-port\fR <port>
 Syslog server port. The default value is \fB514\fR.
@@ -68,8 +68,8 @@ Show program help.
 .PP
 .TP
 \fB\-I\fR, \fB\-\-input\fR <source>
-Where to read from. tsdecrypt supports input from files (-I file.ts or -I -)
-or multicast (-I 224.0.0.1:5000). By default tsdecrypt reads from \fBstdin\fR.
+Where to read from. tsdecrypt supports input from files (\-I file.ts or \-I \-)
+or multicast (\-I 224.0.0.1:5000). By default tsdecrypt reads from \fBstdin\fR.
 .TP
 \fB\-R\fR, \fB\-\-input\-rtp\fR
 When reading from multicast assume the input is RTP stream. NOTE: No RTP
@@ -91,7 +91,7 @@ Use this option to delay the decoding for certain amount of milliseconds. This
 allows tsdecrypt to decode services even if OSCAM returns code word too late.
 For example SkyUK sends code words ~700 ms before it starts using them. This
 means that if OSCAM is unable to return code word in less than 700 ms the
-decryption will fail for a small amount of time. Setting --input-buffer 1000
+decryption will fail for a small amount of time. Setting \-\-input\-buffer 1000
 will solve the problem in this case.
 .TP
 \fB\-W\fR, \fB\-\-input\-dump\fR <filename>
@@ -99,14 +99,14 @@ Save input stream in <filename>. If the input is RTP, the file will contain
 the data without RTP headers (pure mpeg transport stream). Easiest way to
 save the input is using command line like the following:
 
-tsdecrypt -I 239.78.78.78:5000 -O /dev/null -s 0.0.0.0 -W file.ts
+tsdecrypt \-I 239.78.78.78:5000 \-O /dev/null \-s 0.0.0.0 \-W file.ts
 .TP
 .SH OUTPUT OPTIONS
 .PP
 .TP
 \fB\-O\fR, \fB\-\-output\fR <dest>
 Output decrypted stream to <dest>. Destination can be multicast address
-(-O 239.0.0.1:5000) or a file (-O file.ts). The default output is \fBstdout\fR.
+(\-O 239.0.0.1:5000) or a file (\-O file.ts). The default output is \fBstdout\fR.
 .TP
 \fB\-o\fR, \fB\-\-output\-intf\fR <addr>
 Set multicast output interface.
@@ -118,7 +118,7 @@ Set multicast ttl. The default value is \fB1\fR.
 Set TOS value of output packets. The default is not to set any specific TOS.
 .TP
 \fB\-r\fR, \fB\-\-output\-rtp\fR
-Enable RTP output. The default output is standart MPEG TS over UDP, this
+Enable RTP output. The default output is standard MPEG TS over UDP, this
 option enables tsdecrypt to output RTP packets.
 .TP
 \fB\-k\fR, \fB\-\-output\-rtp\-ssrc\fR <ssrc>
@@ -130,13 +130,13 @@ PAT/PMT/SDT and data packets are left in the output. Everything else not
 mentioned in PMT like NIT, EIT, TDT tables and unknown pids is removed.
 .TP
 \fB\-y\fR, \fB\-\-output\-nit\-pass\fR
-Pass throught NIT packets when output filtering is enabled.
+Pass through NIT packets when output filtering is enabled.
 .TP
 \fB\-w\fR, \fB\-\-output\-eit\-pass\fR
-Pass throught EIT (EPG) packets when output filtering is enabled.
+Pass through EIT (EPG) packets when output filtering is enabled.
 .TP
 \fB\-x\fR, \fB\-\-output\-tdt\-pass\fR
-Pass throught TDT/TOT packets when output filtering is enabled.
+Pass through TDT/TOT packets when output filtering is enabled.
 .TP
 .SH CA OPTIONS
 .PP
@@ -152,14 +152,14 @@ The default <ca_sys> is \fBCONAX\fR.
 Directly set CAID. This is useful if you have couple of CA streams from
 one CA but with different CAIDs.
 .TP
-\fB\-Y\fR, \fB\-\-const-cw\fR <codeword>
-Set constant code word to be used for decryption. The \fB<codeword>\fR should
+\fB\-Y\fR, \fB\-\-const\-cw\fR <code_word>
+Set constant code word to be used for decryption. The \fB<code_word>\fR should
 contain 32 hex chars. For example using \fBa1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8\fR
 as parameter will set even code word to \fBa1a2a3a4a5a6a7a8\fR and odd code
 word to \fBb1b2b3b4b5b6b7b8\fR.
 .TP
-\fB\-Q\fR, \fB\-\-biss-key\fR <biss-key>
-Set BISS key to be used for decryption. The \fB<biss-key>\fR should
+\fB\-Q\fR, \fB\-\-biss\-key\fR <biss_key>
+Set BISS key to be used for decryption. The \fB<biss_key>\fR should
 contain 12 chars (hex). For example \fB112233445566\fR is valid BISS key.
 If the BISS key contains 16 chars this means that the key CRC is embeded
 in the key. These keys are also supported (they are the same as using
@@ -203,7 +203,7 @@ always chooses the first stream from the chosen CA system.
 \fB\-E\fR, \fB\-\-emm\-only\fR <hierarchy>
 Disable ECM processing and stream output. This option is useful if the EMM
 stream has very high rate and is interfering with ECM processing. Using
---emm-only you can run special tsdecrypt dedicated only to card auto update.
+\-\-emm\-only you can run special tsdecrypt dedicated only to card auto update.
 .TP
 \fB\-f\fR, \fB\-\-emm\-report\-time\fR <seconds>
 Set interval for EMM reports. The default is \fB60\fR seconds. Set to \fB0\fR
@@ -216,7 +216,7 @@ to disable EMM reports.
 Set ECM pid manually. This option is useful for services that have
 couple of ECM streams from one CA system. Without this option tsdecrypt
 always chooses the first stream from the chosen CA system. Run tsdecrypt
-with --debug 2 and look at CA descriptors in PMT to see what CA streams
+with \-\-debug 2 and look at CA descriptors in PMT to see what CA streams
 are available.
 .TP
 \fB\-H\fR, \fB\-\-ecm\-report\-time\fR <seconds>
@@ -242,7 +242,7 @@ options are used. The event parameters are set as environmental variables
 before executing the external notification program. The variables are:
 
   \fB_TS\fR             Unix timestamp of the event.
-  \fB_IDENT\fR          tsdecrypt ident parameter with "/" replaced by "-".
+  \fB_IDENT\fR          tsdecrypt ident parameter with "/" replaced by "\-".
   \fB_MESSAGE_ID\fR     Event message id (for example START, STOP, etc...).
   \fB_MESSAGE_MSG\fR    Event message id with "_" replaced by " ".
   \fB_MESSAGE_TEXT\fR   Event message text. Human readable event message.
@@ -266,7 +266,7 @@ currently defined events are:
 
   \fBSTOP\fR            tsdecrypt was stopped.
 
-See \fBnotify-script.example\fR for an example on how to create external
+See \fBnotify\-script.example\fR for an example on how to create external
 notification program.
 .SH SEE ALSO
 See the README file for more information. If you have questions, remarks,
