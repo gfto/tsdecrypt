@@ -126,7 +126,7 @@ distclean: clean
 	$(Q)$(MAKE) -s -C $(FUNCS_DIR) clean
 	$(Q)$(RM) FFdecsa.opts
 
-install: all strip
+install: all
 	@install -d "$(INSTALL_PRG_DIR)"
 	@install -d "$(INSTALL_DOC_DIR)"
 	@echo "INSTALL $(INSTALL_PRG) -> $(INSTALL_PRG_DIR)"
