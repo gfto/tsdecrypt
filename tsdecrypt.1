@@ -144,13 +144,15 @@ Pass through TDT/TOT packets when output filtering is enabled.
 \fB\-c\fR, \fB\-\-ca\-system\fR <ca_sys>
 Process input EMM/ECM from <ca_sys>. Currently tested and working CA systems
 are \fBCONAX\fR, \fBCRYPTOWORKS\fR, \fBIRDETO\fR, \fBVIACCESS\fR, \fBMEDIAGUARD\fR
-(\fBSECA\fR) and \fBVIDEOGUARD\fR (\fBNDS\fR). Other supported CA systems that
-you can choose but are not tested are \fBNAGRA\fR and \fBDRECRYPT\fR.
-The default <ca_sys> is \fBCONAX\fR.
+(\fBSECA\fR) and \fBVIDEOGUARD\fR (\fBNDS\fR), \fBNAGRA\fR and \fBBULCRYPT\fR.
+Other supported CA system that you can choose but is not tested is \fBDRECRYPT\fR.
+The default \fB<ca_sys>\fR is \fBCONAX\fR. You can override the default CAS CAIDs
+by using \fB\-\-caid\fR parameter.
 .TP
 \fB\-C\fR, \fB\-\-caid\fR <caid>
 Directly set CAID. This is useful if you have couple of CA streams from
-one CA but with different CAIDs.
+one CA but with different CAIDs or CAS that is unsupported by \fB\-\-ca\-system\fR
+parameter.
 .TP
 \fB\-Y\fR, \fB\-\-const\-cw\fR <code_word>
 Set constant code word to be used for decryption. The \fB<code_word>\fR should

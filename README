@@ -131,7 +131,7 @@ CA options:
  -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.
                             | Valid systems are: CONAX (default), CRYPTOWORKS,
                             .   IRDETO, SECA (MEDIAGUARD), VIACCESS,
-                            .   VIDEOGUARD (NDS), NAGRA and DRECRYPT.
+                            .   VIDEOGUARD (NDS), NAGRA, DRECRYPT and BULCRYPT.
  -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
  -Y --const-cw <codeword>   | Set constant code word for decryption.
                             . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8
