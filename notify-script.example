@@ -5,6 +5,10 @@
 # *** Released as PUBLIC DOMAIN ***
 # *** Do whatever you want with this code ***
 
+# tsdecrypt sets its stack size to 64k which is very low and
+# causes sendmail to segfault, so increase the stack size to 2Mb
+ulimit -s 2048
+
 EMAIL_ENABLED="yes"
 EMAIL_TO="georgi@unixsol.org" # !!! Change this !!!
 EMAIL_FROM="georgi@unixsol.org" # !!! Change this !!!
