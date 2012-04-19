@@ -21,6 +21,7 @@ CFLAGS ?= -O2 -ggdb \
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
  -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
+DEFS += -D_FILE_OFFSET_BITS=64
 
 PREFIX ?= /usr/local
 
