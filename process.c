@@ -244,6 +244,8 @@ void *decode_thread(void *_ts) {
 static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_size) {
 	if (!data)
 		return;
+	if (!ts->camd.key->is_valid_cw)
+		return;
 	if (!ts->rtp_output) {
 		write(ts->output.fd, data, data_size);
 	} else {
