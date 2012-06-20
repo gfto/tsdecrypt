@@ -94,7 +94,6 @@ static const struct option long_options[] = {
 	{ "output-rtp",			no_argument,       NULL, 'r' },
 	{ "output-rtp-ssrc",	required_argument, NULL, 'k' },
 	{ "output-tos",			required_argument, NULL, 'g' },
-	{ "output-filter",		no_argument,       NULL, 'p' },
 	{ "no-output-on-error",	no_argument,       NULL, 'u' },
 	{ "no-output-filter",	no_argument,       NULL, 'p' },
 	{ "output-nit-pass",	no_argument,       NULL, 'y' },

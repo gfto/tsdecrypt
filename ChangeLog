@@ -1,6 +1,8 @@
 2012-06-20 : Version next
  * Add --no-output-on-error (-u) option. By using this option output can be
    disabled if there is no currently received code word.
+ * Remove deprecated --output-filter option. The option you should use is
+  --no-output-filter.
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.
