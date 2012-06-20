@@ -327,7 +327,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				ts->no_output_on_error = !ts->no_output_on_error;
 				break;
 			case 'p': // --no-output-filter
-				ts->pid_filter = 0;
+				ts->pid_filter = !ts->pid_filter;
 				break;
 			case 'y': // --output-nit-pass
 				ts->nit_passthrough = !ts->nit_passthrough;
