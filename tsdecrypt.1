@@ -122,7 +122,9 @@ Enable RTP output. The default output is standard MPEG TS over UDP, this
 option enables tsdecrypt to output RTP packets.
 .TP
 \fB\-k\fR, \fB\-\-output\-rtp\-ssrc\fR <ssrc>
-Set RTP SSRC field to <ssrc>. By default is is set to \fB0\fR.
+.TP
+\fB\-u\fR, \fB\-\-no\-output\-on\-error\fR
+Filter all output when there is no valid code word.
 .TP
 \fB\-p\fR, \fB\-\-no\-output\-filter\fR
 Disable output filtering. By default the output filter is enabled and only

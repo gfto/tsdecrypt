@@ -69,9 +69,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:pwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
 
-// Unused short options: amnquv0123456789
+// Unused short options: amnqv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -95,6 +95,7 @@ static const struct option long_options[] = {
 	{ "output-rtp-ssrc",	required_argument, NULL, 'k' },
 	{ "output-tos",			required_argument, NULL, 'g' },
 	{ "output-filter",		no_argument,       NULL, 'p' },
+	{ "no-output-on-error",	no_argument,       NULL, 'u' },
 	{ "no-output-filter",	no_argument,       NULL, 'p' },
 	{ "output-nit-pass",	no_argument,       NULL, 'y' },
 	{ "output-eit-pass",	no_argument,       NULL, 'w' },
@@ -163,6 +164,7 @@ static void show_help(struct ts *ts) {
 	printf(" -r --output-rtp            | Enable RTP output.\n");
 	printf(" -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: %u\n", ts->rtp_ssrc);
 	printf(" -g --output-tos <tos>      | Set TOS value of output packets. Default: none\n");
+	printf(" -u --no-output-on-error    | Do not output data when the code word is missing.\n");
 	printf(" -p --no-output-filter      | Disable output filtering. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
 	printf(" -y --output-nit-pass       | Pass through NIT.\n");
 	printf(" -w --output-eit-pass       | Pass through EIT (EPG).\n");
@@ -321,6 +323,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'g': // --output-tos
 				ts->output.tos = (uint8_t)strtol(optarg, NULL, 0);
+				break;
+			case 'u': // --no-output-on-error
+				ts->no_output_on_error = !ts->no_output_on_error;
 				break;
 			case 'p': // --no-output-filter
 				ts->pid_filter = 0;
@@ -628,9 +633,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		} else if (ts->output.type == FILE_IO) {
 			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}
-		ts_LOGf("Out filter : %s (%s)\n",
+		ts_LOGf("Out filter : %s (%s)%s\n",
 			ts->pid_filter ? "enabled" : "disabled",
-			ts->pid_filter ? "output only service related PIDs" : "output everything"
+			ts->pid_filter ? "output only service related PIDs" : "output everything",
+			ts->no_output_on_error ? " (No output on CW error)" : ""
 		);
 		if (ts->pid_filter) {
 			if (ts->nit_passthrough)

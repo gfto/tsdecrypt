@@ -273,6 +273,7 @@ struct ts {
 
 	int					camd_stop;
 	int					is_cw_error;
+	int					no_output_on_error;
 
 	int					threaded;
 

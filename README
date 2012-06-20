@@ -122,6 +122,7 @@ Output options:
  -r --output-rtp            | Enable RTP output.
  -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: 0
  -g --output-tos <tos>      | Set TOS value of output packets. Default: none
+ -u --no-output-on-error    | Do not output data when the code word is missing.
  -p --no-output-filter      | Disable output filtering. Default: enabled
  -y --output-nit-pass       | Pass through NIT.
  -w --output-eit-pass       | Pass through EIT (EPG).
