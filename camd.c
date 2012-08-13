@@ -246,6 +246,11 @@ static void *camd_thread(void *in_ts) {
 				camd_msg_free(&msg);
 			}
 		}
+
+		// Flush request queue
+		while(ts->camd.req_queue->items > ts->camd.emm_queue->items + ts->camd.ecm_queue->items) {
+			queue_get_nowait(ts->camd.req_queue);
+		}
 	}
 	// Flush ECM queue
 	while (ts->camd.ecm_queue->items) {
