@@ -180,7 +180,7 @@ static void show_help(struct ts *ts) {
 	printf("CAMD server options:\n");
 	printf(" -A --camd-proto <proto>    | Set CAMD network protocol.\n");
 	printf("                            . Valid protocols are: CS378X (default) and NEWCAMD\n");
-	printf(" -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).\n");
+	printf(" -s --camd-server <host>    | Set CAMD server address. Default port: 2233\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd.pass);
 	printf(" -B --camd-des-key <key>    | Set DES key for newcamd protocol.\n");
@@ -250,6 +250,8 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 }
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
+	int h_err;
+	struct addrinfo hints, *addrinfo = NULL;
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		char *p = NULL;
@@ -425,10 +427,25 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->camd.server_port = atoi(p + 1);
 					port_set = 1;
 				}
-				if (inet_aton(optarg, &ts->camd.server_addr) == 0)
-					server_err = 1;
-				else
-					server_err = 0;
+				server_err = 1;
+
+				memset(&hints, 0, sizeof hints);
+				hints.ai_family = AF_INET;
+				hints.ai_socktype = SOCK_STREAM;
+				h_err = getaddrinfo(optarg, NULL, &hints, &addrinfo);
+				if (h_err == 0) {
+					int num_addrs = 0;
+					struct addrinfo *addr;
+					for (addr = addrinfo; addr != NULL; addr = addr->ai_next) {
+						struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr->ai_addr;
+						if (!ts->camd.server_addr.s_addr) // Get the first IP address
+							ts->camd.server_addr = ipv4->sin_addr;
+						num_addrs++;
+					}
+					freeaddrinfo(addrinfo);
+					if (num_addrs)
+						server_err = 0;
+				}
 				break;
 			case 'U': // --camd-user
 				if (strlen(optarg) < 64)
@@ -530,7 +547,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		if (ca_err)
 			fprintf(stderr, "ERROR: Requested CA system is unsupported.\n");
 		if (server_err)
-			fprintf(stderr, "ERROR: CAMD server IP address is not set or it is invalid.\n");
+			fprintf(stderr, "ERROR: CAMD server address is not set or it is invalid.\n");
 		if (input_addr_err)
 			fprintf(stderr, "ERROR: Input IP address is invalid.\n");
 		if (output_addr_err)

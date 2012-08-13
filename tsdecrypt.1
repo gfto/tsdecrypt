@@ -177,10 +177,11 @@ Set CAMD server protocol. Valid protocols are \fBCS378X\fR and \fBNEWCAMD\fR.
 If this option is not used the default protocol is \fBCS378X\fR (camd35 over
 tcp).
 .TP
-\fB\-s\fR, \fB\-\-camd\-server\fR <addr[:port]>
-Set CAMD server ip and port (10.0.1.1:2233). Is not set default port
-is \fB2233\fR. 2233 is the default port CS378X protocol, for NEWCAMD
-protocol you probably should choose other port.
+\fB\-s\fR, \fB\-\-camd\-server\fR <host[:port]>
+Set CAMD server address. You can use IP address or hostname. If the port is not
+set then \fB2233\fR is used as default port. 2233 is the default port for
+CS378X protocol but for NEWCAMD protocol you probably should choose other
+port number.
 .TP
 \fB\-U\fR, \fB\-\-camd\-user\fR <username>
 Set CAMD user name. The default is \fBuser\fR.

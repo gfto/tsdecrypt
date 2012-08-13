@@ -3,6 +3,8 @@
    disabled if there is no currently received code word.
  * Remove deprecated --output-filter option. The option you should use is
   --no-output-filter.
+ * Allow camd server address (--camd-server, -s) to be resolved, not only
+   set by IP address.
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.

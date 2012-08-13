@@ -142,7 +142,7 @@ CA options:
 CAMD server options:
  -A --camd-proto <proto>    | Set CAMD network protocol.
                             . Valid protocols are: CS378X (default) and NEWCAMD
- -s --camd-server <addr>    | Set CAMD server ip_address:port (1.2.3.4:2233).
+ -s --camd-server <host>    | Set CAMD server address. Default port: 2233
  -U --camd-user <user>      | Set CAMD server user. Default: user
  -P --camd-pass <pass>      | Set CAMD server password. Default: pass
  -B --camd-des-key <key>    | Set DES key for newcamd protocol.
