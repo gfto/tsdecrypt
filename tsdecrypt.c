@@ -445,6 +445,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					freeaddrinfo(addrinfo);
 					if (num_addrs)
 						server_err = 0;
+				} else {
+					fprintf(stderr, "ERROR: getaddrinfo(%s) returned: %s\n", optarg, gai_strerror(h_err));
+					exit(EXIT_FAILURE);
 				}
 				break;
 			case 'U': // --camd-user
