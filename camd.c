@@ -58,6 +58,12 @@ int camd_tcp_connect(struct in_addr ip, int port) {
 	return fd;
 }
 
+static inline void camd_reconnect(struct camd *c) {
+	if (c->no_reconnect)
+		return;
+	c->ops.reconnect(c);
+}
+
 void camd_set_cw(struct ts *ts, uint8_t *new_cw, int check_validity) {
 	struct camd *c = &ts->camd;
 
@@ -88,7 +94,7 @@ static int camd_recv_cw(struct ts *ts) {
 	if (ret <= 0) {
 		if (ret == -1) { // Fatal error it is better to reconnect to server.
 			ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
-			c->ops.reconnect(c);
+			camd_reconnect(c);
 		}
 		c->ecm_recv_errors++;
 		if (c->ecm_recv_errors >= ECM_RECV_ERRORS_LIMIT) {
@@ -134,7 +140,7 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 	if (ret <= 0) {
 		ts_LOGf("ERR | Error sending ecm packet, reconnecting to camd.\n");
 		ts->is_cw_error = 1;
-		c->ops.reconnect(c);
+		camd_reconnect(c);
 		return ret;
 	}
 
@@ -167,9 +173,9 @@ static int camd_send_emm(struct ts *ts, struct camd_msg *msg) {
 	int ret = c->ops.do_emm(c, msg);
 	if (ret < 1) {
 		c->emm_recv_errors++;
-		if (c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
+		if (c->check_emm_errors || c->emm_recv_errors >= EMM_RECV_ERRORS_LIMIT) {
 			ts_LOGf("ERR | Error sending emm packet, reconnecting to camd.\n");
-			c->ops.reconnect(c);
+			camd_reconnect(c);
 			c->emm_recv_errors = 0;
 		}
 	} else {

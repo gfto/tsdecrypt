@@ -146,6 +146,9 @@ struct camd {
 	unsigned int	ecm_recv_errors; // Error counter, reset on successful send/recv
 	unsigned int	emm_recv_errors; // Error counter, reset on successful send/recv
 
+	unsigned int	no_reconnect;
+	unsigned int	check_emm_errors;
+
 	struct key		*key;
 	unsigned int	constant_codeword; // The codeword is set on the command line once, no ecm processing is done.
 
