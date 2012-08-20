@@ -302,6 +302,58 @@ currently defined events are:
 
 See \fBnotify\-script.example\fR for an example on how to create external
 notification program.
+.SH EXAMPLES
+To get a quick start here are some example command lines. The default
+CA system is set to CONAX, you can change it using \fB\-\-ca-system\fR parameter,
+see man page or program help for more options.
+
+.nf
+   # Decrypt multicast stream from 239.0.50.11:5000 using 10.0.1.1:2233
+   # as camd server and output decrypted result to 239.78.78.78:5000
+   tsdecrypt --camd-server 10.0.1.1 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Same as above but enable EMM processing
+   tsdecrypt --emm --camd-server 10.0.1.1:2233 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Same as above but do not filter output stream thus allowing
+   # EIT/TOT/NIT, etc tables to passthrough
+   tsdecrypt --no-output-filter --emm --camd-server 10.0.1.1 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Choose program/service_id to decrypt. Useful when the input is MPTS
+   tsdecrypt --camd-server 10.0.1.1 --input-service 1234 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Read stream over RTP and process VIACCESS encoded channel
+   tsdecrypt --ca-system VIACCESS --emm --camd-server 10.0.1.1:2233 \\
+       --input-rtp --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Decrypt stream encypted with CAID 0x0963 (NDS, sky)
+   tsdecrypt --camd-server 10.0.1.1 --ca-system NDS --caid 0x0963 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Send only EMMs to OSCAM for CAID 0x0963 (NDS, sky)
+   tsdecrypt --camd-server 10.0.1.1 --emm-only --caid 0x0963 \\
+       --input 239.0.50.11:5000 --output /dev/null
+
+   # Decrypt stream encypted with CAID 0x5581 (Bulcrypt)
+   tsdecrypt --camd-server 10.0.1.1 --caid 0x5581 \\
+       --input 239.0.50.11:5000 --output 239.78.78.78:5000
+
+   # Decrypt BISS encrypted stream
+   tsdecrypt --biss-key 0x112233445566 --input 239.0.50.11:5000 \\
+       --output 239.78.78.78:5000
+
+   # Decrypt file encypted with constant code word
+   tsdecrypt --const-cw 0x00000000000000001111111111111111 \\
+       --input encrypted-file.ts --output decrypted-file.ts
+
+   # Send ECM from file
+   tsdecrypt --ecm-file ecm.txt --caid 0x5581 --input-service 12345 \\
+       --camd-server example.com
+.fi
 .SH SEE ALSO
 See the README file for more information. If you have questions, remarks,
 problems or you just want to contact the developer, write to:
