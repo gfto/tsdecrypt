@@ -47,9 +47,19 @@ static char *log_filename = NULL;
 static int local_syslog = 0;
 static int remote_syslog = 0;
 
+static int packet_from_file = 0;
+static int packet_buflen;
+static uint8_t packet_buf[256];
+static enum msg_type packet_type = ECM_MSG;
+
 static void do_log(FILE *f, time_t now, const char *msg) {
 	char date[64];
 	struct tm tm;
+	// There is no need to show timestamps when debug options are used
+	if (packet_from_file) {
+		fprintf(f, "%s", msg);
+		return;
+	}
 	localtime_r(&now, &tm);
 	strftime(date, sizeof(date), "%F %H:%M:%S", localtime_r(&now, &tm));
 	fprintf(f, "%s | %s", date, msg);
@@ -66,9 +76,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhV";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhVn:m:";
 
-// Unused short options: amnqv0123456789
+// Unused short options: aqv0123456789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -124,6 +134,9 @@ static const struct option long_options[] = {
 	{ "bench",				no_argument,       NULL, 'b' },
 	{ "help",				no_argument,       NULL, 'h' },
 	{ "version",			no_argument,       NULL, 'V' },
+
+	{ "ecm-file",			required_argument, NULL, 'n' },
+	{ "emm-file",			required_argument, NULL, 'm' },
 
 	{ 0, 0, 0, 0 }
 };
@@ -217,6 +230,10 @@ static void show_help(struct ts *ts) {
 	printf("                            .    3 = show duplicate ECMs\n");
 	printf("                            .    4 = packet debug\n");
 	printf("                            .    5 = packet debug + packet dump\n");
+	printf("\n");
+	printf("Debugging options:\n");
+	printf(" -n --ecm-file <file.txt>   | Read ECM from text file.\n");
+	printf(" -m --emm-file <file.txt>   | Read EMM from text file.\n");
 	printf("\n");
 	printf("Misc options:\n");
 	printf(" -j --pid-report            | Report how much packets were received.\n");
@@ -517,6 +534,17 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				csa_benchmark();
 				exit(EXIT_SUCCESS);
 
+			case 'n': // --ecm-file
+			case 'm': // --emm-file
+				packet_from_file = 1;
+				packet_buflen = file_hex2buf(optarg, packet_buf, sizeof(packet_buf));
+				if (!packet_buflen) {
+					fprintf(stderr, "ERROR: Can't init packet from file.\n");
+					exit(1);
+				}
+				packet_type = j == 'n' ? ECM_MSG : EMM_MSG;
+				break;
+
 			case 'h': // --help
 				show_help(ts);
 				exit(EXIT_SUCCESS);
@@ -529,6 +557,35 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (!ts->ident) {
 		if (ts->syslog_active || ts->notify_program)
 			ident_err = 1;
+	}
+
+	if (packet_from_file) {
+		int err = 0;
+		if (!ts->forced_caid) {
+			fprintf(stderr, "ERROR: CAID was not set. Use --caid option.\n");
+			err++;
+		}
+		if (!ts->forced_service_id) {
+			fprintf(stderr, "ERROR: Service id was not set. Use --input-service option.\n");
+			err++;
+		}
+		if (err)
+			exit(EXIT_FAILURE);
+
+		ts->threaded = 0;
+		input_addr_err = 0;
+		output_addr_err = 0;
+		ts->input.type = FILE_IO;
+		ts->input.fd = 0;
+		ts->output.type = FILE_IO;
+		ts->output.fd = 1;
+		ts->pid_filter = 0;
+		ts->emm_send = 1;
+		ts->emm_report_interval = 0;
+		ts->ecm_report_interval = 0;
+		ts->cw_warn_sec = 0;
+		ts->camd.no_reconnect = 1;
+		ts->camd.check_emm_errors = 1;
 	}
 
 	// Constant codeword is special. Disable conflicting options
@@ -587,8 +644,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			ts_LOGf("Syslog     : %s:%d\n", ts->syslog_host, ts->syslog_port);
 		else
 			ts_LOGf("Syslog     : enabled\n");
-	} else
-		ts_LOGf("Syslog     : disabled\n");
+	} else {
+		if (!packet_from_file)
+			ts_LOGf("Syslog     : disabled\n");
+	}
 
 	if (!ts->camd.constant_codeword) {
 		if (ts->forced_caid)
@@ -615,7 +674,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			ts_LOGf("Input buff : %u ms\n", ts->input_buffer_time);
 		}
 	} else if (ts->input.type == FILE_IO) {
-		ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
+		if (!packet_from_file)
+			ts_LOGf("Input file : %s\n", ts->input.fd == 0 ? "STDIN" : ts->input.fname);
 	}
 	if (ts->input_dump_filename) {
 		ts->input_dump_file = fopen(ts->input_dump_filename, "w");
@@ -647,13 +707,16 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				RAND_bytes((unsigned char *)&(ts->rtp_seqnum), 2);
 			}
 		} else if (ts->output.type == FILE_IO) {
-			ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
+			if (!packet_from_file)
+				ts_LOGf("Output file: %s\n", ts->output.fd == 1 ? "STDOUT" : ts->output.fname);
 		}
-		ts_LOGf("Out filter : %s (%s)%s\n",
-			ts->pid_filter ? "enabled" : "disabled",
-			ts->pid_filter ? "output only service related PIDs" : "output everything",
-			ts->no_output_on_error ? " (No output on CW error)" : ""
-		);
+		if (!packet_from_file) {
+			ts_LOGf("Out filter : %s (%s)%s\n",
+				ts->pid_filter ? "enabled" : "disabled",
+				ts->pid_filter ? "output only service related PIDs" : "output everything",
+				ts->no_output_on_error ? " (No output on CW error)" : ""
+			);
+		}
 		if (ts->pid_filter) {
 			if (ts->nit_passthrough)
 				ts_LOGf("Out filter : Pass through NIT.\n");
@@ -672,36 +735,44 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			ts_LOGf("CAMD deskey: %s\n", ts->camd.newcamd.hex_des_key);
 	}
 
-	ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
-	ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
-	if (ts->emm_send && ts->emm_report_interval)
-		ts_LOGf("EMM report : %d sec\n", ts->emm_report_interval);
-	if (ts->emm_send && ts->emm_report_interval == 0)
-		ts_LOGf("EMM report : disabled\n");
-	if (ts->forced_emm_pid)
-		ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
+	if (!packet_from_file) {
+		ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
+		ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
+	}
+	if (!packet_from_file) {
+		if (ts->emm_send && ts->emm_report_interval)
+			ts_LOGf("EMM report : %d sec\n", ts->emm_report_interval);
+		if (ts->emm_send && ts->emm_report_interval == 0)
+			ts_LOGf("EMM report : disabled\n");
+		if (ts->forced_emm_pid)
+			ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
+	}
 	if (ts->emm_only) {
 		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
 	} else {
-		if (!ts->camd.constant_codeword)
-			ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
-		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+		if (!packet_from_file) {
+			if (!ts->camd.constant_codeword)
+				ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
+			ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+		}
 	}
 
-	if (!ts->emm_only && ts->ecm_report_interval)
-		ts_LOGf("ECM report : %d sec\n", ts->emm_report_interval);
-	if (!ts->emm_only && ts->ecm_report_interval == 0 && !ts->camd.constant_codeword)
-		ts_LOGf("ECM report : disabled\n");
-	if (ts->forced_ecm_pid)
-		ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
+	if (!packet_from_file) {
+		if (!ts->emm_only && ts->ecm_report_interval)
+			ts_LOGf("ECM report : %d sec\n", ts->emm_report_interval);
+		if (!ts->emm_only && ts->ecm_report_interval == 0 && !ts->camd.constant_codeword)
+			ts_LOGf("ECM report : disabled\n");
+		if (ts->forced_ecm_pid)
+			ts_LOGf("ECM pid    : 0x%04x (%d)\n", ts->forced_ecm_pid, ts->forced_ecm_pid);
 
-	if (!ts->emm_only && ts->cw_warn_sec)
-		ts_LOGf("CW warning : %d sec\n", ts->cw_warn_sec);
-	if (!ts->emm_only && ts->cw_warn_sec && !ts->camd.constant_codeword)
-		ts_LOGf("CW warning : disabled\n");
+		if (!ts->emm_only && ts->cw_warn_sec)
+			ts_LOGf("CW warning : %d sec\n", ts->cw_warn_sec);
+		if (!ts->emm_only && ts->cw_warn_sec && !ts->camd.constant_codeword)
+			ts_LOGf("CW warning : disabled\n");
 
-	if (!ts->ecm_cw_log && !ts->camd.constant_codeword)
-		ts_LOGf("ECM/CW log : disabled\n");
+		if (!ts->ecm_cw_log && !ts->camd.constant_codeword)
+			ts_LOGf("ECM/CW log : disabled\n");
+	}
 
 	if (ts->ident) {
 		int len = strlen(ts->ident);
@@ -854,6 +925,16 @@ int main(int argc, char **argv) {
 	ts.emm_last_report = time(NULL) + FIRST_REPORT_SEC;
 	ts.ecm_last_report = time(NULL) + FIRST_REPORT_SEC;
 	camd_start(&ts);
+
+	if (packet_from_file) {
+		uint8_t tmp[2048];
+		ts_hex_dump_buf((char *)tmp, sizeof(tmp), packet_buf, packet_buflen, 16);
+		ts_LOGf("%s | Processing packet with CAID 0x%04x\n", packet_type == ECM_MSG ? "ECM" : "EMM", ts.forced_caid);
+		ts_LOGf("%s | Packet dump:\n%s\n", packet_type == ECM_MSG ? "ECM" : "EMM", tmp);
+		camd_process_packet(&ts, camd_msg_alloc(packet_type, ts.forced_caid, ts.forced_service_id, packet_buf, packet_buflen));
+		goto EXIT;
+	}
+
 	do {
 		if (!ts.camd.constant_codeword)
 			do_reports(&ts);

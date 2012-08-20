@@ -241,6 +241,35 @@ reports are not affected by this option.
 \fB\-J\fR, \fB\-\-cw\-warn\-time\fR <seconds>
 After how much seconds to warn if valid code word was not received.
 The default is \fB60\fR seconds. Set to \fB0\fR to disable the warning.
+.TP
+.SH DEBUG OPTIONS
+.PP
+.TP
+\fB\-n\fR, \fB\-\-ecm\-file\fR <file.txt>
+Read ECM from text file and send it to CAMD server for processing. This
+option must be used along with \fB\-\-caid\fR and \fB\-\-input-service\fR
+options.
+
+The file should be normal text file, the format of the file is described
+bellow.
+.TP
+\fB\-m\fR, \fB\-\-emm\-file\fR <file.txt>
+Read EMM from text file and send it to CAMD server for processing. This
+option must be used along with \fB\-\-caid\fR and \fB\-\-input-service\fR
+options.
+
+Bellow is an example text file, lines starting with # are ignored and
+also 0x prefixes are ignored. Any other symbol in the file is processed
+as hex number. An example file might look like this:
+
+.nf
+    # comment
+    aa bb cc dd ee
+    ff 01 02 03 04
+    # Other comment
+    0x05 0x06 0x07
+.fi
+
 .SH EVENTS
 Notification events are sent when \fB\-\-notify\-program\fR and \fB\-\-ident\fR
 options are used. The event parameters are set as environmental variables

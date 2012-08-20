@@ -5,6 +5,8 @@
   --no-output-filter.
  * Allow camd server address (--camd-server, -s) to be resolved, not only
    set by IP address.
+ * Allow tsdecrypt to read ECM/EMM packet from text file. The added
+   parameters are -n, -ecm-file <file> and -m --emm-file <file>.
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.

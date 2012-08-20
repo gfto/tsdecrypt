@@ -25,5 +25,6 @@ uint8_t *init_2b(uint32_t val, uint8_t *b);
 void set_thread_name(char *thread_name);
 int decode_hex_string(char *hex, uint8_t *bin, int asc_len);
 int64_t get_time(void);
+unsigned int file_hex2buf(char *filename, uint8_t *buffer, unsigned int buf_size);
 
 #endif

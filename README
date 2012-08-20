@@ -180,6 +180,10 @@ Logging options:
                             .    4 = packet debug
                             .    5 = packet debug + packet dump
 
+Debugging options:
+ -n --ecm-file <file.txt>   | Read ECM from text file.
+ -m --emm-file <file.txt>   | Read EMM from text file.
+
 Misc options:
  -j --pid-report            | Report how much packets were received.
  -b --bench                 | Benchmark decrypton.
@@ -236,6 +240,9 @@ Examples:
    tsdecrypt --const-cw 0x00000000000000001111111111111111 \
        --input encrypted-file.ts --output decrypted-file.ts
 
+   # Send ECM from file
+   tsdecrypt --ecm-file ecm.txt --caid 0x5581 --input-service 12345 \
+       --camd-server example.com
 
 OSCAM cs378x configuration
 ==========================

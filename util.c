@@ -13,6 +13,10 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <ctype.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
@@ -175,4 +179,45 @@ int64_t get_time(void) {
 		clock_gettime(CLOCK_REALTIME, &ts);
 #endif
 	return ts.tv_sec * 1000000ll + ts.tv_nsec / 1000;
+}
+
+unsigned int file_hex2buf(char *filename, uint8_t *buffer, unsigned int buf_size) {
+	FILE *f = fopen(filename, "r");
+	if (!f) {
+		fprintf(stderr, "ERROR: Can't open %s: %s\n", filename, strerror(errno));
+		exit(1);
+	}
+	memset(buffer, 0, buf_size);
+	size_t len;
+	ssize_t readb;
+	char *line = NULL;
+	unsigned int buf_pos = 0, consumed = 0;
+	while ((readb = getline(&line, &len, f)) != -1) {
+		ssize_t i;
+		if (!readb || line[0] == '#')
+			continue;
+		for (i = 0; i < readb; i++) {
+			char ch = toupper(line[i]);
+			// Skip 0x prefixes
+			if (i + 1 < readb && ch == '0' && toupper(line[i+1]) == 'X')
+				continue;
+			if (!isxdigit(ch))
+				continue;
+			ch -= ch > 64 ? 55 : 48; // hex2dec
+			if (consumed % 2 == 0) {
+				buffer[buf_pos] += ch << 4;
+			} else {
+				buffer[buf_pos] += ch;
+				buf_pos++;
+				if (buf_pos == buf_size)
+					goto OUT;
+			}
+			consumed++;
+		}
+	}
+OUT:
+	free(line);
+	fclose(f);
+
+	return buf_pos;
 }
