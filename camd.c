@@ -29,33 +29,60 @@
 #include "camd.h"
 #include "notify.h"
 
+int ai_family = AF_UNSPEC;
+
 static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-int camd_tcp_connect(struct in_addr ip, int port) {
-	ts_LOGf("CAM | Connecting to server %s:%d\n", inet_ntoa(ip), port);
+int connect_client(int socktype, const char *hostname, const char *service) {
+	struct addrinfo hints, *res;
+	int n;
 
-	int fd = socket(PF_INET, SOCK_STREAM, 0);
-	if (fd < 0)	{
-		ts_LOGf("CAM | Could not create socket | %s\n", strerror(errno));
+	memset(&hints, 0, sizeof(struct addrinfo));
+
+	hints.ai_family = ai_family;
+	hints.ai_socktype = socktype;
+
+	ts_LOGf("CAM | Connecting to server %s port %s\n", hostname, service);
+
+	n = getaddrinfo(hostname, service, &hints, &res);
+
+	if (n < 0) {
+		ts_LOGf("CAM | ERROR: getaddrinfo(%s): %s\n", hostname, gai_strerror(n));
 		return -1;
 	}
 
-	struct sockaddr_in sock;
-	sock.sin_family = AF_INET;
-	sock.sin_port = htons(port);
-	sock.sin_addr = ip;
-	if (do_connect(fd, (struct sockaddr *)&sock, sizeof(sock), 1000) < 0) {
-		ts_LOGf("CAM | Could not connect to server %s:%d | %s\n", inet_ntoa(ip), port, strerror(errno));
-		close(fd);
-		sleep(1);
-		return -1;
+	int sockfd = -1;
+	struct addrinfo *ressave = res;
+	while (res) {
+		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+		if (sockfd > -1) {
+			if (do_connect(sockfd, res->ai_addr, res->ai_addrlen, 1000) < 0) {
+				char str_addr[INET6_ADDRSTRLEN];
+				my_inet_ntop(res->ai_family, res->ai_addr, str_addr, sizeof(str_addr));
+				ts_LOGf("CAM | Could not connect to server %s:%s (%s) | %s\n",
+					hostname, service, str_addr, strerror(errno));
+				close(sockfd);
+				sockfd = -1;
+			} else {
+				break; // connected
+			}
+		} else {
+			ts_LOGf("CAM | Could not create socket: %s\n", strerror(errno));
+			sleep(1);
+			return -1;
+		}
+		res = res->ai_next;
+	}
+	freeaddrinfo(ressave);
+
+	if (socktype == SOCK_STREAM) {
+		int flag = 1;
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
 	}
 
-	int flag = 1;
-	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+	ts_LOGf("CAM | Connected to fd:%d\n", sockfd);
 
-	ts_LOGf("CAM | Connected to fd:%d\n", fd);
-	return fd;
+	return sockfd;
 }
 
 static inline void camd_reconnect(struct camd *c) {

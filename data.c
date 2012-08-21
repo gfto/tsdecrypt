@@ -56,7 +56,7 @@ void data_init(struct ts *ts) {
 	// CAMD
 	memset(&ts->camd, 0, sizeof(ts->camd));
 	ts->camd.server_fd    = -1;
-	ts->camd.server_port  = 2233;
+	ts->camd.service      = "2233";
 	ts->camd.key          = &ts->key;
 	ts->camd.user         = "user";
 	ts->camd.pass         = "pass";

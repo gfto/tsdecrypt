@@ -1,4 +1,3 @@
-- Resolve server address on each connect.
 - Sort nanos of viaccess and cryptoworks emms.
-- Add ipv6 support (multicast send/recv, camd connection).
+- Add ipv6 support (multicast send/recv).
 - Investigate EMM filters implemented in https://github.com/joolzg/tsdecrypt

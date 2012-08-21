@@ -143,10 +143,18 @@ CAMD server options:
  -A --camd-proto <proto>    | Set CAMD network protocol.
                             . Valid protocols are: CS378X (default) and NEWCAMD
  -s --camd-server <host>    | Set CAMD server address. Default port: 2233
+                            . Example IPv4 addr and port: 127.0.0.1:2233
+                            . Example IPv6 addr and port: [2a00::1014]:2233
+                            . Example hostname          : example.com
+                            . Example hostname and port : example.com:2233
+                            . Example IPv4 hostname     : ipv4.google.com
+                            . Example IPv6 hostname     : ipv6.google.com
  -U --camd-user <user>      | Set CAMD server user. Default: user
  -P --camd-pass <pass>      | Set CAMD server password. Default: pass
  -B --camd-des-key <key>    | Set DES key for newcamd protocol.
                             . Default: 0102030405060708091011121314
+ -4 --ipv4                  | Use only IPv4 addresses of the camd server.
+ -6 --ipv6                  | Use only IPv6 addresses of the camd server.
 
 EMM options:
  -e --emm                   | Enable sending EMM's to CAMD. Default: disabled

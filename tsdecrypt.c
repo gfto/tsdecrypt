@@ -52,6 +52,8 @@ static int packet_buflen;
 static uint8_t packet_buf[256];
 static enum msg_type packet_type = ECM_MSG;
 
+extern int ai_family;
+
 static void do_log(FILE *f, time_t now, const char *msg) {
 	char date[64];
 	struct tm tm;
@@ -76,9 +78,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:eZ:Ef:X:H:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:X:H:G:KJ:D:jbhVn:m:";
 
-// Unused short options: aqv0123456789
+// Unused short options: aqv01235789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -117,6 +119,8 @@ static const struct option long_options[] = {
 	{ "camd-user",			required_argument, NULL, 'U' },
 	{ "camd-pass",			required_argument, NULL, 'P' },
 	{ "camd-des-key",		required_argument, NULL, 'B' },
+	{ "ipv4",				no_argument,       NULL, '4' },
+	{ "ipv6",				no_argument,       NULL, '6' },
 
 	{ "emm",				no_argument,       NULL, 'e' },
 	{ "emm-pid",			required_argument, NULL, 'Z' },
@@ -194,10 +198,18 @@ static void show_help(struct ts *ts) {
 	printf(" -A --camd-proto <proto>    | Set CAMD network protocol.\n");
 	printf("                            . Valid protocols are: CS378X (default) and NEWCAMD\n");
 	printf(" -s --camd-server <host>    | Set CAMD server address. Default port: 2233\n");
+	printf("                            . Example IPv4 addr and port: 127.0.0.1:2233\n");
+	printf("                            . Example IPv6 addr and port: [2a00::1014]:2233\n");
+	printf("                            . Example hostname          : example.com\n");
+	printf("                            . Example hostname and port : example.com:2233\n");
+	printf("                            . Example IPv4 hostname     : ipv4.google.com\n");
+	printf("                            . Example IPv6 hostname     : ipv6.google.com\n");
 	printf(" -U --camd-user <user>      | Set CAMD server user. Default: %s\n", ts->camd.user);
 	printf(" -P --camd-pass <pass>      | Set CAMD server password. Default: %s\n", ts->camd.pass);
 	printf(" -B --camd-des-key <key>    | Set DES key for newcamd protocol.\n");
 	printf("                            . Default: %s\n", ts->camd.newcamd.hex_des_key);
+	printf(" -4 --ipv4                  | Use only IPv4 addresses of the camd server.\n");
+	printf(" -6 --ipv6                  | Use only IPv6 addresses of the camd server.\n");
 	printf("\n");
 	printf("EMM options:\n");
 	printf(" -e --emm                   | Enable sending EMM's to CAMD. Default: %s\n", ts->emm_send ? "enabled" : "disabled");
@@ -267,8 +279,6 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 }
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
-	int h_err;
-	struct addrinfo hints, *addrinfo = NULL;
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		char *p = NULL;
@@ -438,33 +448,29 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				}
 				break;
 			case 's': // --camd-server
-				p = strrchr(optarg, ':');
-				if (p) {
-					*p = 0x00;
-					ts->camd.server_port = atoi(p + 1);
-					port_set = 1;
-				}
-				server_err = 1;
-
-				memset(&hints, 0, sizeof hints);
-				hints.ai_family = AF_INET;
-				hints.ai_socktype = SOCK_STREAM;
-				h_err = getaddrinfo(optarg, NULL, &hints, &addrinfo);
-				if (h_err == 0) {
-					int num_addrs = 0;
-					struct addrinfo *addr;
-					for (addr = addrinfo; addr != NULL; addr = addr->ai_next) {
-						struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr->ai_addr;
-						if (!ts->camd.server_addr.s_addr) // Get the first IP address
-							ts->camd.server_addr = ipv4->sin_addr;
-						num_addrs++;
+				server_err = 0;
+				ts->camd.hostname = optarg;
+				if (optarg[0] == '[') { // Detect IPv6 static address
+					p = strrchr(optarg, ']');
+					if (!p) {
+						fprintf(stderr, "ERROR: Invalid IPv6 address format: %s\n", optarg);
+						exit(EXIT_FAILURE);
 					}
-					freeaddrinfo(addrinfo);
-					if (num_addrs)
-						server_err = 0;
+					ts->camd.hostname = optarg + 1; // Remove first [
+					*p = 0x00; // Remove last ]
+					char *p2 = strchr(p + 1, ':');
+					if (p2) {
+						*p2 = 0x00;
+						ts->camd.service = p2 + 1;
+						port_set = 1;
+					}
 				} else {
-					fprintf(stderr, "ERROR: getaddrinfo(%s) returned: %s\n", optarg, gai_strerror(h_err));
-					exit(EXIT_FAILURE);
+					p = strrchr(optarg, ':');
+					if (p) {
+						*p = 0x00;
+						ts->camd.service = p + 1;
+						port_set = 1;
+					}
 				}
 				break;
 			case 'U': // --camd-user
@@ -483,6 +489,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				}
 				strncpy(ts->camd.newcamd.hex_des_key, optarg, sizeof(ts->camd.newcamd.hex_des_key) - 1);
 				ts->camd.newcamd.hex_des_key[sizeof(ts->camd.newcamd.hex_des_key) - 1] = 0;
+				break;
+			case '4': // --ipv4
+				ai_family = AF_INET;
+				break;
+			case '6': // --ipv6
+				ai_family = AF_INET6;
 				break;
 
 			case 'e': // --emm
@@ -621,7 +633,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	if (ts->camd.ops.proto == CAMD_NEWCAMD && !port_set) {
-		fprintf(stderr, "ERROR: CAMD server port is not set. Use --camd-server %s:xxxx to set the port.\n", inet_ntoa(ts->camd.server_addr));
+		fprintf(stderr, "ERROR: CAMD server port is not set. Use --camd-server %s:xxxx to set the port.\n", ts->camd.hostname);
 		exit(EXIT_FAILURE);
 	}
 
@@ -728,7 +740,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 	if (!ts->camd.constant_codeword) {
 		ts_LOGf("CAMD proto : %s\n", ts->camd.ops.ident);
-		ts_LOGf("CAMD addr  : tcp://%s:%u/\n", inet_ntoa(ts->camd.server_addr), ts->camd.server_port);
+		ts_LOGf("CAMD addr  : %s:%s%s\n", ts->camd.hostname, ts->camd.service,
+			ai_family == AF_INET  ? " (IPv4 only)" :
+			ai_family == AF_INET6 ? " (IPv6 only)" :
+			" (IPv4/IPv6)"
+		);
 		ts_LOGf("CAMD user  : %s\n", ts->camd.user);
 		ts_LOGf("CAMD pass  : %s\n", ts->camd.pass);
 		if (ts->camd.ops.proto == CAMD_NEWCAMD)

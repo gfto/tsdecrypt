@@ -7,6 +7,12 @@
    set by IP address.
  * Allow tsdecrypt to read ECM/EMM packet from text file. The added
    parameters are -n, -ecm-file <file> and -m --emm-file <file>.
+ * Add support for CAMD server listening on IPv6.
+ * Add support for forcing only IPv4 (-4, --ipv4) or IPv6 (-6, --ipv6)
+   server connections.
+ * Add support for multiple CAMD addresses returned when resolving CAMD
+   server hostname. tsdecrypt would try each of the addresses and use
+   the one that works.
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.

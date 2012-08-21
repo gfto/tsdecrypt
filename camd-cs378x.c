@@ -27,7 +27,7 @@
 
 static int cs378x_connect(struct camd *c) {
 	if (c->server_fd < 0)
-		c->server_fd = camd_tcp_connect(c->server_addr, c->server_port);
+		c->server_fd = connect_client(SOCK_STREAM, c->hostname, c->service);
 	return c->server_fd;
 }
 

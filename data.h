@@ -138,8 +138,8 @@ struct newcamd {
 
 struct camd {
 	int				server_fd;
-	struct in_addr	server_addr;
-	unsigned int	server_port;
+	char			*hostname;
+	char			*service;
 	char			*user;
 	char			*pass;
 

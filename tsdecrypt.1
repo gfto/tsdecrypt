@@ -177,11 +177,12 @@ Set CAMD server protocol. Valid protocols are \fBCS378X\fR and \fBNEWCAMD\fR.
 If this option is not used the default protocol is \fBCS378X\fR (camd35 over
 tcp).
 .TP
-\fB\-s\fR, \fB\-\-camd\-server\fR <host[:port]>
-Set CAMD server address. You can use IP address or hostname. If the port is not
-set then \fB2233\fR is used as default port. 2233 is the default port for
-CS378X protocol but for NEWCAMD protocol you probably should choose other
-port number.
+\fB\-s\fR, \fB\-\-camd\-server\fR <hostname[:port]>
+Set CAMD server address. You can use IPv4/IPv6 address or hostname. If the port
+is not set then \fB2233\fR is used as default port. 2233 is the default port
+for CS378X protocol but for NEWCAMD protocol you probably should choose other
+port number. To set static IPv6 address you have to put in in brackets (\fB[]\fR)
+for example: \fB[1234::5678]:2233\fR
 .TP
 \fB\-U\fR, \fB\-\-camd\-user\fR <username>
 Set CAMD user name. The default is \fBuser\fR.
@@ -192,6 +193,14 @@ Set CAMD user password. The default is \fBpass\fR.
 \fB\-B\fR, \fB\-\-camd\-des\-key\fR <des_key>
 Set DES key used by NEWCAMD protocol. The default
 is \fB0102030405060708091011121314\fR.
+.TP
+\fB\-4\fR, \fB\-\-ipv4\fR
+Connect to CAMD server using only IPv4 addresses of the server. IPv6
+addresses would be are ignorred.
+.TP
+\fB\-6\fR, \fB\-\-ipv6\fR
+Connect to CAMD server using only IPv6 addresses of the server. IPv4
+addresses would be are ignorred.
 .TP
 .SH EMM OPTIONS
 .PP

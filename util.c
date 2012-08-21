@@ -20,6 +20,7 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #include "util.h"
 
@@ -220,4 +221,21 @@ OUT:
 	fclose(f);
 
 	return buf_pos;
+}
+
+char *my_inet_ntop(int family, struct sockaddr *addr, char *dest, int dest_len) {
+	struct sockaddr_in  *addr_v4 = (struct sockaddr_in  *)addr;
+	struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)addr;
+	switch (family) {
+		case AF_INET:
+			return (char *)inet_ntop(AF_INET, &addr_v4->sin_addr, dest, dest_len);
+			break;
+		case AF_INET6:
+			return (char *)inet_ntop(AF_INET6, &addr_v6->sin6_addr, dest, dest_len);
+			break;
+		default:
+			memset(dest, 0, dest_len);
+			strcpy(dest, "unknown");
+			return dest;
+	}
 }
