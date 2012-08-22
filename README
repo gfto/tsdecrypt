@@ -164,6 +164,9 @@ EMM options:
  -f --emm-report-time <sec> | Report each <sec> seconds how much EMMs have been
                             .   received/processed. Set <sec> to 0 to disable
                             .   the reports. Default: 60 sec
+ -a --emm-filter <filter>   | Add EMM filter defined by <filter>.
+                            . This option can be used multiple times (max:16).
+                            . See FILTERING file for more info.
 
 ECM options:
  -X --ecm-pid <pid>         | Force ECM pid. Default: none

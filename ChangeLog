@@ -13,6 +13,7 @@
  * Add support for multiple CAMD addresses returned when resolving CAMD
    server hostname. tsdecrypt would try each of the addresses and use
    the one that works.
+ * Add --emm-filter (-a) option. This option implements EMM filtering.
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.

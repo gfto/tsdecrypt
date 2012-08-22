@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
@@ -35,6 +36,7 @@
 #include "process.h"
 #include "udp.h"
 #include "notify.h"
+#include "filter.h"
 
 #define FIRST_REPORT_SEC 3
 
@@ -78,7 +80,7 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:X:H:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:H:G:KJ:D:jbhVn:m:";
 
 // Unused short options: aqv01235789
 static const struct option long_options[] = {
@@ -126,6 +128,7 @@ static const struct option long_options[] = {
 	{ "emm-pid",			required_argument, NULL, 'Z' },
 	{ "emm-only",			no_argument,       NULL, 'E' },
 	{ "emm-report-time",	required_argument, NULL, 'f' },
+	{ "emm-filter",			required_argument, NULL, 'a' },
 
 	{ "ecm-pid",			required_argument, NULL, 'X' },
 	{ "ecm-report-time",	required_argument, NULL, 'H' },
@@ -219,6 +222,9 @@ static void show_help(struct ts *ts) {
 	printf(" -f --emm-report-time <sec> | Report each <sec> seconds how much EMMs have been\n");
 	printf("                            .   received/processed. Set <sec> to 0 to disable\n");
 	printf("                            .   the reports. Default: %d sec\n", ts->emm_report_interval);
+	printf(" -a --emm-filter <filter>   | Add EMM filter defined by <filter>.\n");
+	printf("                            . This option can be used multiple times (max:%u).\n", MAX_FILTERS);
+	printf("                            . See FILTERING file for more info.\n");
 	printf("\n");
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
@@ -513,6 +519,19 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->emm_report_interval = 86400;
 				break;
 
+			case 'a': // --emm-filter
+				if (ts->emm_filters_num + 1 > MAX_FILTERS) {
+					fprintf(stderr, "ERROR: Maximum allowed filters are %d.\n", MAX_FILTERS);
+					exit(EXIT_FAILURE);
+				}
+				if (filter_parse(optarg, &ts->emm_filters[ts->emm_filters_num])) {
+					ts->emm_filters_num++;
+				} else {
+					fprintf(stderr, "ERROR: Can't parse EMM filter: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				break;
+
 			case 'X': // --ecm-pid
 				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
@@ -598,6 +617,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts->cw_warn_sec = 0;
 		ts->camd.no_reconnect = 1;
 		ts->camd.check_emm_errors = 1;
+		ts->emm_filters_num = 0;
 	}
 
 	// Constant codeword is special. Disable conflicting options
@@ -755,6 +775,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("TS discont : %s\n", ts->ts_discont ? "report" : "ignore");
 		ts->threaded = !(ts->input.type == FILE_IO && ts->input.fd != 0);
 	}
+
+	if (!packet_from_file && !ts->emm_only) {
+		ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+	}
+
 	if (!packet_from_file) {
 		if (ts->emm_send && ts->emm_report_interval)
 			ts_LOGf("EMM report : %d sec\n", ts->emm_report_interval);
@@ -770,6 +795,14 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			if (!ts->camd.constant_codeword)
 				ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
 			ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
+		}
+	}
+
+	if (ts->emm_send) {
+		for (i = 0; i < ts->emm_filters_num; i++) {
+			char tmp[512];
+			filter_dump(&ts->emm_filters[i], tmp, sizeof(tmp));
+			ts_LOGf("EMM filter : [%2d] %s\n", i + 1,  tmp);
 		}
 	}
 

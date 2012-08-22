@@ -223,6 +223,17 @@ stream has very high rate and is interfering with ECM processing. Using
 Set interval for EMM reports. The default is \fB60\fR seconds. Set to \fB0\fR
 to disable EMM reports.
 .TP
+\fB\-a\fR, \fB\-\-emm\-filter\fR <filter_definition>
+Add EMM filter described by <filter_definition>. EMM filters are useful if
+you want to limit the number of EMMs that should reach your CAMD server.
+The basic \fB<filter_defintion>\fR is \fBCommand/Settings\fR where
+the commands are: \fBaccept_all\fR, \fBreject_all\fR, \fBaccept\fR
+and \fBreject\fR.
+
+For more information about filtering and for example filters, please
+read \fBFILTERING\fR file that comes with tsdecrypt. This option can be
+used multiple times to define up to \fB16\fR different filters.
+.TP
 .SH ECM OPTIONS
 .PP
 .TP

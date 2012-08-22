@@ -185,6 +185,26 @@ struct packet_buf {
 	uint8_t		data[188];
 };
 
+#define MAX_FILTERS     16
+#define MAX_FILTER_NAME 32
+#define MAX_FILTER_LEN  16
+
+enum filter_action {
+	FILTER_NO_MATCH   = 0,
+	FILTER_ACCEPT_ALL = 1,
+	FILTER_REJECT_ALL = 2,
+	FILTER_ACCEPT     = 3,
+	FILTER_REJECT     = 4,
+};
+
+struct filter {
+	enum filter_action action;			// If set to 1, the filter is negative else the filter is positive
+	uint8_t		offset;					// Offset into EMM
+	uint8_t		data_len;				// Filter length
+	uint8_t		data[MAX_FILTER_LEN];	// Filter bytes
+	char		name[MAX_FILTER_NAME];	// Filter name (default: NO_NAME)
+};
+
 #define MAX_PIDS 8192
 
 struct ts {
@@ -294,6 +314,9 @@ struct ts {
 
 	unsigned int		input_buffer_time;
 	LIST				*input_buffer;
+
+	int					emm_filters_num;
+	struct filter		emm_filters[MAX_FILTERS];
 };
 
 void data_init(struct ts *ts);

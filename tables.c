@@ -12,9 +12,12 @@
  * GNU General Public License (COPYING file) for more details.
  *
  */
+#include <string.h>
+
 #include "data.h"
 #include "tables.h"
 #include "camd.h"
+#include "filter.h"
 
 #include "libtsfuncs/tsfuncs.h"
 #include "libfuncs/libfuncs.h"
@@ -270,17 +273,28 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	struct ts_header *th = &ts->emm->ts_header;
 	struct ts_section_header *sec = ts->emm->section_header;
+
+	int emm_ok = 1;
+	if (ts->emm_filters_num)
+		emm_ok = filter_match_emm(ts, sec->section_data, sec->section_data_len);
+
 	if (ts->debug_level >= 2) {
 		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
-		ts_LOGf("EMM | SID 0x%04x CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %4d Data: %s..\n",
+		ts_LOGf("EMM | SID 0x%04x CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %4d %s %s..\n",
 			ts->service_id,
 			ts->emm_caid,
 			th->pid,
 			sec->table_id,
 			sec->section_data_len,
+			emm_ok == 1 ? "Data:" : "SKIP:",
 			dump);
 	}
-	camd_process_packet(ts, camd_msg_alloc(EMM_MSG, ts->emm_caid, ts->service_id, sec->section_data, sec->section_data_len));
+
+	if (emm_ok)
+		camd_process_packet(ts, camd_msg_alloc(EMM_MSG, ts->emm_caid, ts->service_id, sec->section_data, sec->section_data_len));
+	else
+		ts->emm_skipped_count++;
+
 	ts_privsec_copy(ts->emm, ts->last_emm);
 	ts_privsec_clear(ts->emm);
 }
