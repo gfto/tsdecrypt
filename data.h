@@ -212,8 +212,10 @@ struct ts {
 	pidmap_t			pid_seen;
 
 	// Stats
+	unsigned int		emm_input_count;
 	unsigned int		emm_seen_count;
 	unsigned int		emm_processed_count;
+	unsigned int		emm_skipped_count;
 	unsigned int		emm_report_interval;
 	time_t				emm_last_report;
 

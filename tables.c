@@ -259,6 +259,8 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	show_ts_pack(ts, pid, "emm", NULL, ts_packet);
 
+	ts->emm_input_count++;
+
 	if (!ts->emm_send)
 		return;
 

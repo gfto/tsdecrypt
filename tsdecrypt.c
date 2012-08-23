@@ -800,7 +800,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 }
 
 static void report_emms(struct ts *ts, time_t now) {
-	ts_LOGf("EMM | Received %u and processed %u in %lu seconds.\n",
+	ts_LOGf("EMM | Received %u, Skipped %u, Sent %u, Processed %u in %lu seconds.\n",
+		ts->emm_input_count,
+		ts->emm_skipped_count,
 		ts->emm_seen_count,
 		ts->emm_processed_count,
 		now - ts->emm_last_report);
@@ -809,7 +811,9 @@ static void report_emms(struct ts *ts, time_t now) {
 			now - ts->emm_last_report);
 	}
 	ts->emm_last_report = now;
+	ts->emm_input_count = 0;
 	ts->emm_seen_count = 0;
+	ts->emm_skipped_count = 0;
 	ts->emm_processed_count = 0;
 }
 
