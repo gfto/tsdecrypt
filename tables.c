@@ -288,6 +288,14 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (ts->emm_filters_num)
 		emm_ok = filter_match_emm(ts, sec->section_data, sec->section_data_len);
 
+	if (emm_ok && ts->emm_fixup_func) {
+		unsigned int len = sec->section_data_len;
+		if (ts->emm_fixup_func(sec->section_data, &len)) {
+			//ts_LOGf("EMM | Reassembled EMM, old len: %d, new len:%d\n", sec->section_data_len, len);
+			sec->section_data_len = len;
+		}
+	}
+
 	if (ts->debug_level >= 2) {
 		ts_hex_dump_buf(dump, dump_buf_sz, sec->section_data, min(dump_sz, sec->section_data_len), 0);
 		ts_LOGf("EMM | SID 0x%04x CAID: 0x%04x PID 0x%04x Table: 0x%02x Length: %4d %s %s..\n",

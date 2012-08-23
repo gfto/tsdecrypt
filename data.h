@@ -318,6 +318,9 @@ struct ts {
 
 	int					emm_filters_num;
 	struct filter		emm_filters[MAX_FILTERS];
+
+	int					emm_fixups;
+	int					(*emm_fixup_func)(uint8_t *buffer, unsigned int *len);
 };
 
 void data_init(struct ts *ts);

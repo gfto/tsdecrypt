@@ -17,6 +17,8 @@
    Now file:// prefix is must be added before the filename otherwise
    the parameter is treated as network address.
  * Add --emm-filter (-a) option. This option implements EMM filtering.
+ * Add EMM reassembly (fixups) for Cryptoworks and Viaccess. The fixups
+   are enabled by default and can be disabled by --no-emm-fixups (-q).
 
 2012-04-19 : Version 8.1
  * Add support for Bulcrypt CAS.

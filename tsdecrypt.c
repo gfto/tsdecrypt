@@ -36,6 +36,7 @@
 #include "udp.h"
 #include "notify.h"
 #include "filter.h"
+#include "fixups.h"
 
 #define FIRST_REPORT_SEC 3
 
@@ -79,9 +80,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:H:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:H:G:KJ:D:jbhVn:m:q";
 
-// Unused short options: aqv01235789
+// Unused short options: av01235789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -128,6 +129,7 @@ static const struct option long_options[] = {
 	{ "emm-only",			no_argument,       NULL, 'E' },
 	{ "emm-report-time",	required_argument, NULL, 'f' },
 	{ "emm-filter",			required_argument, NULL, 'a' },
+	{ "no-emm-fixups",		no_argument,       NULL, 'q' },
 
 	{ "ecm-pid",			required_argument, NULL, 'X' },
 	{ "ecm-report-time",	required_argument, NULL, 'H' },
@@ -228,6 +230,7 @@ static void show_help(struct ts *ts) {
 	printf(" -a --emm-filter <filter>   | Add EMM filter defined by <filter>.\n");
 	printf("                            . This option can be used multiple times (max:%u).\n", MAX_FILTERS);
 	printf("                            . See FILTERING file for more info.\n");
+	printf(" -q --no-emm-fixups         | Disable EMM fixups for CRYPTOWORKS and VIACCESS.");
 	printf("\n");
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
@@ -521,6 +524,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				}
 				break;
 
+			case 'q': // --no-emm-fixups
+				ts->emm_fixups = !ts->emm_fixups;
+				break;
+
 			case 'X': // --ecm-pid
 				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
@@ -685,6 +692,19 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Constant CW: odd  = %s\n", cw_odd);
 	}
 
+	if (ts->emm_fixups) {
+		switch (ts->req_CA_sys) {
+			case CA_CRYPTOWORKS:
+				ts->emm_fixup_func = cryptoworks_reassemble_emm;
+				break;
+			case CA_VIACCESS:
+				ts->emm_fixup_func = viaccess_reassemble_emm;
+				break;
+			default:
+				ts->emm_fixups = 0;
+		}
+	}
+
 	if (ts->input.type == NET_IO) {
 		ts_LOGf("Input addr : %s://%s:%s/\n",
 			ts->rtp_input ? "rtp" : "udp",
@@ -777,11 +797,15 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			ts_LOGf("EMM pid    : 0x%04x (%d)\n", ts->forced_emm_pid, ts->forced_emm_pid);
 	}
 	if (ts->emm_only) {
-		ts_LOGf("EMM only   : %s\n", ts->emm_only ? "yes" : "no");
+		ts_LOGf("EMM only   : %s%s\n",
+			ts->emm_only ? "yes" : "no",
+			ts->emm_fixups ? " +fixups" : "");
 	} else {
 		if (!packet_from_file) {
 			if (!ts->camd.constant_codeword)
-				ts_LOGf("EMM send   : %s\n", ts->emm_send   ? "enabled" : "disabled");
+				ts_LOGf("EMM sending: %s%s\n",
+					ts->emm_send ? "yes" : "no",
+					ts->emm_send && ts->emm_fixups ? " +fixups" : "");
 			ts_LOGf("Decoding   : %s\n", ts->threaded ? "threaded" : "single thread");
 		}
 	}

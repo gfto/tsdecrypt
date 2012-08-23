@@ -42,6 +42,7 @@ tsdecrypt_SRC = data.c \
  udp.c \
  util.c \
  filter.c \
+ fixups.c \
  camd.c \
  camd-cs378x.c \
  camd-newcamd.c \

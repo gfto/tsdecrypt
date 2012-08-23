@@ -241,6 +241,13 @@ For more information about filtering and for example filters, please
 read \fBFILTERING\fR file that comes with tsdecrypt. This option can be
 used multiple times to define up to \fB16\fR different filters.
 .TP
+\fB\-q\fR, \fB\-\-no\-emm\-fixups\fR
+Disable fixups that are applied to Cryptoworks and Viaccess EMMs.
+
+These fixups add and reorder needed nanos in the EMM so OSCAM can
+write the EMM into the card. Without EMM fixups some cards can't
+be updated, thats why the fixups are enabled by default.
+.TP
 .SH ECM OPTIONS
 .PP
 .TP
