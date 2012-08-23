@@ -12,8 +12,6 @@
  * GNU General Public License (COPYING file) for more details.
  *
  */
-#include <string.h>
-
 #include "data.h"
 #include "tables.h"
 #include "camd.h"
