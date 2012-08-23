@@ -283,10 +283,18 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 	return 0;
 }
 
+extern char *optarg;
+extern int optind, opterr, optopt;
+
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
+	opterr = 0; // Prevent printing of error messages for unknown options in getopt()
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		char *p = NULL;
+		if (j == '?') {
+			fprintf(stderr, "ERROR: Unknown parameter '%s'.\n", argv[optind - 1]);
+			exit(EXIT_FAILURE);
+		}
 		switch (j) {
 			case 'i': // -- ident
 				ts->ident = optarg;
