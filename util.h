@@ -27,6 +27,7 @@ void set_thread_name(char *thread_name);
 int decode_hex_string(char *hex, uint8_t *bin, int asc_len);
 int64_t get_time(void);
 unsigned int file_hex2buf(char *filename, uint8_t *buffer, unsigned int buf_size);
+int parse_host_and_port(char *input, char **hostname, char **service, int *port_set);
 char *my_inet_ntop(int family, struct sockaddr *addr, char *dest, int dest_len);
 
 #endif

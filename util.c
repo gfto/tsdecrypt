@@ -281,6 +281,36 @@ OUT:
 	return buf_pos;
 }
 
+int parse_host_and_port(char *input, char **hostname, char **service, int *port_set) {
+	char *p;
+	if (strlen(input) == 0)
+		return 0;
+	*hostname = input;
+	if (input[0] == '[') { // Detect IPv6 static address
+		p = strrchr(input, ']');
+		if (!p) {
+			fprintf(stderr, "ERROR: Invalid IPv6 address format: %s\n", input);
+			exit(EXIT_FAILURE);
+		}
+		*hostname = input + 1; // Remove first [
+		*p = 0x00; // Remove last ]
+		char *p2 = strchr(p + 1, ':');
+		if (p2) {
+			*p2 = 0x00;
+			*service = p2 + 1;
+			*port_set = 1;
+		}
+	} else {
+		p = strrchr(input, ':');
+		if (p) {
+			*p = 0x00;
+			*service = p + 1;
+			*port_set = 1;
+		}
+	}
+	return 1;
+}
+
 char *my_inet_ntop(int family, struct sockaddr *addr, char *dest, int dest_len) {
 	struct sockaddr_in  *addr_v4 = (struct sockaddr_in  *)addr;
 	struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)addr;

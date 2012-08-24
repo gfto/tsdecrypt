@@ -290,7 +290,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
 	opterr = 0; // Prevent printing of error messages for unknown options in getopt()
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
-		char *p = NULL;
 		if (j == '?') {
 			fprintf(stderr, "ERROR: Unknown parameter '%s'.\n", argv[optind - 1]);
 			exit(EXIT_FAILURE);
@@ -461,30 +460,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				}
 				break;
 			case 's': // --camd-server
-				server_err = 0;
-				ts->camd.hostname = optarg;
-				if (optarg[0] == '[') { // Detect IPv6 static address
-					p = strrchr(optarg, ']');
-					if (!p) {
-						fprintf(stderr, "ERROR: Invalid IPv6 address format: %s\n", optarg);
-						exit(EXIT_FAILURE);
-					}
-					ts->camd.hostname = optarg + 1; // Remove first [
-					*p = 0x00; // Remove last ]
-					char *p2 = strchr(p + 1, ':');
-					if (p2) {
-						*p2 = 0x00;
-						ts->camd.service = p2 + 1;
-						port_set = 1;
-					}
-				} else {
-					p = strrchr(optarg, ':');
-					if (p) {
-						*p = 0x00;
-						ts->camd.service = p + 1;
-						port_set = 1;
-					}
-				}
+				server_err = !parse_host_and_port(optarg, &ts->camd.hostname, &ts->camd.service, &port_set);
 				break;
 			case 'U': // --camd-user
 				if (strlen(optarg) < 64)
