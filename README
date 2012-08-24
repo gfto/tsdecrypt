@@ -103,9 +103,10 @@ Main options:
 
 Input options:
  -I --input <source>        | Where to read from. File or multicast address.
-                            .    -I 224.0.0.1:5000 (multicast receive)
-                            .    -I file.ts        (read from file)
-                            .    -I -              (read from stdin) (default)
+                            .    -I 224.0.0.1:5000    (v4 multicast)
+                            .    -I [ff01::1111]:5000 (v6 multicast)
+                            .    -I file://in.ts      (read from file)
+                            . By default the input is stdin.
  -R --input-rtp             | Enable RTP input
  -z --input-ignore-disc     | Do not report discontinuty errors in input.
  -M --input-service <srvid> | Choose service id when input is MPTS.
@@ -114,10 +115,13 @@ Input options:
 
 Output options:
  -O --output <dest>         | Where to send output. File or multicast address.
-                            .    -O 239.0.0.1:5000 (multicast send)
-                            .    -O file.ts        (write to file)
-                            .    -O -              (write to stdout) (default)
- -o --output-intf <addr>    | Set multicast output interface. Default: 0.0.0.0
+                            .    -O 239.0.0.1:5000    (v4 multicast)
+                            .    -O [ff01::2222]:5000 (v6 multicast)
+                            .    -O file://out.ts     (write to file)
+                            . By default the output is stdout.
+ -o --output-intf <value>   | Set multicast output interface.
+                             . Default for IPv4: 0.0.0.0 (intf addr)
+                             . Default for IPv6: -1      (intf number)
  -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
  -r --output-rtp            | Enable RTP output.
  -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: 0
@@ -249,7 +253,7 @@ Examples:
 
    # Decrypt file encypted with constant code word
    tsdecrypt --const-cw 0x00000000000000001111111111111111 \
-       --input encrypted-file.ts --output decrypted-file.ts
+       --input encrypted-file.ts --output file://decrypted-file.ts
 
    # Send ECM from file
    tsdecrypt --ecm-file ecm.txt --caid 0x5581 --input-service 12345 \

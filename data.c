@@ -93,6 +93,7 @@ void data_init(struct ts *ts) {
 	ts->output.type = FILE_IO;
 	ts->output.ttl  = 1;
 	ts->output.tos  = -1;
+	ts->output.v6_if_index = -1;
 
 	ts->decode_buf  = cbuf_init((7 * csa_get_batch_size() * 188) * 16, "decode"); // ~658Kb
 	ts->write_buf   = cbuf_init((7 * csa_get_batch_size() * 188) *  8, "write");  // ~324Kb
@@ -127,9 +128,6 @@ void data_free(struct ts *ts) {
 
 	cbuf_free(&ts->decode_buf);
 	cbuf_free(&ts->write_buf);
-
-	FREE(ts->input.fname);
-	FREE(ts->output.fname);
 
 	list_free(&ts->input_buffer, free, NULL);
 

@@ -172,12 +172,13 @@ struct io {
 	int					fd;
 	enum io_type		type;
 	char				*fname;
-	struct in_addr		addr;
-	unsigned int		port;
+	char				*hostname;
+	char				*service;
 	// Used only for output
 	int					ttl;
 	int					tos;
 	struct in_addr		intf;
+	int					v6_if_index;
 };
 
 struct packet_buf {

@@ -160,9 +160,10 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("Input options:\n");
 	printf(" -I --input <source>        | Where to read from. File or multicast address.\n");
-	printf("                            .    -I 224.0.0.1:5000 (multicast receive)\n");
-	printf("                            .    -I file.ts        (read from file)\n");
-	printf("                            .    -I -              (read from stdin) (default)\n");
+	printf("                            .    -I 224.0.0.1:5000    (v4 multicast)\n");
+	printf("                            .    -I [ff01::1111]:5000 (v6 multicast)\n");
+	printf("                            .    -I file://in.ts      (read from file)\n");
+	printf("                            . By default the input is stdin.\n");
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
 	printf(" -M --input-service <srvid> | Choose service id when input is MPTS.\n");
@@ -171,10 +172,13 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("Output options:\n");
 	printf(" -O --output <dest>         | Where to send output. File or multicast address.\n");
-	printf("                            .    -O 239.0.0.1:5000 (multicast send)\n");
-	printf("                            .    -O file.ts        (write to file)\n");
-	printf("                            .    -O -              (write to stdout) (default)\n");
-	printf(" -o --output-intf <addr>    | Set multicast output interface. Default: %s\n", inet_ntoa(ts->output.intf));
+	printf("                            .    -O 239.0.0.1:5000    (v4 multicast)\n");
+	printf("                            .    -O [ff01::2222]:5000 (v6 multicast)\n");
+	printf("                            .    -O file://out.ts     (write to file)\n");
+	printf("                            . By default the output is stdout.\n");
+	printf(" -o --output-intf <value>   | Set multicast output interface.\n");
+	printf("                            . Default for IPv4: 0.0.0.0 (intf addr)\n");
+	printf("                            . Default for IPv6: -1      (intf number)\n");
 	printf(" -t --output-ttl <ttl>      | Set multicast ttl. Default: %d\n", ts->output.ttl);
 	printf(" -r --output-rtp            | Enable RTP output.\n");
 	printf(" -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: %u\n", ts->rtp_ssrc);
@@ -261,33 +265,33 @@ static void show_help(struct ts *ts) {
 }
 
 static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_mode) {
+	int port_set = 0, host_set;
 	io->type = WTF_IO;
-	char *p = strrchr(opt, ':');
-	if (!p) {
+	if (strstr(opt, "file://") == opt) {
+		io->fname = opt + 7; // strlen("file://")
 		io->type = FILE_IO;
-		if (strcmp(opt, "-") != 0) {
-			io->fd = open(opt, open_flags, open_mode);
-			if (io->fd < 0) {
-				fprintf(stderr, "ERROR: Can not open file (%s): %s\n", opt, strerror(errno));
-				exit(EXIT_FAILURE);
-			}
-		}
-		io->fname = strdup(opt);
-		return 0;
+	} else if (strchr(opt, '/')) {
+		io->fname = opt;
+		io->type = FILE_IO;
 	}
-	*p = 0x00;
-	io->type = NET_IO;
-	io->port = atoi(p + 1);
-	if (inet_aton(opt, &io->addr) == 0)
+	if (io->type == FILE_IO) {
+		io->fd = open(io->fname, open_flags, open_mode);
+		if (io->fd < 0) {
+			fprintf(stderr, "ERROR: Can not open file (%s): %s\n", io->fname, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		return 1;
-	return 0;
+	}
+	io->type = NET_IO;
+	host_set = parse_host_and_port(opt, &io->hostname, &io->service, &port_set);
+	return !(!port_set || !host_set);
 }
 
 extern char *optarg;
 extern int optind, opterr, optopt;
 
 static void parse_options(struct ts *ts, int argc, char **argv) {
-	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, output_intf_err = 0, ident_err = 0, port_set = 0;
+	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, ident_err = 0, port_set = 0;
 	opterr = 0; // Prevent printing of error messages for unknown options in getopt()
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
 		if (j == '?') {
@@ -322,7 +326,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 
 			case 'I': // --input
-				input_addr_err = parse_io_param(&ts->input, optarg, O_RDONLY, 0);
+				input_addr_err = !parse_io_param(&ts->input, optarg, O_RDONLY, 0);
 				break;
 			case 'R': // --input-rtp
 				ts->rtp_input = !ts->rtp_input;
@@ -341,13 +345,15 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 
 			case 'O': // --output
-				output_addr_err = parse_io_param(&ts->output, optarg,
+				output_addr_err = !parse_io_param(&ts->output, optarg,
 					O_CREAT | O_WRONLY | O_TRUNC,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 				break;
 			case 'o': // --output-intf
-				if (inet_aton(optarg, &ts->output.intf) == 0)
-					output_intf_err = 1;
+				if (strchr(optarg, '.'))
+					inet_aton(optarg, &ts->output.intf);
+				else
+					ts->output.v6_if_index = atoi(optarg);
 				break;
 			case 't': // --output-ttl
 				ts->output.ttl = atoi(optarg);
@@ -624,11 +630,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		if (server_err)
 			fprintf(stderr, "ERROR: CAMD server address is not set or it is invalid.\n");
 		if (input_addr_err)
-			fprintf(stderr, "ERROR: Input IP address is invalid.\n");
+			fprintf(stderr, "ERROR: Input address is invalid.\n");
 		if (output_addr_err)
-			fprintf(stderr, "ERROR: Output IP address is invalid.\n");
-		if (output_intf_err)
-			fprintf(stderr, "ERROR: Output interface address is invalid.\n");
+			fprintf(stderr, "ERROR: Output address is invalid.\n");
 		exit(EXIT_FAILURE);
 	}
 	if (decode_hex_string(ts->camd.newcamd.hex_des_key, ts->camd.newcamd.bin_des_key, DESKEY_LENGTH) < 0) {
@@ -682,9 +686,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 
 	if (ts->input.type == NET_IO) {
-		ts_LOGf("Input addr : %s://%s:%u/\n",
+		ts_LOGf("Input addr : %s://%s:%s/\n",
 			ts->rtp_input ? "rtp" : "udp",
-			inet_ntoa(ts->input.addr), ts->input.port);
+			ts->input.hostname, ts->input.service);
 		if (ts->input_buffer_time) {
 			ts_LOGf("Input buff : %u ms\n", ts->input_buffer_time);
 		}
@@ -708,10 +712,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (!ts->emm_only)
 	{
 		if (ts->output.type == NET_IO) {
-			ts_LOGf("Output addr: %s://%s:%u/\n",
+			ts_LOGf("Output addr: %s://%s:%s/\n",
 				ts->rtp_output ? "rtp" : "udp",
-				inet_ntoa(ts->output.addr), ts->output.port);
-			ts_LOGf("Output intf: %s\n", inet_ntoa(ts->output.intf));
+				ts->output.hostname, ts->output.service);
+			ts_LOGf("Output intf: %s (IPv6 intf index:%d)\n",
+				inet_ntoa(ts->output.intf), ts->output.v6_if_index);
 			ts_LOGf("Output ttl : %d\n", ts->output.ttl);
 			if (ts->output.tos > -1)
 				ts_LOGf("Output TOS : %u (0x%02x)\n", ts->output.tos, ts->output.tos);
@@ -1000,16 +1005,16 @@ int main(int argc, char **argv) {
 				ts_LOGf("--- | Input read timeout.\n");
 				if (!ntimeouts) {
 					timeout_start = time(NULL);
-					notify(&ts, "INPUT_TIMEOUT", "Read timeout on input %s://%s:%u/",
+					notify(&ts, "INPUT_TIMEOUT", "Read timeout on input %s://%s:%s/",
 							ts.rtp_input ? "rtp" : "udp",
-							inet_ntoa(ts.input.addr), ts.input.port);
+							ts.input.hostname, ts.input.service);
 				}
 				ntimeouts++;
 			} else {
 				if (ntimeouts && readen > 0) {
-					notify(&ts, "INPUT_OK", "Data is available on input %s://%s:%u/ after %ld seconds timeout.",
+					notify(&ts, "INPUT_OK", "Data is available on input %s://%s:%s/ after %ld seconds timeout.",
 							ts.rtp_input ? "rtp" : "udp",
-							inet_ntoa(ts.input.addr), ts.input.port,
+							ts.input.hostname, ts.input.service,
 							(time(NULL) - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
 					ntimeouts = 0;
 				}

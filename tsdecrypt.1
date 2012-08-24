@@ -68,8 +68,9 @@ Show program help.
 .PP
 .TP
 \fB\-I\fR, \fB\-\-input\fR <source>
-Where to read from. tsdecrypt supports input from files (\-I file.ts or \-I \-)
-or multicast (\-I 224.0.0.1:5000). By default tsdecrypt reads from \fBstdin\fR.
+Where to read from. tsdecrypt supports input from file (\-I file://file.ts),
+IPv4 multicast/unicast addresses (\-I 224.0.0.1:5000) or IPv6 multicast/unicast
+addresses (\-I [ff01::1111]:5000). By default tsdecrypt reads from \fBstdin\fR.
 .TP
 \fB\-R\fR, \fB\-\-input\-rtp\fR
 When reading from multicast assume the input is RTP stream. NOTE: No RTP
@@ -105,11 +106,17 @@ tsdecrypt \-I 239.78.78.78:5000 \-O /dev/null \-s 0.0.0.0 \-W file.ts
 .PP
 .TP
 \fB\-O\fR, \fB\-\-output\fR <dest>
-Output decrypted stream to <dest>. Destination can be multicast address
-(\-O 239.0.0.1:5000) or a file (\-O file.ts). The default output is \fBstdout\fR.
+Output decrypted stream to <dest>. The destination can be IPv4 multicast
+address (\-O 239.0.0.1:5000), IPv6 mulicast address (\-O [ff01::2222]:5000),
+hostname that resolves to IPv4/IPv6 address (\-O example.com:5000) or file.
+When the output is file, the file name should be prefixed with file://
+(\-O file://out.ts)if it doesn't contain / symbol. The default output
+is \fBstdout\fR.
 .TP
-\fB\-o\fR, \fB\-\-output\-intf\fR <addr>
-Set multicast output interface.
+\fB\-o\fR, \fB\-\-output\-intf\fR <value>
+Set multicast output interface. The value can be IPv4 address of the output
+interface  (default: 0.0.0.0 /any/) or in the case of IPv6 the interface
+number (default: -1 /any/).
 .TP
 \fB\-t\fR, \fB\-\-output\-ttl\fR
 Set multicast ttl. The default value is \fB1\fR.
@@ -366,7 +373,7 @@ CA system is set to CONAX, you can change it using \fB\-\-ca-system\fR parameter
 
    # Decrypt file encypted with constant code word
    tsdecrypt --const-cw 0x00000000000000001111111111111111 \\
-       --input encrypted-file.ts --output decrypted-file.ts
+       --input encrypted-file.ts --output file://decrypted-file.ts
 
    # Send ECM from file
    tsdecrypt --ecm-file ecm.txt --caid 0x5581 --input-service 12345 \\

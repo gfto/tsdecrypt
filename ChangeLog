@@ -8,11 +8,14 @@
  * Allow tsdecrypt to read ECM/EMM packet from text file. The added
    parameters are -n, -ecm-file <file> and -m --emm-file <file>.
  * Add support for CAMD server listening on IPv6.
- * Add support for forcing only IPv4 (-4, --ipv4) or IPv6 (-6, --ipv6)
-   server connections.
+ * Add support for input and output over IPv6.
+ * Add support for forcing only IPv4 (-4, --ipv4) or only IPv6 (-6, --ipv6).
  * Add support for multiple CAMD addresses returned when resolving CAMD
    server hostname. tsdecrypt would try each of the addresses and use
    the one that works.
+ * Change the way filenames are set in input/output options.
+   Now file:// prefix is must be added before the filename otherwise
+   the parameter is treated as network address.
  * Add --emm-filter (-a) option. This option implements EMM filtering.
 
 2012-04-19 : Version 8.1
