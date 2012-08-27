@@ -27,7 +27,8 @@ Filter definitions
 ==================
 Filter definition contain command and command settings. The command
 and the settings are separated by / (forward slash) symbol, the
-settings are separated by ^ symbol.
+settings are separated by comma (,) character and use setting=value
+notation.
 
   Command  Settings
   -------  --------
