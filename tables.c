@@ -177,6 +177,7 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 static int sdt_parse_service_name_desc(
 	int desc_len, uint8_t *desc,
+	uint8_t *service_type,
 	uint8_t *pname_len, uint8_t **pname,
 	uint8_t *sname_len, uint8_t **sname)
 {
@@ -192,13 +193,12 @@ static int sdt_parse_service_name_desc(
 			ofs += len;
 			continue;
 		}
-		// Parse descriptor 0x48 - Service name descriptor
+		// Parse descriptor 0x48 - service_descriptor
 		// +3 == +1 for service type, +1 for provider len, +1 for service len
 		if (ofs + 3 > desc_len)
 			break;
 
-		ofs++; // Skip service type
-
+		*service_type = desc[ofs++];
 		*pname_len = desc[ofs++];
 		if (*pname_len)
 			*pname = desc + ofs;
@@ -226,10 +226,12 @@ void process_sdt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	for(i=0;i<ts->sdt->streams_num;i++) {
 		struct ts_sdt_stream *stream = ts->sdt->streams[i];
+		uint8_t service_type;
 		uint8_t *pname, *sname;
 		uint8_t pname_len, sname_len;
 		if (sdt_parse_service_name_desc(
 			stream->descriptor_size, stream->descriptor_data,
+			&service_type,
 			&pname_len, &pname, &sname_len, &sname))
 		{
 			int r;
@@ -241,8 +243,18 @@ void process_sdt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 				if (sname[r] < ' ')
 					sname[r] = '*';
 			}
-			ts_LOGf("SDT | Service 0x%04x (%5d) Provider: \"%.*s\" Service: \"%.*s\"\n",
+			ts_LOGf("SDT | Service 0x%04x (%5d) Type: 0x%02x (%s) Provider: \"%.*s\" Service: \"%.*s\"\n",
 				stream->service_id, stream->service_id,
+				service_type,
+				// The service types are described in Table 87 of
+				// ETSI EN 300 468 v1.12.1 and also in annex I of the
+				// same document.
+				service_type == 0x01 ? "Tv" :
+				service_type == 0x02 ? "Radio" :
+				service_type == 0x11 ? "Tv/HD" :
+				service_type == 0x16 ? "Tv/h264" :
+				service_type == 0x19 ? "Tv/HD/h264" :
+				service_type == 0x1c ? "Tv/3d" : "unknown",
 				pname_len, (char *)pname,
 				sname_len, (char *)sname);
 		} else {
