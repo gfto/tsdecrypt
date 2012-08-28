@@ -68,6 +68,9 @@ static int bind_addr(const char *hostname, const char *service, int socktype, st
 	while (res) {
 		*sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (*sock > -1) {
+			int on = 1;
+			setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+			set_sock_nonblock(*sock);
 			if (bind(*sock, res->ai_addr, res->ai_addrlen) == 0) {
 				memcpy(addr, res->ai_addr, sizeof(*addr));
 				*addrlen = res->ai_addrlen;
@@ -86,12 +89,6 @@ static int bind_addr(const char *hostname, const char *service, int socktype, st
 	}
 OUT:
 	freeaddrinfo(ressave);
-
-	if (*sock > -1) {
-		int on = 1;
-		setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-		set_sock_nonblock(*sock);
-	}
 
 	return ret;
 }
