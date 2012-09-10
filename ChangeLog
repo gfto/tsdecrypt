@@ -1,4 +1,4 @@
-2012-06-20 : Version next
+2012-09-10 : Version 9.0
  * Add --no-output-on-error (-u) option. By using this option output can be
    disabled if there is no currently received code word.
  * Remove deprecated --output-filter option. The option you should use is
