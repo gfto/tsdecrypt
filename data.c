@@ -72,7 +72,11 @@ void data_init(struct ts *ts) {
 
 	ts->debug_level = 0;
 	ts->req_CA_sys  = CA_CONAX;
-	ts->emm_send    = 0;
+
+	ts->process_ecm = 1;
+	ts->process_emm = 0;
+	ts->output_stream = 1;
+
 	ts->pid_filter  = 1;
 
 	ts->emm_report_interval = 60;

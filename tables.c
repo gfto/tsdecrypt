@@ -274,9 +274,6 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	ts->emm_input_count++;
 
-	if (!ts->emm_send)
-		return;
-
 	ts->emm = ts_privsec_push_packet(ts->emm, ts_packet);
 	if (!ts->emm->initialized)
 		return;
@@ -381,7 +378,7 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 void process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int section_end;
 
-	if (ts->emm_only)
+	if (!ts->process_ecm)
 		return;
 
 	if (!ts->ecm_pid || ts->ecm_pid != pid)
@@ -410,7 +407,7 @@ process_psi:
 void process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int section_end;
 
-	if (!ts->emm_pid || ts->emm_pid != pid)
+	if (!ts->process_emm)
 		return;
 
 process_psi:

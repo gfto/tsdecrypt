@@ -359,7 +359,7 @@ void process_packets(struct ts *ts, uint8_t *data, ssize_t data_len) {
 		if (!ts_pack_shown)
 			dump_ts_pack(ts, pid, ts_packet);
 
-		if (ts->emm_only)
+		if (!ts->output_stream)
 			continue;
 
 		// Return rewritten PAT

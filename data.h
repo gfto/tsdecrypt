@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include <openssl/aes.h>
 #include <openssl/des.h>
@@ -270,8 +271,10 @@ struct ts {
 
 	enum CA_system		req_CA_sys;
 
-	int					emm_send;
-	int					emm_only;
+	bool				output_stream;		// Decode and output the decoded stream
+	bool				process_ecm;		// Process ECM packets (and send them to CAMD)
+	bool				process_emm;		// Process EMM packets (and send them to CAMD)
+
 	int					pid_filter;
 	int					eit_passthrough;
 	int					tdt_passthrough;
