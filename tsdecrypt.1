@@ -221,10 +221,11 @@ Set EMM pid manually. This option is useful for services that have
 couple of EMM streams from one CA system. Without this option tsdecrypt
 always chooses the first stream from the chosen CA system.
 .TP
-\fB\-E\fR, \fB\-\-emm\-only\fR <hierarchy>
+\fB\-E\fR, \fB\-\-emm\-only\fR
 Disable ECM processing and stream output. This option is useful if the EMM
 stream has very high rate and is interfering with ECM processing. Using
-\-\-emm\-only you can run special tsdecrypt dedicated only to card auto update.
+\-\-emm\-only you can run special tsdecrypt dedicated only to keeping
+card entitlements up to date.
 .TP
 \fB\-f\fR, \fB\-\-emm\-report\-time\fR <seconds>
 Set interval for EMM reports. The default is \fB60\fR seconds. Set to \fB0\fR
@@ -251,6 +252,11 @@ always chooses the first stream from the chosen CA system. Run tsdecrypt
 with \-\-debug 2 and look at CA descriptors in PMT to see what CA streams
 are available.
 .TP
+\fB\-v\fR, \fB\-\-ecm\-only\fR
+Process ECMs but do not decode the input stream. This option is useful if
+you just want to populate you OSCAM DCW cache but do not want to waste CPU
+time on stream decoding.
+.TP
 \fB\-H\fR, \fB\-\-ecm\-report\-time\fR <seconds>
 Set interval for ECM reports. The default is \fB60\fR seconds. Set to \fB0\fR
 to disable ECM reports.
@@ -268,6 +274,12 @@ reports are not affected by this option.
 \fB\-J\fR, \fB\-\-cw\-warn\-time\fR <seconds>
 After how much seconds to warn if valid code word was not received.
 The default is \fB60\fR seconds. Set to \fB0\fR to disable the warning.
+.TP
+\fB\-q\fR, \fB\-\-ecm\-and-emm-only\fR
+Process ECMs and EMMs but do not decode the input stream. This option combines
+\-\-ecm\-only and \-\-emm\-only options. Use it if you want to populate your
+OSCAM DCW cache and keep your card entitlements updated but do not want to
+waste CPU time on stream decoding.
 .TP
 .SH DEBUG OPTIONS
 .PP

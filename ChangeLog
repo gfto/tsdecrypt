@@ -1,3 +1,9 @@
+now : current
+ * Add --ecm-only (-v) option. This allows processing of ECMs but without
+   decoding the input stream.
+ * Add --ecm-and-emm-only (-q) option. This allows processing of ECMs
+   and EMMs but without decoding the input stream.
+
 2012-09-10 : Version 9.0
  * Add --no-output-on-error (-u) option. By using this option output can be
    disabled if there is no currently received code word.

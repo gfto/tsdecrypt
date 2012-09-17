@@ -79,9 +79,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:H:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:KJ:D:jbhVn:m:";
 
-// Unused short options: aqv01235789
+// Unused short options: a01235789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -130,10 +130,13 @@ static const struct option long_options[] = {
 	{ "emm-filter",			required_argument, NULL, 'a' },
 
 	{ "ecm-pid",			required_argument, NULL, 'X' },
+	{ "ecm-only",			no_argument,       NULL, 'v' },
 	{ "ecm-report-time",	required_argument, NULL, 'H' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
 	{ "ecm-no-log",			no_argument      , NULL, 'K' },
 	{ "cw-warn-time",		required_argument, NULL, 'J' },
+
+	{ "ecm-and-emm-only",	no_argument,       NULL, 'q' },
 
 	{ "debug",				required_argument, NULL, 'D' },
 	{ "pid-report",			no_argument,       NULL, 'j' },
@@ -231,6 +234,8 @@ static void show_help(struct ts *ts) {
 	printf("\n");
 	printf("ECM options:\n");
 	printf(" -X --ecm-pid <pid>         | Force ECM pid. Default: none\n");
+	printf(" -v --ecm-only              | Send only ECMs to CAMD, skipping EMMs and without\n");
+	printf("                            .   decoding the input stream.\n");
 	printf(" -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been\n");
 	printf("                            .   processed/skipped. Set <sec> to 0 to disable\n");
 	printf("                            .   the reports. Default: %d sec\n", ts->ecm_report_interval);
@@ -238,6 +243,9 @@ static void show_help(struct ts *ts) {
 	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
 	printf(" -J --cw-warn-time <sec>    | Warn if no valid code word has been received.\n");
 	printf("                            .   Set <sec> to 0 to disable. Default: %d sec\n", ts->cw_warn_sec);
+	printf("\n");
+	printf(" -q --ecm-and-emm-only      | Send ECMs and EMMs to CAMD but do not decode\n");
+	printf("                            .   the input stream.\n");
 	printf("\n");
 	printf("Logging options:\n");
 	printf(" -S --syslog                | Log messages using syslog.\n");
@@ -525,6 +533,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 			case 'X': // --ecm-pid
 				ts->forced_ecm_pid = strtoul(optarg, NULL, 0) & 0x1fff;
 				break;
+			case 'v': // --ecm-only
+				ts->process_emm = 0;
+				ts->process_ecm = 1;
+				ts->output_stream = 0;
+				break;
 			case 'H': // --ecm-report-time
 				ts->ecm_report_interval = strtoul(optarg, NULL, 10);
 				if (ts->ecm_report_interval > 86400)
@@ -541,6 +554,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				if (ts->cw_warn_sec > 86400)
 					ts->cw_warn_sec = 86400;
 				ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;
+				break;
+			case 'q': // --ecm-and-emm-only
+				ts->process_emm = 1;
+				ts->process_ecm = 1;
+				ts->output_stream = 0;
 				break;
 
 			case 'D': // --debug
