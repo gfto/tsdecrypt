@@ -30,6 +30,7 @@
 #define NEWCAMD_PROTO_VER      525
 #define NEWCAMD_HDR_LEN        8
 #define NEWCAMD_FIRST_CMD_NO   0xe0
+#define TSDECRYPT_CLIENT_ID    0x7878
 
 typedef enum {
 	MSG_CLIENT_2_SERVER_LOGIN = NEWCAMD_FIRST_CMD_NO,
@@ -312,7 +313,7 @@ static int newcamd_login(struct camd *c) {
 	prepare_login_key(c, rand_data);
 	des_schedule_key(&c->newcamd.td_key);
 
-	if (!newcamd_send_msg(c, buffer, buffer[2] + 3, 0, 1) ||
+	if (!newcamd_send_msg(c, buffer, buffer[2] + 3, TSDECRYPT_CLIENT_ID, 1) ||
 		newcamd_recv_cmd(c) != MSG_CLIENT_2_SERVER_LOGIN_ACK)
 	{
 		ts_LOGf("ERR | [%s] Login failed. Check user/pass/des-key.\n", c->ops.ident);
