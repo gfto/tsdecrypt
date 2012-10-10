@@ -1,6 +1,6 @@
 CC = $(CROSS)$(TARGET)cc
 STRIP = $(CROSS)$(TARGET)strip
-MKDEP = $(CC) -M -o $*.d $<
+MKDEP = $(CC) -MP -MM -o $*.d $<
 RM = rm -f
 MV = mv -f
 
