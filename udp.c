@@ -50,7 +50,7 @@ static int is_multicast(struct sockaddr_storage *addr) {
 
 extern int ai_family;
 
-static int bind_addr(const char *hostname, const char *service, int socktype, struct sockaddr_storage *addr, int *addrlen, int *sock) {
+static int get_socket(const char *hostname, const char *service, int socktype, struct sockaddr_storage *addr, int *addrlen, int *sock, bool is_output) {
 	struct addrinfo hints, *res, *ressave;
 	int n, ret = -1;
 
@@ -71,11 +71,17 @@ static int bind_addr(const char *hostname, const char *service, int socktype, st
 			int on = 1;
 			setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 			set_sock_nonblock(*sock);
+			if (is_output) {
+				memcpy(addr, res->ai_addr, sizeof(*addr));
+				*addrlen = res->ai_addrlen;
+				ret = 0;
+				break;
+			}
 			if (bind(*sock, res->ai_addr, res->ai_addrlen) == 0) {
 				memcpy(addr, res->ai_addr, sizeof(*addr));
 				*addrlen = res->ai_addrlen;
 				ret = 0;
-				goto OUT;
+				break;
 			} else {
 				char str_addr[INET6_ADDRSTRLEN];
 				my_inet_ntop(res->ai_family, res->ai_addr, str_addr, sizeof(str_addr));
@@ -87,10 +93,17 @@ static int bind_addr(const char *hostname, const char *service, int socktype, st
 		}
 		res = res->ai_next;
 	}
-OUT:
 	freeaddrinfo(ressave);
 
 	return ret;
+}
+
+static int get_input_socket(const char *hostname, const char *service, int socktype, struct sockaddr_storage *addr, int *addrlen, int *sock) {
+	return get_socket(hostname, service, socktype, addr, addrlen, sock, false);
+}
+
+static int get_output_socket(const char *hostname, const char *service, int socktype, struct sockaddr_storage *addr, int *addrlen, int *sock) {
+	return get_socket(hostname, service, socktype, addr, addrlen, sock, true);
 }
 
 static int join_multicast_group(int sock, int ttl, struct sockaddr_storage *addr) {
@@ -137,7 +150,7 @@ int udp_connect_input(struct io *io) {
 	memset(&addr, 0, sizeof(addr));
 
 	ts_LOGf("Connecting input to %s port %s\n", io->hostname, io->service);
-	if (bind_addr(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
+	if (get_input_socket(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
 		return -1;
 
 	/* Set receive buffer size to ~2.0MB */
@@ -166,7 +179,7 @@ int udp_connect_output(struct io *io) {
 
 	ts_LOGf("Connecting output to %s port %s ttl: %d\n",
 		io->hostname, io->service, io->ttl);
-	if (bind_addr(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
+	if (get_output_socket(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
 		return -1;
 
 	/* Set send buffer size to ~2.0MB */
