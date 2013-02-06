@@ -196,7 +196,8 @@ static void show_help(struct ts *ts) {
 	printf(" -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.\n");
 	printf("                            | Valid systems are: CONAX (default), CRYPTOWORKS,\n");
 	printf("                            .   IRDETO, SECA (MEDIAGUARD), VIACCESS,\n");
-	printf("                            .   VIDEOGUARD (NDS), NAGRA, DRECRYPT and BULCRYPT.\n");
+	printf("                            .   VIDEOGUARD (NDS), NAGRA, DRECRYPT, BULCRYPT,\n");
+	printf("                            .   GRIFFIN and DGCRYPT.\n");
 	printf(" -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.\n");
 	printf(" -Y --const-cw <codeword>   | Set constant code word for decryption.\n");
 	printf("                            . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8\n");
@@ -409,6 +410,10 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->req_CA_sys = CA_DRECRYPT;
 				else if (strcasecmp("BULCRYPT", optarg) == 0)
 					ts->req_CA_sys = CA_BULCRYPT;
+				else if (strcasecmp("GRIFFIN", optarg) == 0)
+					ts->req_CA_sys = CA_GRIFFIN;
+				else if (strcasecmp("DGCRYPT", optarg) == 0)
+					ts->req_CA_sys = CA_DGCRYPT;
 				else
 					ca_err = 1;
 				break;
