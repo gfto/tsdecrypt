@@ -7,6 +7,7 @@ now : current
  * Fixed regression that apeared in 9.0 which prevented the output from
    working if the output address was not multicast.
  * Add support for Griffin CAS and for DGCrypt CAS.
+ * Add support for setting multicast source address /SSM/ (--input-source).
 
 2012-09-10 : Version 9.0
  * Add --no-output-on-error (-u) option. By using this option output can be

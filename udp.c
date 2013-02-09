@@ -149,7 +149,11 @@ int udp_connect_input(struct io *io) {
 
 	memset(&addr, 0, sizeof(addr));
 
-	ts_LOGf("Connecting input to %s port %s\n", io->hostname, io->service);
+	if (!io->isrc.s_addr)
+		ts_LOGf("Connecting input to %s port %s\n", io->hostname, io->service);
+	else
+		ts_LOGf("Connecting input to %s port %s source %s\n", io->hostname, io->service, inet_ntoa(io->isrc));
+
 	if (get_input_socket(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
 		return -1;
 
@@ -161,6 +165,25 @@ int udp_connect_input(struct io *io) {
 		if (join_multicast_group(sock, io->ttl, &addr) < 0) {
 			close(sock);
 			return -1;
+		} else {
+#ifdef IP_ADD_SOURCE_MEMBERSHIP
+			if (io->isrc.s_addr && addr.ss_family == AF_INET) {
+				/* Source-specific multicast */
+				struct sockaddr_in *src = (struct sockaddr_in *)&addr;
+				struct ip_mreq_source imr;
+				memset(&imr, 0, sizeof(imr));
+				imr.imr_multiaddr = src->sin_addr;
+				imr.imr_sourceaddr = io->isrc;
+				if (setsockopt(sock, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP,
+				    (char *)&imr, sizeof(struct ip_mreq_source)) < 0)
+				{
+					char str_addr[INET6_ADDRSTRLEN];
+					my_inet_ntop(addr.ss_family, (struct sockaddr *)&addr, str_addr, sizeof(str_addr));
+					ts_LOGf("ERROR: Can't set multicast group %s source %s: %s\n",
+						str_addr, inet_ntoa(io->isrc), strerror(errno));
+				}
+#endif
+			}
 		}
 	}
 

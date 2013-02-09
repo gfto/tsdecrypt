@@ -180,6 +180,8 @@ struct io {
 	int					tos;
 	struct in_addr		intf;
 	int					v6_if_index;
+	// Used for input
+	struct in_addr		isrc;
 };
 
 struct packet_buf {

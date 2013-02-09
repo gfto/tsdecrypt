@@ -79,9 +79,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:KJ:D:jbhVn:m:";
 
-// Unused short options: a01235789
+// Unused short options: 0235789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -92,6 +92,7 @@ static const struct option long_options[] = {
 	{ "notify-program",		required_argument, NULL, 'N' },
 
 	{ "input",				required_argument, NULL, 'I' },
+	{ "input-source",		required_argument, NULL, '1' },
 	{ "input-rtp",			no_argument,       NULL, 'R' },
 	{ "input-ignore-disc",	no_argument,       NULL, 'z' },
 	{ "input-service",		required_argument, NULL, 'M' },
@@ -167,6 +168,7 @@ static void show_help(struct ts *ts) {
 	printf("                            .    -I [ff01::1111]:5000 (v6 multicast)\n");
 	printf("                            .    -I file://in.ts      (read from file)\n");
 	printf("                            . By default the input is stdin.\n");
+	printf(" -1 --input-source <ipaddr> | Set multicast input source ip.\n");
 	printf(" -R --input-rtp             | Enable RTP input\n");
 	printf(" -z --input-ignore-disc     | Do not report discontinuty errors in input.\n");
 	printf(" -M --input-service <srvid> | Choose service id when input is MPTS.\n");
@@ -336,6 +338,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 
 			case 'I': // --input
 				input_addr_err = !parse_io_param(&ts->input, optarg, O_RDONLY, 0);
+				break;
+			case '1': // --input-source
+				if (!inet_aton(optarg, &ts->input.isrc)) {
+					fprintf(stderr, "ERROR: Can't parse input-source IP address: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 'R': // --input-rtp
 				ts->rtp_input = !ts->rtp_input;
@@ -708,6 +716,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Input addr : %s://%s:%s/\n",
 			ts->rtp_input ? "rtp" : "udp",
 			ts->input.hostname, ts->input.service);
+		ts_LOGf("Input src  : %s\n", inet_ntoa(ts->input.isrc));
 		if (ts->input_buffer_time) {
 			ts_LOGf("Input buff : %u ms\n", ts->input_buffer_time);
 		}

@@ -72,6 +72,11 @@ Where to read from. tsdecrypt supports input from file (\-I file://file.ts),
 IPv4 multicast/unicast addresses (\-I 224.0.0.1:5000) or IPv6 multicast/unicast
 addresses (\-I [ff01::1111]:5000). By default tsdecrypt reads from \fBstdin\fR.
 .TP
+\fB\-1\fR, \fB\-\-input\-source\fR <ipaddr>
+Set multicast input source address using IP_ADD_SOURCE_MEMBERSHIP. This works
+only for IPv4 multicast. The default value is 0.0.0.0 (do not apply source
+filtering).
+.TP
 \fB\-R\fR, \fB\-\-input\-rtp\fR
 When reading from multicast assume the input is RTP stream. NOTE: No RTP
 processing/reordering of packets is done. The 12 byte RTP header is just
