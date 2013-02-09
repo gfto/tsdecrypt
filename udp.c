@@ -177,7 +177,7 @@ int udp_connect_output(struct io *io) {
 
 	memset(&addr, 0, sizeof(addr));
 
-	ts_LOGf("Connecting output to %s port %s ttl: %d\n",
+	ts_LOGf("Connecting output to %s port %s ttl %d\n",
 		io->hostname, io->service, io->ttl);
 	if (get_output_socket(io->hostname, io->service, SOCK_DGRAM, &addr, &addrlen, &sock) < 0)
 		return -1;
