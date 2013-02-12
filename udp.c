@@ -182,8 +182,8 @@ int udp_connect_input(struct io *io) {
 					ts_LOGf("ERROR: Can't set multicast group %s source %s: %s\n",
 						str_addr, inet_ntoa(io->isrc), strerror(errno));
 				}
-#endif
 			}
+#endif
 		}
 	}
 
