@@ -107,6 +107,7 @@ Input options:
                             .    -I [ff01::1111]:5000 (v6 multicast)
                             .    -I file://in.ts      (read from file)
                             . By default the input is stdin.
+ -1 --input-source <ipaddr> | Set multicast input source ip.
  -R --input-rtp             | Enable RTP input
  -z --input-ignore-disc     | Do not report discontinuty errors in input.
  -M --input-service <srvid> | Choose service id when input is MPTS.
@@ -120,8 +121,8 @@ Output options:
                             .    -O file://out.ts     (write to file)
                             . By default the output is stdout.
  -o --output-intf <value>   | Set multicast output interface.
-                             . Default for IPv4: 0.0.0.0 (intf addr)
-                             . Default for IPv6: -1      (intf number)
+                            . Default for IPv4: 0.0.0.0 (intf addr)
+                            . Default for IPv6: -1      (intf number)
  -t --output-ttl <ttl>      | Set multicast ttl. Default: 1
  -r --output-rtp            | Enable RTP output.
  -k --output-rtp-ssrc <id>  | Set RTP SSRC. Default: 0
@@ -136,7 +137,8 @@ CA options:
  -c --ca-system <ca_sys>    | Process input EMM/ECM from <ca_sys>.
                             | Valid systems are: CONAX (default), CRYPTOWORKS,
                             .   IRDETO, SECA (MEDIAGUARD), VIACCESS,
-                            .   VIDEOGUARD (NDS), NAGRA, DRECRYPT and BULCRYPT.
+                            .   VIDEOGUARD (NDS), NAGRA, DRECRYPT, BULCRYPT,
+                            .   GRIFFIN and DGCRYPT.
  -C --caid <caid>           | Set CAID. Default: Taken from --ca-system.
  -Y --const-cw <codeword>   | Set constant code word for decryption.
                             . Example cw: a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8
