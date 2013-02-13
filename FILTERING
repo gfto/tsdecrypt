@@ -67,12 +67,46 @@ Currently defined command settings are:
  * name=X        - Sets the filter name (used when displaying filters).
                    The name can not be longer than 32 symbols.
 
+ * match=X1 X4 X5
+ * mask=M1 M4 M5
+                 - Match bytes are series of hex numbers separated by
+                   space " " or dot ".". When the bytes are processed 0x
+                   prefix is removed from them. The maximum match bytes
+                   is 16.
+
+                   The match bytes are compared to the incoming packet
+                   by first applying the mask (binary AND operation) set
+                   in mask= setting. The default mask is 0xFF.
+
+                   The match bytes are compared to first, forth and so
+                   on bytes in the incoming EMM packet. Second and third
+                   incoming bytes in the EMM are not checked (they specify
+                   the section length).
+
+                   Here is an example EMM and match+mask that would match:
+
+                      Pos:  1  2  3  4  5  6  7  8  9 10 11 12 13
+                           -- -- -- -- -- -- -- -- -- -- -- -- --
+                      EMM: 82 70 b4 aa bb cc d0 00 01 xx xx xx xx
+                    Match: 82       aa bb cc dd
+                     Mask: ff       ff ff ff f0
+
+                   Such filter is configured like that:
+                     --emm-filter "accept/name=Test_Filter,match=82 aa bb cc dd,mask=ff ff ff ff f0"
+
  * offset=X      - Sets the offset at which data bytes would be checked
                    against EMM. The default offset is 0.
+
+                   This setting is ignored when match+mask are set.
 
  * data=XX YY ZZ - Data bytes are series of hex numbers separated by
                    space " " or dot ".". When data bytes are processed 0x
                    prefix is removed from them. The maximum data bytes is 16.
+
+                   This setting is ignored when match+mask is set.
+
+                   Using offset+data you can check any bytes in the
+                   incoming EMM packet.
 
 Filter processing
 =================
@@ -83,32 +117,33 @@ by "accept_all" or "reject_all" is returned.
 Example filters
 ===============
 
+    Accept Bulcrypt EMMs that are for particular card (or card group). The card
+    hex serial number is "aa bb cc dd".
+
+       tsdecrypt ... \
+         --emm \
+         --emm-filter reject_all \
+         --emm-filter "accept/name=Bulcrypt_EMMs,match=82 aa bb cc dd,mask=ff ff ff ff f0" \
+         --emm-filter "accept/name=Bulcrypt_EMMs,match=84 aa bb cc dd,mask=ff ff ff ff f0" \
+         --emm-filter "accept/name=Bulcrypt_EMMs,match=85 aa bb cc dd,mask=ff ff ff ff f0"
+
   Bulcrypt white list example:
     Accept all EMMs except those starting with 8a 70 b4, 8b 70 b4, 8c or 8d.
 
        tsdecrypt ... \
+         --emm \
          --emm-filter accept_all \
          --emm-filter "reject/name=Bulcrypt_unknown_EMMs,offset=0,data=8a 70 b4" \
          --emm-filter "reject/name=Bulcrypt_unknown_EMMs,offset=0,data=8b 70 b4" \
          --emm-filter "reject/name=Some EMM,data=0x8c" \
-         --emm-filter reject/data=0x8d \
+         --emm-filter "reject/data=0x8d"
 
   Bulcrypt black list example:
     Reject all EMMs that don't start with 82, 84 or 85.
 
-      tsdecrypt ... \
-        --emm-filter reject_all \
-        --emm-filter accept/name=Bulcrypt_EMMs,offset=0,data=82 \
-        --emm-filter accept/name=Bulcrypt_EMMs,data=84 \
-        --emm-filter accept/name=Bulcrypt_EMMs,data=85 \
-
-  Example combination that builds white/black list.
-    Accept EMMs that start with 8a and 8b also accept EMMs which have
-    70 b4 at offset 1, and reject everything else.
-
-      tsdecrypt ... \
-        --emm-filter accept_all \
-        --emm-filter reject/name=Bulcrypt_unknown_EMMs,data=8a \
-        --emm-filter reject/name=Bulcrypt_unknown_EMMs,data=8b \
-        --emm-filter reject_all \
-        --emm-filter "accept/name=Bulcrypt_EMMs_with_correct_size,offset=1,data=70 b4" \
+       tsdecrypt ... \
+         --emm \
+         --emm-filter reject_all \
+         --emm-filter accept/name=Bulcrypt_EMMs,offset=0,data=82 \
+         --emm-filter accept/name=Bulcrypt_EMMs,data=84 \
+         --emm-filter accept/name=Bulcrypt_EMMs,data=85 \

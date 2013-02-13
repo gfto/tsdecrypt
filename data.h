@@ -201,11 +201,18 @@ enum filter_action {
 	FILTER_REJECT     = 4,
 };
 
+enum filter_type {
+	FILTER_TYPE_DATA = 0,				// Compare data at offset X
+	FILTER_TYPE_MASK = 1,				// Compare data + mask
+};
+
 struct filter {
-	enum filter_action action;			// If set to 1, the filter is negative else the filter is positive
-	uint8_t		offset;					// Offset into EMM
-	uint8_t		data_len;				// Filter length
-	uint8_t		data[MAX_FILTER_LEN];	// Filter bytes
+	enum filter_action action;
+	enum filter_type type;
+	uint8_t		offset;					// Offset into EMM, if offset == 255 then mask exists, ignore the offset
+	uint8_t		filter_len;				// Filter length
+	uint8_t		data[MAX_FILTER_LEN];	// Data | Matched bytes
+	uint8_t		mask[MAX_FILTER_LEN];	// Mask bytes
 	char		name[MAX_FILTER_NAME];	// Filter name (default: NO_NAME)
 };
 
