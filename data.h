@@ -204,12 +204,13 @@ enum filter_action {
 enum filter_type {
 	FILTER_TYPE_DATA = 0,				// Compare data at offset X
 	FILTER_TYPE_MASK = 1,				// Compare data + mask
+	FILTER_TYPE_LENGTH = 2,				// Compare section length /EMM[2]/)
 };
 
 struct filter {
 	enum filter_action action;
 	enum filter_type type;
-	uint8_t		offset;					// Offset into EMM, if offset == 255 then mask exists, ignore the offset
+	uint8_t		offset;					// Offset into EMM
 	uint8_t		filter_len;				// Filter length
 	uint8_t		data[MAX_FILTER_LEN];	// Data | Matched bytes
 	uint8_t		mask[MAX_FILTER_LEN];	// Mask bytes

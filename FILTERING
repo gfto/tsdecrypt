@@ -94,6 +94,9 @@ Currently defined command settings are:
                    Such filter is configured like that:
                      --emm-filter "accept/name=Test_Filter,match=82 aa bb cc dd,mask=ff ff ff ff f0"
 
+ * length=Num1 Num2 NumX
+                 - Match EMM packets that have section length "X".
+
  * offset=X      - Sets the offset at which data bytes would be checked
                    against EMM. The default offset is 0.
 
@@ -126,6 +129,13 @@ Example filters
          --emm-filter "accept/name=Bulcrypt_EMMs,match=82 aa bb cc dd,mask=ff ff ff ff f0" \
          --emm-filter "accept/name=Bulcrypt_EMMs,match=84 aa bb cc dd,mask=ff ff ff ff f0" \
          --emm-filter "accept/name=Bulcrypt_EMMs,match=85 aa bb cc dd,mask=ff ff ff ff f0"
+
+    Accept Bulcrypt EMMs that have sizes 190, 240 and 0xb4
+
+       tsdecrypt ... \
+         --emm \
+         --emm-filter reject_all \
+         --emm-filter "accept/name=Bulcrypt_EMMs,length=190 240 0xb4"
 
   Bulcrypt white list example:
     Accept all EMMs except those starting with 8a 70 b4, 8b 70 b4, 8c or 8d.

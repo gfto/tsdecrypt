@@ -34,7 +34,7 @@ static struct filter_actions_map action_tokens[] = {
 	{ NULL,         true,  FILTER_NO_MATCH   },
 };
 
-enum filter_token { T_UNKNOWN, T_NAME, T_OFFSET, T_DATA, T_MATCH, T_MASK };
+enum filter_token { T_UNKNOWN, T_NAME, T_OFFSET, T_DATA, T_MATCH, T_MASK, T_LENGTH };
 
 struct filter_data_map {
 	const char			*token;
@@ -48,6 +48,7 @@ static struct filter_data_map data_tokens[] = {
 	{ "data",    T_DATA    },
 	{ "match",   T_MATCH   },
 	{ "mask",    T_MASK    },
+	{ "length",  T_LENGTH  },
 	{ NULL,      T_UNKNOWN },
 };
 
@@ -144,9 +145,22 @@ int filter_parse(char *filter_def, struct filter *filter) {
 						filter->type = FILTER_TYPE_MASK;
 						ret = parse_hex(tokdata, filter->mask, NULL, MAX_FILTER_LEN);
 						break;
-					default:
-						fprintf(stderr, "WARN : Unknown filter setting: %s\n", token2);
+					case T_LENGTH: {
+						filter->type = FILTER_TYPE_LENGTH;
+						int i;
+						char *ptr, *saveptr3 = NULL;
+						for (i = 0,                ptr = strtok_r(tokdata, " ", &saveptr3);
+						     i < MAX_FILTER_LEN && ptr;
+						     i++  ,                ptr = strtok_r(NULL, " ", &saveptr3))
+						{
+							filter->data[i] = strtoul(ptr, NULL, 0);
+						}
+						filter->filter_len = i;
+						break;
 					}
+					case T_UNKNOWN:
+						fprintf(stderr, "WARN : Unknown filter setting: %s\n", token2);
+					} // switch (data_type)
 				}
 			}
 		}
@@ -157,7 +171,7 @@ OUT:
 }
 
 void filter_dump(struct filter *filter, char *buffer, unsigned int buf_len) {
-	unsigned int pos = 0;
+	unsigned int i, pos = 0;
 	memset(buffer, 0, buf_len);
 	pos += snprintf(buffer + pos, buf_len - pos, "Action: %s",
 		filter->action == FILTER_ACCEPT_ALL ? "ACCEPT_ALL (default)" :
@@ -177,11 +191,17 @@ void filter_dump(struct filter *filter, char *buffer, unsigned int buf_len) {
 			ts_hex_dump_buf(tmp_mask, sizeof(tmp_mask), filter->mask, filter->filter_len, 0);
 			pos += snprintf(buffer + pos, buf_len - pos, " Match: %s Mask: %s", tmp_data, tmp_mask);
 			break;
+		case FILTER_TYPE_LENGTH:
+			pos += snprintf(buffer + pos, buf_len - pos, " Length:");
+			for (i = 0; i < filter->filter_len; i++)
+				pos += snprintf(buffer + pos, buf_len - pos, " 0x%02x", filter->data[i]);
+			break;
 		} // switch (filter->type)
 	}
 }
 
 static enum filter_action filter_match(uint8_t *data, unsigned int data_len, struct filter *filter) {
+	int i;
 	if (filter->action == FILTER_ACCEPT_ALL || filter->action == FILTER_REJECT_ALL)
 		return filter->action;
 	if (filter->action == FILTER_ACCEPT || filter->action == FILTER_REJECT) {
@@ -200,7 +220,6 @@ static enum filter_action filter_match(uint8_t *data, unsigned int data_len, str
 			// Check data[0] against filter->data[0]
 			if ((data[0] & filter->mask[0]) == (filter->data[0] & filter->mask[0])) {
 				matched++;
-				int i;
 				for (i = 1; i < filter->filter_len; i++) {
 					// Check data[3...] against filter->data[1...]
 					if ((data[i + 2] & filter->mask[i]) == (filter->data[i] & filter->mask[i]))
@@ -210,6 +229,16 @@ static enum filter_action filter_match(uint8_t *data, unsigned int data_len, str
 			if (matched == filter->filter_len)
 				return filter->action;
 			break;
+		}
+		case FILTER_TYPE_LENGTH: {
+			if (data_len < 3)
+				return FILTER_NO_MATCH;
+			for (i = 0; i < filter->filter_len; i++) {
+				// data[2] holds the section length (not quite, but close to what
+				// we need, because length= can contain sizes > 255)
+				if (data[2] == filter->data[i])
+					return filter->action;
+			}
 		}
 		} // switch (filter->type)
 	}
