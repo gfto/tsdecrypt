@@ -333,7 +333,7 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int duplicate = ts_privsec_is_same(ts->ecm, ts->last_ecm);
 	if (duplicate && !ts->is_cw_error)
 		ts->ecm_duplicate_count++;
-	if (!ts->ecm_change_time.tv_sec)
+	if (!ts->ecm_change_time.tv_sec && !ts->ecm_change_time.tv_usec) // The first time
 		gettimeofday(&ts->ecm_change_time, NULL);
 	if (!duplicate || ts->is_cw_error) {
 		if (ts->ecm_cw_log) {
