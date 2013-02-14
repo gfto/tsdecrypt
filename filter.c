@@ -84,7 +84,7 @@ int parse_hex(char *data, uint8_t *output, uint8_t *output_len, uint8_t output_s
 
 int filter_parse(char *filter_def, struct filter *filter) {
 	int j, k, ret = 0;
-	char *str1, *saveptr1;
+	char *str1, *saveptr1 = NULL;
 	char *f = strdup(filter_def);
 	memset(filter, 0, sizeof(struct filter));
 	memset(filter->mask, 0xff, sizeof(filter->mask));
@@ -111,7 +111,7 @@ int filter_parse(char *filter_def, struct filter *filter) {
 			}
 		}
 		if (j == 2) { // Second token, the settings
-			char *str2, *saveptr2;
+			char *str2, *saveptr2 = NULL;
 			for (k = 1, str2 = token; ; k++, str2 = NULL) {
 				char *token2 = strtok_r(str2, ",", &saveptr2);
 				if (token2 == NULL)
