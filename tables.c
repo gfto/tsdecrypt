@@ -350,8 +350,8 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 				sec->table_id,
 				sec->section_data_len,
 				dump);
-			gettimeofday(&ts->ecm_change_time, NULL);
 		}
+		gettimeofday(&ts->ecm_change_time, NULL);
 		ts->is_cw_error = 0;
 		camd_process_packet(ts, camd_msg_alloc(ECM_MSG, ts->ecm_caid, ts->service_id, sec->section_data, sec->section_data_len));
 	} else if (ts->debug_level >= 3) {
