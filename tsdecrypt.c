@@ -909,19 +909,29 @@ static void do_reports(struct ts *ts) {
 	}
 }
 
+static struct ts ts;
+
 void signal_quit(int sig) {
 	if (!keep_running)
 		raise(sig);
 	keep_running = 0;
 	ts_LOGf("Killed %s with signal %d\n", program_id, sig);
+	if (ts.input.type == NET_IO)
+		shutdown_fd(&ts.input.fd);
+	if (ts.output.type == NET_IO)
+		shutdown_fd(&ts.output.fd);
 	signal(sig, SIG_DFL);
+}
+
+void signal_alarm(int sig) {
+	(void)sig;
+	raise(SIGINT);
 }
 
 #define RTP_HDR_SZ  12
 
 static uint8_t ts_packet[FRAME_SIZE + RTP_HDR_SZ];
 static uint8_t rtp_hdr[2][RTP_HDR_SZ];
-static struct ts ts;
 
 int main(int argc, char **argv) {
 	ssize_t readen;
@@ -1052,6 +1062,11 @@ int main(int argc, char **argv) {
 EXIT:
 	camd_stop(&ts);
 
+	// If pthread_join failes make sure we exit...
+	signal(SIGINT , SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGALRM, signal_alarm);
+	alarm(2);
 	if (ts.threaded) {
 		ts.decode_stop = 1;
 		ts.write_stop = 1;
