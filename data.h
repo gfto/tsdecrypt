@@ -30,7 +30,7 @@
 #define FRAME_SIZE 1316
 
 // How much seconds to assume the key is valid
-#define KEY_VALID_TIME 10
+#define KEY_VALID_TIME 30
 
 #define EMM_QUEUE_HARD_LIMIT 10000
 #define EMM_QUEUE_SOFT_LIMIT 1000
