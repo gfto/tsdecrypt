@@ -72,13 +72,13 @@ static int get_socket(const char *hostname, const char *service, int socktype, s
 			setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 			set_sock_nonblock(*sock);
 			if (is_output) {
-				memcpy(addr, res->ai_addr, sizeof(*addr));
+				memcpy(addr, res->ai_addr, res->ai_addrlen);
 				*addrlen = res->ai_addrlen;
 				ret = 0;
 				break;
 			}
 			if (bind(*sock, res->ai_addr, res->ai_addrlen) == 0) {
-				memcpy(addr, res->ai_addr, sizeof(*addr));
+				memcpy(addr, res->ai_addr, res->ai_addrlen);
 				*addrlen = res->ai_addrlen;
 				ret = 0;
 				break;
