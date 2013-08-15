@@ -55,13 +55,13 @@ int connect_client(int socktype, const char *hostname, const char *service) {
 
 	int sockfd = -1;
 	struct addrinfo *ressave = res;
+	char str_addr[INET6_ADDRSTRLEN] = { 0 };
 	while (res) {
 		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (sockfd > -1) {
+			my_inet_ntop(res->ai_family, res->ai_addr, str_addr, sizeof(str_addr));
 			if (do_connect(sockfd, res->ai_addr, res->ai_addrlen, 1000) < 0) {
-				char str_addr[INET6_ADDRSTRLEN];
-				my_inet_ntop(res->ai_family, res->ai_addr, str_addr, sizeof(str_addr));
-				ts_LOGf("CAM | Could not connect to server %s:%s (%s) | %s\n",
+				ts_LOGf("CAM | Error connecting to server %s port %s (addr=%s) | %s\n",
 					hostname, service, str_addr, strerror(errno));
 				close(sockfd);
 				sockfd = -1;
@@ -82,7 +82,8 @@ int connect_client(int socktype, const char *hostname, const char *service) {
 		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
 	}
 
-	ts_LOGf("CAM | Connected to fd:%d\n", sockfd);
+	ts_LOGf("CAM | Connected to server %s port %s (addr=%s fd=%d).\n",
+		hostname, service, str_addr, sockfd);
 
 	return sockfd;
 }
