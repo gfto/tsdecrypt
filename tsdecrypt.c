@@ -79,9 +79,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:2:KJ:D:jbhVn:m:";
 
-// Unused short options: 0235789
+// Unused short options: 035789
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -134,6 +134,7 @@ static const struct option long_options[] = {
 	{ "ecm-only",			no_argument,       NULL, 'v' },
 	{ "ecm-report-time",	required_argument, NULL, 'H' },
 	{ "ecm-irdeto-type",	required_argument, NULL, 'G' },
+	{ "ecm-irdeto-chid",	required_argument, NULL, '2' },
 	{ "ecm-no-log",			no_argument      , NULL, 'K' },
 	{ "cw-warn-time",		required_argument, NULL, 'J' },
 
@@ -242,7 +243,9 @@ static void show_help(struct ts *ts) {
 	printf(" -H --ecm-report-time <sec> | Report each <sec> how much ECMs and CWs have been\n");
 	printf("                            .   processed/skipped. Set <sec> to 0 to disable\n");
 	printf("                            .   the reports. Default: %d sec\n", ts->ecm_report_interval);
-	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with type X /0-3/. Default: %d\n", ts->irdeto_ecm);
+	printf(" -G --ecm-irdeto-type <int> | Process IRDETO ECMs with index X /0-255/\n");
+	printf("                            .   It is better to use --ecm-irdeto-chid option!\n");
+	printf(" -2 --ecm-irdeto-chid <int> | Set CHID to filter Irdeto ECMs (Default: 0x0000).\n");
 	printf(" -K --ecm-no-log            | Disable ECM and code words logging.\n");
 	printf(" -J --cw-warn-time <sec>    | Warn if no valid code word has been received.\n");
 	printf("                            .   Set <sec> to 0 to disable. Default: %d sec\n", ts->cw_warn_sec);
@@ -557,7 +560,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 					ts->ecm_report_interval = 86400;
 				break;
 			case 'G': // --ecm-irdeto-type
-				ts->irdeto_ecm = atoi(optarg);
+				ts->irdeto_ecm_idx = strtoul(optarg, NULL, 0);
+				ts->irdeto_ecm_filter_type = IRDETO_FILTER_IDX;
+				break;
+			case '2': // --ecm-irdeto-chid
+				ts->irdeto_ecm_chid = strtoul(optarg, NULL, 0);
+				ts->irdeto_ecm_filter_type = IRDETO_FILTER_CHID;
 				break;
 			case 'K': // --ecm-no-log
 				ts->ecm_cw_log = !ts->ecm_cw_log;
@@ -734,8 +742,12 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	if (ts->forced_service_id)
 		ts_LOGf("Service id : 0x%04x (%d)\n",
 			ts->forced_service_id, ts->forced_service_id);
-	if (ts->req_CA_sys == CA_IRDETO)
-		ts_LOGf("Irdeto ECM : %d\n", ts->irdeto_ecm);
+	if (ts->req_CA_sys == CA_IRDETO) {
+		switch (ts->irdeto_ecm_filter_type) {
+		case IRDETO_FILTER_IDX : ts_LOGf("Irdeto ECM : Index: 0x%02x (%d)\n", ts->irdeto_ecm_idx, ts->irdeto_ecm_idx); break;
+		case IRDETO_FILTER_CHID: ts_LOGf("Irdeto ECM : CHID: 0x%04x (%d)\n", ts->irdeto_ecm_chid, ts->irdeto_ecm_chid); break;
+		}
+	}
 
 	if (ts->output_stream) {
 		if (ts->output.type == NET_IO) {

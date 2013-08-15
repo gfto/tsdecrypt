@@ -267,11 +267,16 @@ time on stream decoding.
 Set interval for ECM reports. The default is \fB60\fR seconds. Set to \fB0\fR
 to disable ECM reports.
 .TP
-\fB\-G\fR, \fB\-\-ecm\-irdeto\-type\fR <type>
-Set ECM IRDETO type. IRDETO CA send ECMs with different id mixed
-into one stream. Only one of the IDs are valid in given time. This
-option lets you choose which stream to process. The default stream
-type is \fB0\fR.
+\fB\-G\fR, \fB\-\-ecm\-irdeto\-type\fR <int>
+Set the index of the IRDETO ECM stream. \fBNOTE: This option is deprecated,
+better use \-\-ecm\-irdeto\-chid\fR.
+.TP
+\fB\-2\fR, \fB\-\-ecm\-irdeto\-chid\fR <int>
+IRDETO CA sends ECMs mixed in single stream on single PID. In order to select
+the correct ECM stream the so called CHID number is used. Oscam reports what
+CHIDs are activated in your card and tsdecrypt allows you to set the correct
+CHID number using this option. tsderypt reports what CHIDs are available
+in the incoming ECM stream. The CHID is 16-bit number (0x0000 - 0xffff).
 .TP
 \fB\-K\fR, \fB\-\-ecm\-no\-log\fR
 Disable logging of ECMs and code words. Code word errors and stats
@@ -396,6 +401,11 @@ CA system is set to CONAX, you can change it using \fB\-\-ca-system\fR parameter
    # Send ECM from file
    tsdecrypt --ecm-file ecm.txt --caid 0x5581 --input-service 12345 \\
        --camd-server example.com
+
+   # Decrypt IRDETO stream from Raduga (CHID == 0x0015)
+   tsdecrypt --input 239.0.50.11:5000 --output 239.78.78.78:5000 \\
+             --camd-server example.com \\
+             --ca-system IRDETO --caid 0x0652 --ecm-irdeto-chid 0x0015
 .fi
 .SH SEE ALSO
 See the README file for more information. If you have questions, remarks,

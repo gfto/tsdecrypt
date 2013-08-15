@@ -290,7 +290,14 @@ struct ts {
 	int					tdt_passthrough;
 	int					nit_passthrough;
 
-	uint8_t				irdeto_ecm;
+	uint8_t				irdeto_ecm_idx;
+	uint16_t			irdeto_ecm_chid;
+
+	enum {
+		IRDETO_FILTER_IDX,
+		IRDETO_FILTER_CHID,
+	} irdeto_ecm_filter_type;
+
 	int					ecm_cw_log;
 
 	int					rtp_input;

@@ -10,6 +10,7 @@ now : current
  * Add support for setting multicast source address /SSM/ (--input-source).
  * Add support for EMM filters similar to DVBAPI filters (match + mask).
  * Add support for EMM filters based on section length.
+ * Add support for Irdeto CHID filtering (tested with Raduga).
 
 2012-09-10 : Version 9.0
  * Add --no-output-on-error (-u) option. By using this option output can be

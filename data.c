@@ -85,6 +85,9 @@ void data_init(struct ts *ts) {
 	ts->ecm_report_interval = 60;
 	ts->ecm_last_report     = time(NULL);
 
+	ts->irdeto_ecm_idx         = 0;
+	ts->irdeto_ecm_filter_type = IRDETO_FILTER_IDX;
+
 	ts->cw_warn_sec = 60;
 	ts->cw_last_warn= time(NULL);
 	ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;

@@ -314,8 +314,16 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 		return;
 
 	if (ts->req_CA_sys == CA_IRDETO) {
-		int type = ts->ecm->section_header->section_data[4];
-		if (type != ts->irdeto_ecm) {
+		uint8_t idx     = ts->ecm->section_header->section_data[4];
+		uint16_t chid   = (ts->ecm->section_header->section_data[6] << 8) | ts->ecm->section_header->section_data[7];
+
+		bool ecm_ok = false;
+		switch (ts->irdeto_ecm_filter_type) {
+		case IRDETO_FILTER_IDX : ecm_ok = (idx == ts->irdeto_ecm_idx); break;
+		case IRDETO_FILTER_CHID: ecm_ok = (chid == ts->irdeto_ecm_chid); break;
+		}
+
+		if (!ecm_ok) {
 			ts_privsec_clear(ts->ecm);
 			return;
 		}
