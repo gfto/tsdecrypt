@@ -12,6 +12,8 @@
  * GNU General Public License (COPYING file) for more details.
  *
  */
+#include <string.h>
+
 #include "data.h"
 #include "tables.h"
 #include "camd.h"
@@ -173,6 +175,11 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	} else {
 		ts_LOGf("*** | ERROR: Can't detect ECM pid.\n");
 	}
+
+	if (ts->req_CA_sys == CA_IRDETO) {
+		memset(ts->irdeto_chid, 0, sizeof(ts->irdeto_chid));
+		ts->irdeto_max_chids = 0;
+	}
 }
 
 static int sdt_parse_service_name_desc(
@@ -315,12 +322,26 @@ static void __process_ecm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 
 	if (ts->req_CA_sys == CA_IRDETO) {
 		uint8_t idx     = ts->ecm->section_header->section_data[4];
+		uint8_t max_idx = ts->ecm->section_header->section_data[5];
 		uint16_t chid   = (ts->ecm->section_header->section_data[6] << 8) | ts->ecm->section_header->section_data[7];
 
+		if (max_idx != ts->irdeto_max_chids) {
+			memset(ts->irdeto_chid, 0, sizeof(ts->irdeto_chid));
+			ts->irdeto_max_chids = max_idx;
+		}
+
 		bool ecm_ok = false;
+		const char *filter_type;
 		switch (ts->irdeto_ecm_filter_type) {
-		case IRDETO_FILTER_IDX : ecm_ok = (idx == ts->irdeto_ecm_idx); break;
-		case IRDETO_FILTER_CHID: ecm_ok = (chid == ts->irdeto_ecm_chid); break;
+		case IRDETO_FILTER_IDX : ecm_ok = (idx == ts->irdeto_ecm_idx); filter_type = " BY IDX"; break;
+		case IRDETO_FILTER_CHID: ecm_ok = (chid == ts->irdeto_ecm_chid); filter_type = " BY CHID"; break;
+		}
+
+		if (ts->irdeto_chid[idx].seen < 1) {
+			ts_LOGf("CAS | Seen Irdeto CHID 0x%04x (idx %u/%u)%s%s\n", chid, idx, max_idx,
+				ecm_ok ? " *SELECTED*" : "",
+				ecm_ok ? filter_type   : "");
+			ts->irdeto_chid[idx].seen++;
 		}
 
 		if (!ecm_ok) {

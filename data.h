@@ -217,6 +217,11 @@ struct filter {
 	char		name[MAX_FILTER_NAME];	// Filter name (default: NO_NAME)
 };
 
+struct chid {
+	int			seen;
+	uint16_t	chid;
+};
+
 #define MAX_PIDS 8192
 
 struct ts {
@@ -297,6 +302,9 @@ struct ts {
 		IRDETO_FILTER_IDX,
 		IRDETO_FILTER_CHID,
 	} irdeto_ecm_filter_type;
+
+	struct chid			irdeto_chid[0xff];
+	uint8_t				irdeto_max_chids;
 
 	int					ecm_cw_log;
 
