@@ -31,6 +31,8 @@
 
 int ai_family = AF_UNSPEC;
 
+extern int keep_running;
+
 static uint8_t invalid_cw[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 int connect_client(int socktype, const char *hostname, const char *service) {
@@ -86,6 +88,8 @@ int connect_client(int socktype, const char *hostname, const char *service) {
 }
 
 static inline void camd_reconnect(struct camd *c) {
+	if (!keep_running)
+		return;
 	if (c->no_reconnect)
 		return;
 	c->ops.reconnect(c);
@@ -117,6 +121,9 @@ static int camd_recv_cw(struct ts *ts) {
 	gettimeofday(&tv1, NULL);
 	ret = c->ops.get_cw(c, &ca_id, &idx, c->key->cw);
 	gettimeofday(&tv2, NULL);
+
+	if (!keep_running)
+		return 0;
 
 	if (ret <= 0) {
 		if (ret == -1) { // Fatal error it is better to reconnect to server.
@@ -212,6 +219,8 @@ static int camd_send_emm(struct ts *ts, struct camd_msg *msg) {
 }
 
 static void camd_do_msg(struct camd_msg *msg) {
+	if (!keep_running)
+		goto OUT;
 	if (msg->type == EMM_MSG) {
 		msg->ts->emm_seen_count++;
 		if (camd_send_emm(msg->ts, msg) > 0)
@@ -222,7 +231,7 @@ static void camd_do_msg(struct camd_msg *msg) {
 		if (camd_send_ecm(msg->ts, msg) > 0)
 			msg->ts->ecm_processed_count++;
 	}
-
+OUT:
 	camd_msg_free(&msg);
 }
 
@@ -248,7 +257,7 @@ static void *camd_thread(void *in_ts) {
 
 	set_thread_name("tsdec-camd");
 
-	while (1) {
+	while (keep_running) {
 		struct camd_msg *msg;
 		void *req = queue_get(ts->camd.req_queue); // Waits...
 		if (ts->camd_stop)

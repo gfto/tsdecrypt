@@ -42,7 +42,7 @@
 #define PROGRAM_NAME "tsdecrypt"
 static const char *program_id = PROGRAM_NAME " v" VERSION " (" GIT_VER ", build " BUILD_ID " " DLIB ")";
 
-static int keep_running = 1;
+int keep_running = 1;
 static FILE *log_file = NULL;
 static char *log_filename = NULL;
 static int local_syslog = 0;
@@ -1029,6 +1029,8 @@ int main(int argc, char **argv) {
 				}
 			}
 			set_log_io_errors(1);
+			if (!keep_running)
+				break;
 			if (readen < 0) {
 				ts_LOGf("--- | Input read timeout.\n");
 				if (!ntimeouts) {
@@ -1056,9 +1058,7 @@ int main(int argc, char **argv) {
 				fwrite(ts_packet, readen, 1, ts.input_dump_file);
 			process_packets(&ts, ts_packet, readen);
 		}
-		if (!keep_running)
-			break;
-	} while (have_data);
+	} while (have_data && keep_running);
 EXIT:
 	camd_stop(&ts);
 
