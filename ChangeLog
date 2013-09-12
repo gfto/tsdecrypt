@@ -1,4 +1,4 @@
-now : current
+2013-09-12 : Version 10.0
  * Add --ecm-only (-v) option. This allows processing of ECMs but without
    decoding the input stream.
  * Add --ecm-and-emm-only (-q) option. This allows processing of ECMs
