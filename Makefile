@@ -118,7 +118,7 @@ FFdecsa/FFdecsa.o:
 
 strip:
 	$(Q)echo "  STRIP	$(PROGS)"
-	$(Q)$(STRIP) $(PROGS)
+	$(Q)$(CROSS)$(STRIP) $(PROGS)
 
 clean:
 	$(Q)echo "  RM	$(CLEAN_OBJS)"
