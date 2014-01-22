@@ -1,6 +1,7 @@
-CC = $(CROSS)$(TARGET)cc
-STRIP = $(CROSS)$(TARGET)strip
-MKDEP = $(CC) -MP -MM -o $*.d $<
+CC = cc
+STRIP = strip
+CROSS := $(TARGET)
+MKDEP = $(CROSS)$(CC) -MP -MM -o $*.d $<
 RM = rm -f
 MV = mv -f
 
@@ -80,7 +81,7 @@ all: $(PROGS)
 ffdecsa: clean
 	$(Q)echo "Switching build to FFdecsa."
 	@-if test -e FFdecsa.opts.saved; then $(MV) FFdecsa.opts.saved FFdecsa.opts; fi
-	@-if ! test -e FFdecsa.opts; then ./FFdecsa_init "$(CROSS)$(TARGET)" "$(CC)"; fi
+	@-if ! test -e FFdecsa.opts; then ./FFdecsa_init "$(CROSS)" "$(CC)"; fi
 	$(Q)$(MAKE) -s tsdecrypt
 
 ffdecsa_force:
@@ -102,12 +103,12 @@ $(TS_LIB): $(TS_DIR)/tsfuncs.h $(TS_DIR)/tsdata.h
 
 tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
-	$(Q)$(CC) $(CFLAGS) $(DEFS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
+	$(Q)$(CROSS)$(CC) $(CFLAGS) $(DEFS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
 %.o: %.c RELEASE
 	@$(MKDEP)
 	$(Q)echo "  CC	tsdecrypt	$<"
-	$(Q)$(CC) $(CFLAGS) $(DEFS) -c $<
+	$(Q)$(CROSS)$(CC) $(CFLAGS) $(DEFS) -c $<
 
 FFdecsa/FFdecsa.o:
 	$(Q)echo "  MAKE	FFdecsa"
