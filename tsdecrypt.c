@@ -301,9 +301,6 @@ static int parse_io_param(struct io *io, char *opt, int open_flags, mode_t open_
 	return !(!port_set || !host_set);
 }
 
-extern char *optarg;
-extern int optind, opterr, optopt;
-
 static void parse_options(struct ts *ts, int argc, char **argv) {
 	int j, i, ca_err = 0, server_err = 1, input_addr_err = 0, output_addr_err = 0, ident_err = 0, port_set = 0;
 	while ((j = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
