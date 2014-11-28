@@ -12,7 +12,7 @@
  * GNU General Public License (COPYING file) for more details.
  *
  */
-#ifndef TABLE_H
+#ifndef TABLES_H
 #define TABLES_H
 
 #include "data.h"
