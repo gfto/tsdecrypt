@@ -24,8 +24,6 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
-#include <openssl/rand.h>
-
 #include "libfuncs/libfuncs.h"
 
 #include "data.h"

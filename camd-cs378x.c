@@ -16,9 +16,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <openssl/aes.h>
-#include <openssl/md5.h>
-
 #include "libfuncs/libfuncs.h"
 
 #include "data.h"

@@ -19,9 +19,18 @@
 #include <limits.h>
 #include <stdbool.h>
 
+// Prevent warnings about openssl functions. Apple may consider 'openssl'
+// deprecated but changing perfectly working portable code just because they
+// introduced some proprietary API is not going to happen.
+#if defined(__APPLE__)
+#define __AVAILABILITY_MACROS_USES_AVAILABILITY 0
+#define MAC_OS_X_VERSION_MIN_REQUIRED MAC_OS_X_VERSION_10_6
+#endif
+
 #include <openssl/aes.h>
 #include <openssl/des.h>
 #include <openssl/md5.h>
+#include <openssl/rand.h>
 
 #include "libfuncs/libfuncs.h"
 #include "libtsfuncs/tsfuncs.h"
