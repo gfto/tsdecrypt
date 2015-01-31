@@ -216,7 +216,6 @@ static int sdt_parse_service_name_desc(
 		*sname_len = desc[ofs++];
 		if (*sname_len)
 			*sname = desc + ofs;
-		ofs += *sname_len;
 
 		return 1;
 	}

@@ -219,7 +219,7 @@ void *decode_thread(void *_ts) {
 	set_thread_name("tsdec-decode");
 
 	while (!ts->decode_stop) {
-		data = cbuf_peek(ts->decode_buf, req_size, &data_size);
+		cbuf_peek(ts->decode_buf, req_size, &data_size);
 		if (data_size < req_size) {
 			usleep(1000);
 			continue;
@@ -285,7 +285,7 @@ void *write_thread(void *_ts) {
 
 	while (!ts->write_stop) {
 		data_size = 0;
-		data = cbuf_peek(ts->write_buf, FRAME_SIZE, &data_size);
+		cbuf_peek(ts->write_buf, FRAME_SIZE, &data_size);
 		if (data_size < FRAME_SIZE) {
 			usleep(5000);
 			continue;

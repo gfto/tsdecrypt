@@ -185,11 +185,11 @@ void filter_dump(struct filter *filter, char *buffer, unsigned int buf_len) {
 		ts_hex_dump_buf(tmp_data, sizeof(tmp_data), filter->data, filter->filter_len, 0);
 		switch (filter->type) {
 		case FILTER_TYPE_DATA:
-			pos += snprintf(buffer + pos, buf_len - pos, " Offset: %2d Data: %s", filter->offset, tmp_data);
+			snprintf(buffer + pos, buf_len - pos, " Offset: %2d Data: %s", filter->offset, tmp_data);
 			break;
 		case FILTER_TYPE_MASK:
 			ts_hex_dump_buf(tmp_mask, sizeof(tmp_mask), filter->mask, filter->filter_len, 0);
-			pos += snprintf(buffer + pos, buf_len - pos, " Match: %s Mask: %s", tmp_data, tmp_mask);
+			snprintf(buffer + pos, buf_len - pos, " Match: %s Mask: %s", tmp_data, tmp_mask);
 			break;
 		case FILTER_TYPE_LENGTH:
 			pos += snprintf(buffer + pos, buf_len - pos, " Length:");
