@@ -111,6 +111,9 @@ void dvbcsa_benchmark(void) {
 	dvbcsa_bs_key_set (cw, key);
 
 	printf("Batch size %d packets.\n\n", batch_size);
+	if (!batch_size)
+		return;
+
 	for (i = 0; i < batch_size; i++) {
 		pcks[i].data = data[i];
 		pcks[i].len = 184;
@@ -154,6 +157,9 @@ void ffdecsa_benchmark(void) {
 	ffdecsa_set_odd_cw (key, ocw);
 
 	printf("Batch size %d packets.\n\n", batch_size);
+	if (!batch_size)
+		return;
+
 	for (i = 0; i < batch_size; i++) {
 		memset(data[i], rand(), 188);
 		data[i][0] = 0x47;
