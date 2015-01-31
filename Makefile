@@ -16,9 +16,18 @@ ifndef V
 Q = @
 endif
 
-CFLAGS ?= -O2 -ggdb \
- -W -Wall -Wextra -Wredundant-decls \
- -Wshadow -Wformat-security -Wstrict-prototypes
+CFLAGS ?= -O2 -ggdb -pipe -ffunction-sections -fdata-sections \
+ -W -Wall -Wextra \
+ -Wshadow -Wformat-security -Wstrict-prototypes \
+ -Wredundant-decls -Wold-style-definition
+
+uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+
+LDFLAGS ?= -Wl,--gc-sections
+
+ifeq ($(uname_S),Darwin)
+LDFLAGS :=
+endif
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
  -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
@@ -103,7 +112,7 @@ $(TS_LIB): $(TS_DIR)/tsfuncs.h $(TS_DIR)/tsdata.h
 
 tsdecrypt: $(tsdecrypt_OBJS)
 	$(Q)echo "  LINK	tsdecrypt"
-	$(Q)$(CROSS)$(CC) $(CFLAGS) $(DEFS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
+	$(Q)$(CROSS)$(CC) $(CFLAGS) $(LDFLAGS) $(DEFS) $(tsdecrypt_OBJS) $(tsdecrypt_LIBS) -o tsdecrypt
 
 %.o: %.c RELEASE
 	@$(MKDEP)
