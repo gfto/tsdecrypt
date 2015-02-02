@@ -107,8 +107,7 @@ static int cs378x_do_ecm(struct camd *c, struct camd_msg *msg) {
 	init_2b(msg->ca_id      , c->cs378x.buf + 10);
 	init_4b(0               , c->cs378x.buf + 12); // Provider ID
 	init_2b(c->cs378x.msg_id, c->cs378x.buf + 16);
-	c->cs378x.buf[18] = 0xff;
-	c->cs378x.buf[19] = 0xff;
+	init_2b(msg->ts->ecm_pid, c->cs378x.buf + 18);
 
 	return cs378x_send_buf(c, to_send);
 }
