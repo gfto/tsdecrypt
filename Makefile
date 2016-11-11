@@ -27,6 +27,7 @@ LDFLAGS ?= -Wl,--gc-sections
 
 ifeq ($(uname_S),Darwin)
 LDFLAGS :=
+CC := cc -I/opt/local/include
 endif
 
 DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
