@@ -1,3 +1,7 @@
+xxxx-xx-xx : Version -next
+ * Add new notification message STREAM_NOT_ENCRYPTED. When stream is not
+   encrypted no NO_CODE_WORD notifications are sent.
+
 2013-09-12 : Version 10.0
  * Add --ecm-only (-v) option. This allows processing of ECMs but without
    decoding the input stream.

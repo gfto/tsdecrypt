@@ -340,7 +340,12 @@ currently defined events are:
 
   \fBNO_CODE_WORD\fR    No valid code word was received for X seconds. The
                   decryption process have been suspended until valid
-                  code word is received.
+                  code word is received. This event is sent only if
+                  the stream is encrypted and there are no new code words
+                  from the CAMD server.
+
+  \fBSTREAM_NOT_ENCRYPTED\fR    No encrypted packets arrived in the input stream
+                  for the last 5 seconds. The stream is probably not encrypted.
 
   \fBNO_EMM_RECEIVED\fR    No EMM packet have been received for X seconds.
 

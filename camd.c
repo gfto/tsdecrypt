@@ -170,6 +170,10 @@ static int camd_recv_cw(struct ts *ts) {
 #undef ERR
 
 static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
+	if (!ts->stream_is_encrypted) {
+		return 0;
+	}
+
 	struct camd *c = &ts->camd;
 	int ret = c->ops.do_ecm(c, msg);
 	if (ret <= 0) {

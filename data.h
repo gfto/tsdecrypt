@@ -276,6 +276,9 @@ struct ts {
 	time_t				cw_next_warn;
 	struct timeval		ecm_change_time;
 
+	unsigned int		stream_is_encrypted;
+	time_t				last_scrambled_packet_ts;
+
 	unsigned int		pid_report;
 	unsigned int		pid_stats[MAX_PIDS];
 
