@@ -13,8 +13,10 @@ Dependencies
 ============
 tsdecrypt depends on openssl. It uses rand, MD5, DES and AES functions.
 You probably already have openssl installed. If you are seeing compilation
-errors related to missing openssl headers you should install openssl-dev
-or similar packet depending on your Linux distribution.
+errors related to missing openssl headers you should install openssl
+development package using 'sudo yum install openssl-dev' or
+'sudo apt-get install libssl-dev' or similar command depending on your
+Linux distribution.
 
 If you are not using shipped FFdecsa then the other tsdecrypt dependency
 is libdvbcsa. libdvbcsa can be downloaded from
