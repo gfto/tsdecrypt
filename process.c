@@ -258,7 +258,10 @@ static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_
 	if (ts->no_output_on_error && !ts->camd.key->is_valid_cw)
 		return;
 	if (!ts->rtp_output) {
-		write(ts->output.fd, data, data_size);
+		if (write(ts->output.fd, data, data_size) < 0) {
+			perror("write(output_fd)");
+			return;
+		}
 	} else {
 		struct iovec iov[2];
 		uint8_t rtp_header[12];
@@ -286,7 +289,10 @@ static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_
 		iov[1].iov_base = data;
 		iov[1].iov_len  = data_size;
 
-		writev(ts->output.fd, iov, 2);
+		if (writev(ts->output.fd, iov, 2) < 0) {
+			perror("writev(output_fd)");
+			return;
+		}
 	}
 }
 

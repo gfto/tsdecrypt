@@ -54,10 +54,10 @@ static void *do_notify(void *in) {
 		int e = 0;
 		unsigned int i, r;
 		char **env = calloc(32, sizeof(char *));
-		asprintf(&env[e++], "_TS=%ld"			, time(NULL));
-		asprintf(&env[e++], "_IDENT=%s"			, shared->ident);
-		asprintf(&env[e++], "_MESSAGE_ID=%s"	, shared->msg_id);
-		asprintf(&env[e++], "_MESSAGE_TEXT=%s"	, shared->text);
+		if (asprintf(&env[e++], "_TS=%ld"			, time(NULL)) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_IDENT=%s"			, shared->ident) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_MESSAGE_ID=%s"	, shared->msg_id) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_MESSAGE_TEXT=%s"	, shared->text) < 0) exit(EXIT_FAILURE);
 		r = strlen(shared->msg_id);
 		for (i=0; i<r; i++) {
 			if (isalpha(shared->msg_id[i]))
@@ -65,7 +65,7 @@ static void *do_notify(void *in) {
 			if (shared->msg_id[i] == '_')
 				shared->msg_id[i] = ' ';
 		}
-		asprintf(&env[e++], "_MESSAGE_MSG=%s"	, shared->msg_id);
+		if (asprintf(&env[e++], "_MESSAGE_MSG=%s"	, shared->msg_id) < 0) exit(EXIT_FAILURE);
 		execve(args[0], args, env);
 		// We reach here only if there is an error.
 		fprintf(stderr, "execve('%s') failed: %s!\n", args[0], strerror(errno));
