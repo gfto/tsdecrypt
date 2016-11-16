@@ -86,10 +86,10 @@ PROGS = tsdecrypt
 
 .PHONY: ffdecsa dvbcsa help distclean clean install uninstall
 
-all: $(PROGS)
+all: ffdecsa
 
 ffdecsa: clean
-	$(Q)echo "Switching build to FFdecsa."
+	$(Q)echo "Using FFdecsa as decryption library"
 	@-if test -e FFdecsa.opts.saved; then $(MV) FFdecsa.opts.saved FFdecsa.opts; fi
 	@-if ! test -e FFdecsa.opts; then ./FFdecsa_init "$(CROSS)" "$(CC)"; fi
 	$(Q)$(MAKE) -s tsdecrypt
@@ -99,7 +99,7 @@ ffdecsa_force:
 	$(Q)$(MAKE) -s ffdecsa
 
 dvbcsa: clean
-	$(Q)echo "Switching build to libdvbcsa."
+	$(Q)echo "Using libdvbcsa as decryption library"
 	@-if test -f FFdecsa.opts; then $(MV) FFdecsa.opts FFdecsa.opts.saved; fi
 	$(Q)$(MAKE) -s tsdecrypt
 
