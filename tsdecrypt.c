@@ -861,7 +861,7 @@ static void report_emms(struct ts *ts, time_t now) {
 }
 
 static void report_ecms(struct ts *ts, time_t now) {
-	if (ts->stream_is_not_scrambled && ts->ecm_seen_count == 0)
+	if ((ts->stream_is_not_scrambled || !ts->have_valid_pmt) && ts->ecm_seen_count == 0)
 		return;
 	ts_LOGf("ECM | Received %u (%u dup) and processed %u in %lu seconds.\n",
 		ts->ecm_seen_count,
@@ -875,7 +875,7 @@ static void report_ecms(struct ts *ts, time_t now) {
 }
 
 static void report_cw_warn(struct ts *ts, time_t now) {
-	if (ts->stream_is_not_scrambled)
+	if (ts->stream_is_not_scrambled || !ts->have_valid_pmt)
 		return;
 	if (now - ts->key.ts > 1) {
 		notify(ts, "NO_CODE_WORD", "No valid code word was received in %ld sec.",
@@ -917,6 +917,15 @@ static void do_reports(struct ts *ts) {
 	if (ts->process_ecm && !ts->key.is_valid_cw) {
 		if (ts->cw_warn_sec && now >= ts->cw_next_warn) {
 			report_cw_warn(ts, now);
+		}
+	}
+	if (!ts->no_input) {
+		if (ts->last_pmt_ts <= now - 3) {
+			if (ts->have_valid_pmt) {
+				ts_LOGf("MIS | There is no valid PMT in the input.\n");
+				notify(ts, "NO_PROGRAM", "The input is missing valid program.");
+				ts->have_valid_pmt = 0;
+			}
 		}
 	}
 }
@@ -1051,6 +1060,7 @@ int main(int argc, char **argv) {
 							ts.rtp_input ? "rtp" : "udp",
 							ts.input.hostname, ts.input.service);
 				}
+				ts.no_input = 1;
 				ntimeouts++;
 			} else {
 				if (ntimeouts && readen > 0) {
@@ -1060,6 +1070,7 @@ int main(int argc, char **argv) {
 							ts.rtp_input ? "rtp" : "udp",
 							ts.input.hostname, ts.input.service,
 							(now - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
+					ts.no_input = 0;
 					ntimeouts = 0;
 				}
 			}

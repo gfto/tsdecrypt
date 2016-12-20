@@ -132,7 +132,7 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 		uint16_t pid = ts_packet_get_pid(ts_packet);
 		bool in_pidmap = pidmap_get(&ts->pidmap, pid);
 		bool is_scrambled = ts_packet_is_scrambled(ts_packet);
-		if (in_pidmap) {
+		if (in_pidmap && ts->have_valid_pmt) {
 			if (is_scrambled) {
 				if (ts->last_scrambled_packet_ts < now) {
 					ts->stream_is_not_scrambled = 0;
@@ -261,6 +261,8 @@ void *decode_thread(void *_ts) {
 
 static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_size) {
 	if (!data)
+		return;
+	if (!ts->have_valid_pmt)
 		return;
 	if (ts->no_output_on_error && !ts->camd.key->is_valid_cw)
 		return;

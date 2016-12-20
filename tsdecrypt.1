@@ -335,6 +335,12 @@ currently defined events are:
 
   \fBSTART\fR           tsdecrypt was started.
 
+  \fBNO_PROGRAM\fR    There is an input but there is no valid program
+                  in the input (PMT table is missing). This error is
+                  reported when there 15 seconds have passed since
+                  last valid PMT was received. When this error is
+                  active tsdecrypt stops outputing the stream.
+
   \fBCODE_WORD_OK\fR    Valid code word was received and decryption is
                   working ok.
 

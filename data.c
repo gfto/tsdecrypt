@@ -48,6 +48,9 @@ void data_init(struct ts *ts) {
 	pidmap_clear(&ts->cc);
 	pidmap_clear(&ts->pid_seen);
 
+	ts->have_valid_pmt = 1;
+	ts->last_pmt_ts = time(NULL);
+
 	// Key
 	memset(&ts->key, 0, sizeof(ts->key));
 	ts->key.csakey = csa_key_alloc();

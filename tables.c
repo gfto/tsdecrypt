@@ -131,6 +131,10 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (!pid || pid != ts->pmt_pid)
 		return;
 
+	// Mark PMT as valid and the received timestamp
+	ts->last_pmt_ts = time(NULL);
+	ts->have_valid_pmt = 1;
+
 	handle_table_changes(pmt);
 
 	pidmap_clear(&ts->pidmap);

@@ -257,6 +257,11 @@ struct ts {
 	pidmap_t			cc; // Continuity counters
 	pidmap_t			pid_seen;
 
+	// PMT tracking
+	time_t				last_pmt_ts;
+	unsigned int		have_valid_pmt;
+	unsigned int		no_input;
+
 	// Stats
 	unsigned int		emm_input_count;
 	unsigned int		emm_seen_count;
