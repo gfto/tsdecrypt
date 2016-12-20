@@ -85,6 +85,9 @@ void data_init(struct ts *ts) {
 	ts->ecm_report_interval = 60;
 	ts->ecm_last_report     = time(NULL);
 
+	ts->last_scrambled_packet_ts     = time(NULL);
+	ts->last_not_scrambled_packet_ts = time(NULL);
+
 	ts->irdeto_ecm_idx         = 0;
 	ts->irdeto_ecm_filter_type = IRDETO_FILTER_IDX;
 

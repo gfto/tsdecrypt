@@ -861,6 +861,8 @@ static void report_emms(struct ts *ts, time_t now) {
 }
 
 static void report_ecms(struct ts *ts, time_t now) {
+	if (ts->stream_is_not_scrambled && ts->ecm_seen_count == 0)
+		return;
 	ts_LOGf("ECM | Received %u (%u dup) and processed %u in %lu seconds.\n",
 		ts->ecm_seen_count,
 		ts->ecm_duplicate_count,
@@ -873,6 +875,8 @@ static void report_ecms(struct ts *ts, time_t now) {
 }
 
 static void report_cw_warn(struct ts *ts, time_t now) {
+	if (ts->stream_is_not_scrambled)
+		return;
 	if (now - ts->key.ts > 1) {
 		notify(ts, "NO_CODE_WORD", "No valid code word was received in %ld sec.",
 			now - ts->key.ts);
@@ -905,7 +909,11 @@ static void do_reports(struct ts *ts) {
 			report_ecms(ts, now);
 		}
 	}
-
+	if (ts->stream_is_not_scrambled && ts->last_not_scrambled_report_ts <= now - 60) {
+		ts_LOGf("CLR | No encrypted packets in the last %ld seconds. Stream is clear.\n", now - ts->last_scrambled_packet_ts);
+		notify(ts, "STREAM_CLEAR", "No encrypted packets in the last %ld seconds. Stream is clear.", now - ts->last_scrambled_packet_ts);
+		ts->last_not_scrambled_report_ts = now;
+	}
 	if (ts->process_ecm && !ts->key.is_valid_cw) {
 		if (ts->cw_warn_sec && now >= ts->cw_next_warn) {
 			report_cw_warn(ts, now);

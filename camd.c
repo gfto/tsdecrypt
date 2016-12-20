@@ -170,10 +170,6 @@ static int camd_recv_cw(struct ts *ts) {
 #undef ERR
 
 static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
-	if (!ts->stream_is_encrypted) {
-		return 0;
-	}
-
 	struct camd *c = &ts->camd;
 	int ret = c->ops.do_ecm(c, msg);
 	if (ret <= 0) {
@@ -189,10 +185,12 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 		ts->is_cw_error = 1;
 		if (ts->key.ts && now - ts->key.ts > KEY_VALID_TIME) {
 			if (c->key->is_valid_cw) {
-				notify(ts, "NO_CODE_WORD", "No code word was set in %ld sec. Decryption is disabled.",
-					now - ts->key.ts);
-				ts_LOGf("CW  | *ERR* No valid code word was received in %ld seconds. Decryption is disabled.\n",
-					now - ts->key.ts);
+				if (!ts->stream_is_not_scrambled) {
+					notify(ts, "NO_CODE_WORD", "No code word was set in %ld sec. Decryption is disabled.",
+						now - ts->key.ts);
+					ts_LOGf("CW  | *ERR* No valid code word was received in %ld seconds. Decryption is disabled.\n",
+						now - ts->key.ts);
+				}
 				ts->cw_last_warn = time(NULL);
 				ts->cw_next_warn = ts->cw_last_warn + ts->cw_warn_sec;
 				ts->cw_next_warn -= now - ts->key.ts;

@@ -130,11 +130,25 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 		uint8_t *ts_packet = data + (i * 188);
 
 		uint16_t pid = ts_packet_get_pid(ts_packet);
-		if (pidmap_get(&ts->pidmap, pid) && ts_packet_is_scrambled(ts_packet)) {
-			if (ts_packet_is_scrambled(ts_packet) && ts->last_scrambled_packet_ts != now) {
-				ts->stream_is_encrypted = 1;
-				ts->last_scrambled_packet_ts = now;
+		bool in_pidmap = pidmap_get(&ts->pidmap, pid);
+		bool is_scrambled = ts_packet_is_scrambled(ts_packet);
+		if (in_pidmap) {
+			if (is_scrambled) {
+				if (ts->last_scrambled_packet_ts < now) {
+					ts->stream_is_not_scrambled = 0;
+					ts->last_scrambled_packet_ts = now;
+				}
+			} else {
+				if (now - 5 >= ts->last_scrambled_packet_ts) {
+					if (ts->last_not_scrambled_packet_ts < now) {
+						ts->camd.key->is_valid_cw = 0;
+						ts->stream_is_not_scrambled = 1;
+						ts->last_not_scrambled_packet_ts = now;
+					}
+				}
 			}
+		}
+		if (in_pidmap && is_scrambled) {
 			if (ts->key.is_valid_cw) {
 				int scramble_idx = ts_packet_get_scrambled(ts_packet);
 				if (!scramble_idx_old)
@@ -179,13 +193,6 @@ static void decode_buffer(struct ts *ts, uint8_t *data, int data_len) {
 					ts_packet_set_pid(ts_packet, 0x1fff);
 			}
 		}
-	}
-
-	if (ts->last_scrambled_packet_ts && ts->last_scrambled_packet_ts < now - 5) {
-		ts_LOGf("N/E | No encrypted packet came during the last 5 seconds, disabling NO_CODE_WORD notifcation\n");
-		notify(ts, "STREAM_NOT_ENCRYPTED", "No encrypted packets were seen in the last 5 seconds.");
-		ts->stream_is_encrypted = 0;
-		ts->last_scrambled_packet_ts = 0;
 	}
 
 	// Decode packets
