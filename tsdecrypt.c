@@ -1054,10 +1054,12 @@ int main(int argc, char **argv) {
 				ntimeouts++;
 			} else {
 				if (ntimeouts && readen > 0) {
+					time_t now = time(NULL);
+					ts_LOGf("+++ | Input OK after %ld sec timeout.\n", (now - timeout_start) + 2);
 					notify(&ts, "INPUT_OK", "Data is available on input %s://%s:%s/ after %ld seconds timeout.",
 							ts.rtp_input ? "rtp" : "udp",
 							ts.input.hostname, ts.input.service,
-							(time(NULL) - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
+							(now - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
 					ntimeouts = 0;
 				}
 			}
