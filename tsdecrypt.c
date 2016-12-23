@@ -861,7 +861,7 @@ static void report_emms(struct ts *ts, time_t now) {
 }
 
 static void report_ecms(struct ts *ts, time_t now) {
-	if ((ts->stream_is_not_scrambled || !ts->have_valid_pmt) && ts->ecm_seen_count == 0)
+	if ((ts->stream_is_not_scrambled || !ts->have_valid_pmt || ts->no_input) && ts->ecm_seen_count == 0)
 		return;
 	ts_LOGf("ECM | Received %u (%u dup) and processed %u in %lu seconds.\n",
 		ts->ecm_seen_count,
@@ -875,7 +875,7 @@ static void report_ecms(struct ts *ts, time_t now) {
 }
 
 static void report_cw_warn(struct ts *ts, time_t now) {
-	if (ts->stream_is_not_scrambled || !ts->have_valid_pmt)
+	if (ts->stream_is_not_scrambled || !ts->have_valid_pmt || ts->no_input)
 		return;
 	if (now - ts->key.ts > 1) {
 		notify(ts, "NO_CODE_WORD", "No valid code word was received in %ld sec.",

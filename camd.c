@@ -185,7 +185,7 @@ static int camd_send_ecm(struct ts *ts, struct camd_msg *msg) {
 		ts->is_cw_error = 1;
 		if (ts->key.ts && now - ts->key.ts > KEY_VALID_TIME) {
 			if (c->key->is_valid_cw) {
-				if (!ts->stream_is_not_scrambled || !ts->have_valid_pmt) {
+				if (!ts->stream_is_not_scrambled || !ts->have_valid_pmt || ts->no_input) {
 					notify(ts, "NO_CODE_WORD", "No code word was set in %ld sec. Decryption is disabled.",
 						now - ts->key.ts);
 					ts_LOGf("CW  | *ERR* No valid code word was received in %ld seconds. Decryption is disabled.\n",
