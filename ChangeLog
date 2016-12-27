@@ -1,6 +1,9 @@
 xxxx-xx-xx : Version -next
  * Add new notification message STREAM_NOT_ENCRYPTED. When stream is not
    encrypted no NO_CODE_WORD notifications are sent.
+ * Add --notify-wait (-9) option (not set by default). Using it prevents
+   running of several notification scripts in parallel which can lead to
+   races if the scripts are used for logging.
 
 2013-09-12 : Version 10.0
  * Add --ecm-only (-v) option. This allows processing of ECMs but without

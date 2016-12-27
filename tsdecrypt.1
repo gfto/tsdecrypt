@@ -30,6 +30,19 @@ and an example on how to create your own notification script.
 
 See \fBEVENTS\fR section for detailed description of the events.
 .TP
+\fB\-9\fR, \fB\-\-notify-wait\fR
+Wait for notification script to exit before starting another notification.
+
+By default notifications script is executed as soon as notification is
+received. But since several notifications might come at one time, there
+is no guarantee that notification script would be run sequentially. The
+notification script for newer notification might be run before an older
+notification.
+
+Setting this option makes sure that you'll have only one notify script
+running. \fB*NOTE*\fR if you set this option make sure that notification
+script does not take a lot of time to run or you'll run into problems.
+.TP
 \fB\-S\fR, \fB\-\-syslog\fR
 Write log messages to local syslog.
 .TP

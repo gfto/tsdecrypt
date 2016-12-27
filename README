@@ -102,6 +102,8 @@ Main options:
  -i --ident <server>        | Format PROVIDER/CHANNEL. Default: empty
  -d --daemon <pidfile>      | Daemonize program and write pid file.
  -N --notify-program <prg>  | Execute <prg> to report events. Default: empty
+ -9 --notify-wait           | Enable one by one notification delivery.
+                            . Default: not set (async, deliver ASAP)
 
 Input options:
  -I --input <source>        | Where to read from. File or multicast address.

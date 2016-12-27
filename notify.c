@@ -143,6 +143,8 @@ static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_tex
 	np = calloc(1, sizeof(struct npriv));
 
 	np->sync = sync_msg;
+	if (ts->notify_wait)
+		np->sync = 1;
 	npriv_init_defaults(ts->notify, np);
 
 	strncpy(np->msg_id, msg_id, sizeof(np->ident) - 1);
