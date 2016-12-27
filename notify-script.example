@@ -22,6 +22,8 @@ LOG_FILE="$LOGDIR/notify.${_IDENT}.notify.log"
 # Environmental vars that are set by the calling process (tsdecrypt):
 #   _TS             Unix timestamp of the event.
 #   _IDENT          tsdecrypt ident (--ident parameter).
+#   _INPUT_ADDR     Input address and port (for example 239.1.2.3:5000).
+#   _OUTPUT_ADDR    Output address and port (for example 239.9.8.7:5000).
 #   _MESSAGE_ID     Event message id (For example START, STOP, etc...).
 #   _MESSAGE_TEXT   Event message text. Human readable event message.
 #   _MESSAGE_MSG    Event message id lower cased and "_" is replaced with " "
@@ -60,6 +62,8 @@ then
 		echo "Subject: $EMAIL_SUBJECT_PREFIX ${_IDENT} ${_MESSAGE_MSG}"
 		echo "X-IDENT: ${_IDENT}"
 		echo "X-MSG-ID: ${_MESSAGE_ID}"
+		echo "X-Input: ${_INPUT_ADDR}"
+		echo "X-Output: ${_OUTPUT_ADDR}"
 		echo "X-Mailer: tsdecrypt"
 		echo
 		echo "${_IDENT} ${_MESSAGE_TEXT}"

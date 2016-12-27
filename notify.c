@@ -37,6 +37,8 @@ struct npriv {
 	char	program[512];
 	char	msg_id[512];
 	char	text[512];
+	char	input[128];
+	char	output[128];
 	int		sync;			/* Wait for message to be delivered */
 };
 
@@ -56,6 +58,8 @@ static void *do_notify(void *in) {
 		char **env = calloc(32, sizeof(char *));
 		if (asprintf(&env[e++], "_TS=%ld"			, time(NULL)) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_IDENT=%s"			, shared->ident) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_INPUT_ADDR=%s"	, shared->input) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_OUTPUT_ADDR=%s"	, shared->output) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_MESSAGE_ID=%s"	, shared->msg_id) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_MESSAGE_TEXT=%s"	, shared->text) < 0) exit(EXIT_FAILURE);
 		r = strlen(shared->msg_id);
@@ -152,6 +156,21 @@ static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_tex
 
 	strncpy(np->text, msg_text, sizeof(np->text) - 1);
 	np->text[sizeof(np->text) - 1] = 0;
+
+	if (ts->input.type == NET_IO) {
+		snprintf(np->input, sizeof(np->input), "%s:%s", ts->input.hostname, ts->input.service);
+	} else if (ts->input.type == FILE_IO) {
+		snprintf(np->input, sizeof(np->input), "%s", ts->input.fd == 0 ? "STDIN" : "FILE");
+	}
+	if (ts->output_stream) {
+		if (ts->output.type == NET_IO) {
+			snprintf(np->output, sizeof(np->output), "%s:%s", ts->output.hostname, ts->output.service);
+		} else if (ts->output.type == FILE_IO) {
+			snprintf(np->output, sizeof(np->output), "%s", ts->output.fd == 1 ? "STDOUT" : "FILE");
+		}
+	} else {
+		snprintf(np->output, sizeof(np->output), "DISABLED");
+	}
 
 	queue_add(ts->notify->notifications, np);
 }
