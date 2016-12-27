@@ -350,7 +350,7 @@ currently defined events are:
 
   \fBSTART\fR           tsdecrypt was started.
 
-  \fBNO_PROGRAM\fR    There is an input but there is no valid program
+  \fBNO_PROGRAM\fR      There is an input but there is no valid program
                   in the input (PMT table is missing). This error is
                   reported when there 15 seconds have passed since
                   last valid PMT was received. When this error is
@@ -362,13 +362,13 @@ currently defined events are:
   \fBNO_CODE_WORD\fR    No valid code word was received for X seconds. The
                   decryption process have been suspended until valid
                   code word is received. This event is sent only if
-                  the stream is encrypted and there are no new code words
-                  from the CAMD server.
+                  the stream is encrypted and there are no new code
+                  words from the CAMD server.
 
   \fBSTREAM_CLEAR\fR    No encrypted packets arrived in the input stream.
                   The stream is not encrypted and clear to view.
 
-  \fBNO_EMM_RECEIVED\fR    No EMM packet have been received for X seconds.
+  \fBNO_EMM_RECEIVED\fR No EMM packet have been received for X seconds.
 
   \fBINPUT_TIMEOUT\fR   There was no data on the input.
 
