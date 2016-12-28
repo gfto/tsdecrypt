@@ -17,7 +17,10 @@ EMAIL_PROGRAM="/usr/sbin/sendmail -t -i"
 
 LOG_ENABLED="yes"
 LOG_DIR="."
-LOG_FILE="$LOGDIR/notify.${_IDENT}.notify.log"
+LOG_FILE="$LOG_DIR/notify.${_IDENT}.notify.log"
+
+STATUS_ENABLED="yes"
+STATUS_FILE="$LOG_DIR/status.${_IDENT}"
 
 # Environmental vars that are set by the calling process (tsdecrypt):
 #   _TS             Unix timestamp of the event.
@@ -50,7 +53,13 @@ then
 		"${_IDENT}" \
 		"${_MESSAGE_ID}" \
 		"${_MESSAGE_TEXT}" \
-		  >> $LOG_DIR/$LOG_FILE
+		  >> $LOG_FILE
+fi
+
+if [ "$STATUS_ENABLED" = "yes" ]; then
+	# Run tsdecrypt with --notify-wait otherwise the events might get here out of order
+	echo "${_IDENT}|${_TS}|${_MESSAGE_ID}|${_MESSAGE_TEXT}|${_INPUT_ADDR}|${_OUTPUT_ADDR}" > $STATUS_FILE.tmp
+	mv $STATUS_FILE.tmp $STATUS_FILE
 fi
 
 if [ "$EMAIL_ENABLED" = "yes" ]

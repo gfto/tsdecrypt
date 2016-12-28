@@ -104,6 +104,7 @@ Main options:
  -N --notify-program <prg>  | Execute <prg> to report events. Default: empty
  -9 --notify-wait           | Enable one by one notification delivery.
                             . Default: not set (async, deliver ASAP)
+ -0 --status-file <file>    | Save current program status in file.
 
 Input options:
  -I --input <source>        | Where to read from. File or multicast address.

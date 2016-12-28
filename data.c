@@ -150,5 +150,8 @@ void data_free(struct ts *ts) {
 	// unhappy it is a good idea to free the memory (ONCE!).
 	FREE(ts->camd.newcamd.crypt_passwd);
 
+	ts->status_file = NULL;
+	FREE(ts->status_file_tmp);
+
 	pthread_attr_destroy(&ts->thread_attr);
 }

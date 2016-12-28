@@ -360,6 +360,8 @@ struct ts {
 	struct notify		*notify;
 	char				*notify_program;
 	int					notify_wait;
+	char				*status_file;
+	char				*status_file_tmp;
 
 	unsigned int		input_buffer_time;
 	LIST				*input_buffer;

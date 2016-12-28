@@ -43,6 +43,25 @@ Setting this option makes sure that you'll have only one notify script
 running. \fB*NOTE*\fR if you set this option make sure that notification
 script does not take a lot of time to run or you'll run into problems.
 .TP
+\fB\-0\fR, \fB\-\-status-file\fR <filename>
+Write latest notification in file named <filename>. You can monitor this
+file to know what is the current tsdecrypt status.
+
+The file contains the following fields (see \fBEVENTS\fR bellow) separated
+by the pipe symbol (|).
+
+  _IDENT
+  _TS
+  _MESSAGE_ID
+  _MESSAGE_TEXT
+  _INPUT_ADDR
+  _OUTPUT_ADDR
+
+See \fBEVENTS\fR section for detailed description of the events.
+
+See \fBnotify-script.example\fR for example how to implement
+\fB--status-file\fR by using external notification script.
+.TP
 \fB\-S\fR, \fB\-\-syslog\fR
 Write log messages to local syslog.
 .TP

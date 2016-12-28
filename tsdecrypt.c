@@ -77,9 +77,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:9Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:2:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:90:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:2:KJ:D:jbhVn:m:";
 
-// Unused short options: 035789
+// Unused short options: 3578
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -89,6 +89,7 @@ static const struct option long_options[] = {
 	{ "log-file",			required_argument, NULL, 'F' },
 	{ "notify-program",		required_argument, NULL, 'N' },
 	{ "notify-wait",		no_argument,       NULL, '9' },
+	{ "status-file",		required_argument, NULL, '0' },
 
 	{ "input",				required_argument, NULL, 'I' },
 	{ "input-source",		required_argument, NULL, '1' },
@@ -163,6 +164,7 @@ static void show_help(struct ts *ts) {
 	printf(" -N --notify-program <prg>  | Execute <prg> to report events. Default: empty\n");
 	printf(" -9 --notify-wait           | Enable one by one notification delivery.\n");
 	printf("                            . Default: not set (async, deliver ASAP)\n");
+	printf(" -0 --status-file <file>    | Save current program status in file.\n");
 	printf("\n");
 	printf("Input options:\n");
 	printf(" -I --input <source>        | Where to read from. File or multicast address.\n");
@@ -319,6 +321,11 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case '9': // --notify-wait
 				ts->notify_wait = !ts->notify_wait;
+				break;
+			case '0': // --status-file
+				ts->status_file = optarg;
+				ts->status_file_tmp = calloc(1, strlen(optarg) + 16);
+				snprintf(ts->status_file_tmp, strlen(optarg) + 16, "%s.tmp", optarg);
 				break;
 			case 'S': // --syslog
 				ts->syslog_active = 1;
@@ -612,7 +619,7 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		}
 	}
 	if (!ts->ident) {
-		if (ts->syslog_active || ts->notify_program)
+		if (ts->syslog_active || ts->notify_program || ts->status_file)
 			ident_err = 1;
 	}
 
@@ -654,7 +661,6 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 	}
 
 	if (ident_err || ca_err || server_err || input_addr_err || output_addr_err || ts->input.type == WTF_IO || ts->output.type == WTF_IO) {
-		show_help(ts);
 		if (ident_err)
 			fprintf(stderr, "ERROR: Ident is not set, please use --ident option.\n");
 		if (ca_err)
@@ -688,6 +694,8 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 		ts_LOGf("Ident      : %s\n", ts->ident);
 	if (ts->notify_program)
 		ts_LOGf("Notify prg : %s (%s)\n", ts->notify_program, ts->notify_wait ? "sync" : "async");
+	if (ts->status_file)
+		ts_LOGf("Status file: %s\n", ts->status_file);
 	if (ts->pidfile)
 		ts_LOGf("Daemonize  : %s pid file.\n", ts->pidfile);
 	if (ts->syslog_active) {

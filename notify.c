@@ -33,12 +33,13 @@
 #include "util.h"
 
 struct npriv {
-	char	ident[512];
+	char	ident[128];
 	char	program[512];
-	char	msg_id[512];
-	char	text[512];
+	char	msg_id[64];
+	char	text[256];
 	char	input[128];
 	char	output[128];
+	time_t	ts;
 	int		sync;			/* Wait for message to be delivered */
 };
 
@@ -56,7 +57,7 @@ static void *do_notify(void *in) {
 		int e = 0;
 		unsigned int i, r;
 		char **env = calloc(32, sizeof(char *));
-		if (asprintf(&env[e++], "_TS=%ld"			, time(NULL)) < 0) exit(EXIT_FAILURE);
+		if (asprintf(&env[e++], "_TS=%ld"			, shared->ts) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_IDENT=%s"			, shared->ident) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_INPUT_ADDR=%s"	, shared->input) < 0) exit(EXIT_FAILURE);
 		if (asprintf(&env[e++], "_OUTPUT_ADDR=%s"	, shared->output) < 0) exit(EXIT_FAILURE);
@@ -117,45 +118,39 @@ static void *notify_thread(void *data) {
 
 struct notify *notify_alloc(struct ts *ts) {
 	unsigned int i;
-	if (!ts->ident || !ts->notify_program)
-		return NULL;
 	struct notify *n = calloc(1, sizeof(struct notify));
-	n->notifications = queue_new();
-	strncpy(n->ident, ts->ident, sizeof(n->ident) - 1);
-	n->ident[sizeof(n->ident) - 1] = '\0';
+	if (!n)
+		return NULL;
+
+	if (!ts->ident)
+		return NULL;
+
+	// Init notify members
+	strncpy(n->ident, ts->ident, sizeof(n->ident) - 2);
 	for (i=0; i<strlen(n->ident); i++) {
 		if (n->ident[i] == '/')
 			n->ident[i] = '-';
 	}
-	strncpy(n->program, ts->notify_program, sizeof(n->program) - 1);
-	n->program[sizeof(n->program) - 1] = '\0';
-	pthread_create(&n->thread, &ts->thread_attr , &notify_thread, n);
+
+	// We'll need the notify thread and the queue only if 'notify_program' is set
+	if (ts->ident && ts->notify_program) {
+		strncpy(n->program, ts->notify_program, sizeof(n->program) - 2);
+		n->notifications = queue_new();
+		pthread_create(&n->thread, &ts->thread_attr , &notify_thread, n);
+	}
 	return n;
 }
 
-static void npriv_init_defaults(struct notify *n, struct npriv *np) {
-	strncpy(np->program, n->program, sizeof(np->program) - 1);
-	strncpy(np->ident, n->ident, sizeof(np->ident) - 1);
-}
-
-static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_text) {
-	struct npriv *np;
-
-	if (!ts->notify)
-		return;
-
-	np = calloc(1, sizeof(struct npriv));
-
+static void npriv_struct_fill(struct npriv *np, struct ts *ts, int sync_msg, char *msg_id, char *msg_text) {
 	np->sync = sync_msg;
 	if (ts->notify_wait)
 		np->sync = 1;
-	npriv_init_defaults(ts->notify, np);
+	np->ts = time(NULL);
 
-	strncpy(np->msg_id, msg_id, sizeof(np->ident) - 1);
-	np->msg_id[sizeof(np->ident) - 1] = 0;
-
-	strncpy(np->text, msg_text, sizeof(np->text) - 1);
-	np->text[sizeof(np->text) - 1] = 0;
+	strncpy(np->program, ts->notify->program, sizeof(np->program) - 2);
+	strncpy(np->ident, ts->notify->ident, sizeof(np->ident) - 2);
+	strncpy(np->msg_id, msg_id, sizeof(np->msg_id) - 2);
+	strncpy(np->text, msg_text, sizeof(np->text) - 2);
 
 	if (ts->input.type == NET_IO) {
 		snprintf(np->input, sizeof(np->input), "%s:%s", ts->input.hostname, ts->input.service);
@@ -171,8 +166,36 @@ static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_tex
 	} else {
 		snprintf(np->output, sizeof(np->output), "DISABLED");
 	}
+}
 
-	queue_add(ts->notify->notifications, np);
+static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_text) {
+	struct npriv np_local;
+	int np_local_inited = 0;
+
+	if (ts->status_file) {
+		memset(&np_local, 0, sizeof(np_local));
+		npriv_struct_fill(&np_local, ts, sync_msg, msg_id, msg_text);
+		np_local_inited = 1;
+		// Write status file
+		FILE *status_file = fopen(ts->status_file_tmp, "w");
+		if (status_file) {
+			fprintf(status_file, "%s|%ld|%s|%s|%s|%s\n", np_local.ident, np_local.ts, np_local.msg_id, np_local.text, np_local.input, np_local.output);
+			rename(ts->status_file_tmp, ts->status_file);
+			fclose(status_file);
+		}
+	}
+
+	if (ts->notify->notifications) {
+		struct npriv *np = calloc(1, sizeof(struct npriv));
+		if (np) {
+			if (np_local_inited) {
+				memcpy(np, &np_local, sizeof(*np));
+			} else {
+				npriv_struct_fill(np, ts, sync_msg, msg_id, msg_text);
+			}
+			queue_add(ts->notify->notifications, np);
+		}
+	}
 }
 
 #define MAX_MSG_TEXT 256
@@ -204,9 +227,11 @@ void notify_sync(struct ts *ts, char *msg_id, char *text_fmt, ...) {
 void notify_free(struct notify **pn) {
 	struct notify *n = *pn;
 	if (n) {
-		queue_add(n->notifications, NULL);
-		pthread_join(n->thread, NULL);
-		queue_free(&n->notifications);
+		if (n->notifications) {
+			queue_add(n->notifications, NULL);
+			pthread_join(n->thread, NULL);
+			queue_free(&n->notifications);
+		}
 		FREE(*pn);
 	}
 }

@@ -5,6 +5,7 @@ xxxx-xx-xx : Version -next
    running of several notification scripts in parallel which can lead to
    races if the scripts are used for logging.
  * Start passing _INPUT_ADDR and _OUTPUT_ADDR variables to notify script.
+ * Add --status-file (-0) option. This file keeps latest program status.
 
 2013-09-12 : Version 10.0
  * Add --ecm-only (-v) option. This allows processing of ECMs but without
