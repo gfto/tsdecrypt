@@ -55,6 +55,7 @@ fi
 
 if [ "$EMAIL_ENABLED" = "yes" ]
 then
+	if [ -x $EMAIL_PROGRAM ]; then
 	(
 		echo "To: <$EMAIL_TO>"
 		echo "From: <$EMAIL_FROM>"
@@ -68,4 +69,5 @@ then
 		echo
 		echo "${_IDENT} ${_MESSAGE_TEXT}"
 	) | $EMAIL_PROGRAM
+	fi
 fi
