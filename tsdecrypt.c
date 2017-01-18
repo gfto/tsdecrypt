@@ -926,10 +926,12 @@ static void do_reports(struct ts *ts) {
 		ts_LOGf("CLR | No encrypted packets in the last %ld seconds. Stream is clear.\n", now - ts->last_scrambled_packet_ts);
 		notify(ts, "STREAM_CLEAR", "No encrypted packets in the last %ld seconds. Stream is clear.", now - ts->last_scrambled_packet_ts);
 		ts->last_not_scrambled_report_ts = now;
-	}
-	if (ts->process_ecm && !ts->key.is_valid_cw) {
-		if (ts->cw_warn_sec && now >= ts->cw_next_warn) {
-			report_cw_warn(ts, now);
+		ts->key.is_valid_cw = 0;
+	} else {
+		if (ts->process_ecm && !ts->key.is_valid_cw) {
+			if (ts->cw_warn_sec && now >= ts->cw_next_warn) {
+				report_cw_warn(ts, now);
+			}
 		}
 	}
 	if (!ts->no_input) {
@@ -938,6 +940,7 @@ static void do_reports(struct ts *ts) {
 				ts_LOGf("MIS | There is no valid PMT in the input.\n");
 				notify(ts, "NO_PROGRAM", "The input is missing valid program.");
 				ts->have_valid_pmt = 0;
+				ts->key.is_valid_cw = 0;
 			}
 		}
 	}
