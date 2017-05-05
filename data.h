@@ -72,7 +72,8 @@ struct key {
 
 // 4 auth header, 20 header size, 256 max data size, 16 potential padding
 #define CAMD35_HDR_LEN (20)
-#define CAMD35_BUF_LEN (4 + CAMD35_HDR_LEN + 256 + 16)
+#define CAMD35_DATA_SIZE (256)
+#define CAMD35_BUF_LEN (4 + CAMD35_HDR_LEN + CAMD35_DATA_SIZE + 16)
 
 // When this limit is reached invalid_cw flag is set.
 #define ECM_RECV_ERRORS_LIMIT 10
@@ -89,8 +90,8 @@ struct camd_msg {
 	enum msg_type	type;
 	uint16_t		ca_id;
 	uint16_t		service_id;
-	uint8_t			data_len;
-	uint8_t			data[255];
+	int				data_len;
+	uint8_t			data[512];	// enough for now
 	struct ts		*ts;
 };
 

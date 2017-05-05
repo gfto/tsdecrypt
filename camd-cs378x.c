@@ -50,7 +50,7 @@ static int cs378x_recv(struct camd *c, uint8_t *data, int *data_len) {
 			c->ops.ident, auth_token, c->cs378x.auth_token);
 	}
 
-	*data_len = 256;
+	*data_len = CAMD35_DATA_SIZE;
 	for (i = 0; i < *data_len; i += 16) { // Read and decrypt payload
 		fdread(c->server_fd, (char *)data + i, 16);
 		AES_decrypt(data + i, data + i, &c->cs378x.aes_decrypt_key);
@@ -96,9 +96,14 @@ static void cs378x_buf_init(struct camd *c, uint8_t *data, int data_len) {
 }
 
 static int cs378x_do_ecm(struct camd *c, struct camd_msg *msg) {
+	if (msg->data_len > CAMD35_DATA_SIZE) {
+		ts_LOGf("ERR | [%s] Data too long.\n", c->ops.ident);
+		return 0; // false
+	}
+
 	int to_send = boundary(4, CAMD35_HDR_LEN + msg->data_len);
 
-	cs378x_buf_init(c, msg->data, (int)msg->data_len);
+	cs378x_buf_init(c, msg->data, msg->data_len);
 
 	c->cs378x.msg_id++;
 
