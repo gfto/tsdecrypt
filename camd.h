@@ -19,7 +19,7 @@
 
 int connect_client							(int socktype, const char *hostname, const char *service);
 
-struct camd_msg *		camd_msg_alloc		(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len);
+struct camd_msg *		camd_msg_alloc		(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, int data_len);
 void					camd_msg_free   	(struct camd_msg **pmsg);
 
 void					camd_set_cw			(struct ts *ts, uint8_t *new_cw, int check_validity);

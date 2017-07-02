@@ -238,7 +238,7 @@ OUT:
 	camd_msg_free(&msg);
 }
 
-struct camd_msg *camd_msg_alloc(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, uint8_t data_len) {
+struct camd_msg *camd_msg_alloc(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, int data_len) {
 	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
 	c->type       = msg_type;
 	c->ca_id      = ca_id;
