@@ -240,6 +240,10 @@ OUT:
 
 struct camd_msg *camd_msg_alloc(enum msg_type msg_type, uint16_t ca_id, uint16_t service_id, uint8_t *data, int data_len) {
 	struct camd_msg *c = calloc(1, sizeof(struct camd_msg));
+	if (data_len > (int)sizeof(c->data)) {
+		ts_LOGf("ERROR: Tried to allocate too big CAMD message: %d max: %lu\n", data_len, sizeof(c->data));
+		return NULL;
+	}
 	c->type       = msg_type;
 	c->ca_id      = ca_id;
 	c->service_id = service_id;
