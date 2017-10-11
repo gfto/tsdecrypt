@@ -91,7 +91,7 @@ struct camd_msg {
 	uint16_t		ca_id;
 	uint16_t		service_id;
 	int				data_len;
-	uint8_t			data[512];	// enough for now
+	uint8_t			data[CAMD35_BUF_LEN];
 	struct ts		*ts;
 };
 
