@@ -307,7 +307,7 @@ static void __process_emm(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			dump);
 	}
 
-	if (emm_ok)
+	if (emm_ok && sec->section_data_len < CAMD35_DATA_SIZE)
 		camd_process_packet(ts, camd_msg_alloc(EMM_MSG, ts->emm_caid, ts->service_id, sec->section_data, sec->section_data_len));
 	else
 		ts->emm_skipped_count++;
