@@ -5,7 +5,6 @@ MKDEP = $(CROSS)$(CC) -MP -MM -o $*.d $<
 RM = rm -f
 MV = mv -f
 
-BUILD_ID = $(shell date +%F_%R)
 VERSION = $(shell cat RELEASE)
 GIT_VER = $(shell git describe --tags --dirty --always 2>/dev/null)
 ifeq "$(GIT_VER)" ""
@@ -30,8 +29,7 @@ LDFLAGS :=
 CC := cc -I/opt/local/include
 endif
 
-DEFS = -DBUILD_ID=\"$(BUILD_ID)\" \
- -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
+DEFS = -DVERSION=\"$(VERSION)\" -DGIT_VER=\"$(GIT_VER)\"
 DEFS += -D_FILE_OFFSET_BITS=64
 
 PREFIX ?= /usr/local

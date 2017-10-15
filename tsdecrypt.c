@@ -38,7 +38,7 @@
 #define FIRST_REPORT_SEC 3
 
 #define PROGRAM_NAME "tsdecrypt"
-static const char *program_id = PROGRAM_NAME " v" VERSION " (" GIT_VER ", build " BUILD_ID " " DLIB ")";
+static const char *program_id = PROGRAM_NAME " v" VERSION " (" GIT_VER ", " DLIB ")";
 
 int keep_running = 1;
 static FILE *log_file = NULL;
