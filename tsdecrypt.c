@@ -1086,6 +1086,8 @@ int main(int argc, char **argv) {
 							ts.rtp_input ? "rtp" : "udp",
 							ts.input.hostname, ts.input.service,
 							(now - timeout_start) + 2); // Timeout is detected when ~2 seconds there is no incoming data
+					ts.have_valid_pmt = 1; // We need to report if there is not PMT after INPUT is now OK
+					ts.last_pmt_ts = time(NULL);
 					ts.no_input = 0;
 					ntimeouts = 0;
 				}
