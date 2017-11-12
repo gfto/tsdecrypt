@@ -126,6 +126,55 @@ void process_cat(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	}
 }
 
+// Copied from libtsfuncs with added logic to return more than one PID
+static int find_CA_descriptor(uint8_t *data, int data_len, enum CA_system req_CA_type, uint16_t *CA_id, uint16_t *CA_pid, uint16_t *CA_pids, unsigned int *n_pids) {
+	while (data_len >= 2) {
+		uint8_t tag         = data[0];
+		uint8_t this_length = data[1];
+		data     += 2;
+		data_len -= 2;
+		if (tag == 9 && this_length >= 4) {
+			uint16_t CA_ID = (data[0] << 8) | data[1];
+			uint16_t CA_PID = ((data[2] & 0x1F) << 8) | data[3];
+			if (ts_get_CA_sys(CA_ID) == req_CA_type) {
+				*CA_id = CA_ID;
+				*CA_pid = CA_PID;
+				if (*n_pids < MAX_ECM_PIDS) {
+					unsigned int i, exist = 0;
+					for (i = 0; i < MAX_ECM_PIDS; i++) {
+						if (CA_pids[i] == CA_PID) {
+							exist = 1;
+							break;
+						}
+					}
+					if (!exist) {
+						CA_pids[(*n_pids)++] = CA_PID;
+					}
+				}
+			}
+		}
+		data_len -= this_length;
+		data += this_length;
+	}
+	return 0;
+}
+
+// Copied from libtsfuncs with added logic to return more than one PID
+int __ts_get_ecm_info(struct ts_pmt *pmt, enum CA_system req_CA_type, uint16_t *CA_id, uint16_t *CA_pid, uint16_t *CA_pids, unsigned int *n_pids) {
+	int i, result = find_CA_descriptor(pmt->program_info, pmt->program_info_size, req_CA_type, CA_id, CA_pid, CA_pids, n_pids);
+	if (!result) {
+		for(i=0;i<pmt->streams_num;i++) {
+			struct ts_pmt_stream *stream = pmt->streams[i];
+			if (stream->ES_info) {
+				result = find_CA_descriptor(stream->ES_info, stream->ES_info_size, req_CA_type, CA_id, CA_pid, CA_pids, n_pids);
+				if (result)
+					break;
+			}
+		}
+	}
+	return result;
+}
+
 void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	int i;
 	if (!pid || pid != ts->pmt_pid)
@@ -156,11 +205,14 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (ts->camd.constant_codeword)
 		return;
 
+	ts->n_ecm_pids = 0;
 	if (ts->forced_caid) {
 		ts->ecm_caid = ts->forced_caid;
 		ts_get_ecm_info_by_caid(ts->pmt, ts->ecm_caid, &ts->ecm_pid);
+		ts->n_ecm_pids = 1; // TODO/FIXME: We should get the list of PIDS similar to how __ts_get_ecm_info does it
+		ts->ecm_pids[0] = ts->ecm_pid;
 	} else {
-		ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid);
+		__ts_get_ecm_info(ts->pmt, ts->req_CA_sys, &ts->ecm_caid, &ts->ecm_pid, &ts->ecm_pids[0], &ts->n_ecm_pids);
 	}
 
 	if (ts->forced_ecm_pid)
@@ -175,6 +227,11 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 			ts_LOGf("--- | ECM pid : 0x%04x (%s) (forced: 0x%04x)\n",
 				ts->ecm_pid, CA_sys, ts->forced_ecm_pid);
 			ts->ecm_pid = ts->forced_ecm_pid;
+		}
+		if (ts->n_ecm_pids > 1) {
+			for (i = 0; i < (int)ts->n_ecm_pids; i++) {
+				ts_LOGf("--- | ECM pid : 0x%04x (%s) idx:%d\n", ts->ecm_pids[i], CA_sys, i);
+			}
 		}
 	} else {
 		ts_LOGf("*** | ERROR: Can't detect ECM pid.\n");

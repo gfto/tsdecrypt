@@ -233,6 +233,7 @@ struct chid {
 };
 
 #define MAX_PIDS 8192
+#define MAX_ECM_PIDS 16
 
 struct ts {
 	// Stream handling
@@ -251,6 +252,9 @@ struct ts {
 	uint16_t			forced_service_id;
 	uint16_t			emm_caid, emm_pid;
 	uint16_t			ecm_caid, ecm_pid;
+	unsigned int		n_ecm_pids;
+	unsigned int		ecm_pid_idx;
+	uint16_t			ecm_pids[MAX_ECM_PIDS];
 	uint16_t			forced_caid;
 	uint16_t			forced_emm_pid;
 	uint16_t			forced_ecm_pid;

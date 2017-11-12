@@ -127,6 +127,14 @@ static int camd_recv_cw(struct ts *ts) {
 		return 0;
 
 	if (ret <= 0) {
+		// get_cw returned error, lets try other ecm pids, we might be lucky...
+		if (ts->n_ecm_pids > 1) {
+			ts->ecm_pid_idx++;
+			if (ts->ecm_pid_idx + 1 > ts->n_ecm_pids)
+				ts->ecm_pid_idx = 0;
+			ts->ecm_pid = ts->ecm_pids[ts->ecm_pid_idx];
+			ts_LOGf("ECM | Switching ECM pid to 0x%04x (%d) idx:%d\n", ts->ecm_pid, ts->ecm_pid, ts->ecm_pid_idx);
+		}
 		if (ret == -1) { // Fatal error it is better to reconnect to server.
 			ts_LOGf("ERR | No code word has been received (ret = %d)\n", ret);
 			camd_reconnect(c);
