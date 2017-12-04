@@ -144,7 +144,12 @@ static int camd_recv_cw(struct ts *ts) {
 			c->key->is_valid_cw = 0;
 			memset(c->key->cw, 0, 16); // Invalid CW
 		}
-		usleep(10000);
+		usleep(1000 * 1000); // 1 ms * 1000 == 1 sec
+		// drain ecm queue
+		while(c->ecm_queue->items > 1) {
+			struct camd_msg *msg = queue_get_nowait(c->ecm_queue);
+			camd_msg_free(&msg);
+		}
 		return 0;
 	}
 
