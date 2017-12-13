@@ -185,7 +185,7 @@ static void notify_func(struct ts *ts, int sync_msg, char *msg_id, char *msg_tex
 		}
 	}
 
-	if (ts->notify->notifications) {
+	if (ts->notify && ts->notify->notifications) {
 		struct npriv *np = calloc(1, sizeof(struct npriv));
 		if (np) {
 			if (np_local_inited) {
