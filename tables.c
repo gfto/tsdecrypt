@@ -167,7 +167,7 @@ static int find_CA_descriptor(uint8_t *data, int data_len, enum CA_system req_CA
 
 // Copied from libtsfuncs with added logic to return more than one PID
 int __ts_get_ecm_info(struct ts_pmt *pmt, enum CA_system req_CA_type, uint16_t forced_caid, uint16_t *CA_id, uint16_t *CA_pid, uint16_t *CA_pids, unsigned int *n_pids) {
-	int i, result = find_CA_descriptor(pmt->program_info, pmt->program_info_size, forced_caid, req_CA_type, CA_id, CA_pid, CA_pids, n_pids);
+	int i, result = find_CA_descriptor(pmt->program_info, pmt->program_info_size, req_CA_type, forced_caid, CA_id, CA_pid, CA_pids, n_pids);
 	if (!result) {
 		for(i=0;i<pmt->streams_num;i++) {
 			struct ts_pmt_stream *stream = pmt->streams[i];
