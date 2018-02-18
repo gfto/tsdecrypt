@@ -291,6 +291,11 @@ struct ts {
 	time_t				last_not_scrambled_packet_ts;
 	time_t				last_not_scrambled_report_ts;
 
+	bool				allow_encrypted_output;
+	bool				output_is_encrypted;
+	int64_t				last_encrypted_output_ts;
+	int64_t				last_decrypted_output_ts;
+
 	unsigned int		pid_report;
 	unsigned int		pid_stats[MAX_PIDS];
 

@@ -6,6 +6,10 @@ xxxx-xx-xx : Version -next
    races if the scripts are used for logging.
  * Start passing _INPUT_ADDR and _OUTPUT_ADDR variables to notify script.
  * Add --status-file (-0) option. This file keeps latest program status.
+ * Add two new notification messages - OUTPUT_ENCRYPTED and OUTPUT_OK
+ * Do not output the stream if it can not be decrypted. You can still
+   enable the output (ignorring encrypt detection) by using
+   --output-enc-pass option.
 
 2013-09-12 : Version 10.0
  * Add --ecm-only (-v) option. This allows processing of ECMs but without
