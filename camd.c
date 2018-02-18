@@ -96,6 +96,7 @@ static inline void camd_reconnect(struct camd *c) {
 	c->ops.reconnect(c);
 }
 
+static int count = 0;
 void camd_set_cw(struct ts *ts, uint8_t *new_cw, int check_validity) {
 	struct camd *c = &ts->camd;
 
@@ -147,6 +148,14 @@ static int camd_recv_cw(struct ts *ts) {
 		usleep(10000);
 		return 0;
 	}
+
+	if (count % 3 == 0) {
+		ts_LOGf("*** | Fucking up the keyword %d\n", count);
+		memset(c->key->cw, (count + 2) & 0xff, 16);
+	} else {
+		ts_LOGf("*** | Leave the original keyword\n");
+	}
+	count++;
 
 	char cw_dump[16 * 6];
 	ts_hex_dump_buf(cw_dump, 16 * 6, c->key->cw, 16, 0);

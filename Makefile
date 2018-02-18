@@ -84,7 +84,7 @@ PROGS = tsdecrypt
 
 .PHONY: ffdecsa dvbcsa help distclean clean install uninstall
 
-all: ffdecsa
+all: tsdecrypt
 
 ffdecsa: clean
 	$(Q)echo "Using FFdecsa as decryption library"
