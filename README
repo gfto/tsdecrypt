@@ -134,6 +134,7 @@ Output options:
  -g --output-tos <tos>      | Set TOS value of output packets. Default: none
  -u --no-output-on-error    | Do not output data when the code word is missing.
  -p --no-output-filter      | Disable output filtering. Default: enabled
+ -3 --output-enc-pass       | Output the stream even if can not be decrypted.
  -y --output-nit-pass       | Pass through NIT.
  -w --output-eit-pass       | Pass through EIT (EPG).
  -x --output-tdt-pass       | Pass through TDT/TOT.

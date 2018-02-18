@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/uio.h>
 
+#include "bitstream.h"
 #include "data.h"
 #include "csa.h"
 #include "tables.h"
@@ -259,6 +260,38 @@ void *decode_thread(void *_ts) {
 	return NULL;
 }
 
+/*
+	Return value:
+		ret        == 0    - No valid payload was found
+		ret & 0x01 == 0x01 - PES was found
+		ret & 0x02 == 0x02 - PTS was found
+		ret & 0x04 == 0x04 - DTS was found
+*/
+static unsigned int ts_have_valid_pes(uint8_t *buf, unsigned int buffer_size) {
+	unsigned int ret = 0;
+	uint8_t *buf_end = buf + buffer_size;
+	while (buf < buf_end && ts_validate(buf)) {
+		uint16_t header_size = TS_HEADER_SIZE + (ts_has_adaptation(buf) ? 1 : 0) + ts_get_adaptation(buf);
+		if (ts_get_unitstart(buf) && ts_has_payload(buf) && header_size + PES_HEADER_SIZE_PTS <= TS_SIZE) {
+			//printf("Got payload\n");
+			if (pes_validate(buf + header_size) && pes_get_streamid(buf + header_size) != PES_STREAM_ID_PRIVATE_2 && pes_validate_header(buf + header_size)) {
+				//printf("Got PES\n");
+				ret |= 0x01;
+				if (pes_has_pts(buf + header_size) && pes_validate_pts(buf + header_size)) {
+					ret |= 0x02;
+					//printf("Got PTS\n");
+					if (header_size + PES_HEADER_SIZE_PTSDTS <= TS_SIZE && pes_has_dts(buf + header_size) && pes_validate_dts(buf + header_size)) {
+						//printf("Got DTS\n");
+						ret |= 0x04;
+					}
+				}
+			}
+		}
+		buf += TS_SIZE;
+	}
+	return ret;
+}
+
 static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_size) {
 	if (!data)
 		return;
@@ -266,6 +299,35 @@ static inline void output_write(struct ts *ts, uint8_t *data, unsigned int data_
 		return;
 	if (ts->no_output_on_error && !ts->camd.key->is_valid_cw)
 		return;
+	if (!ts->allow_encrypted_output) {
+		int64_t now = get_time();
+		int ret;
+		if ((ret = ts_have_valid_pes(data, data_size)) == 0) { // Is the output encrypted?
+			/* The output is encrypted, check if 1000 ms have passed and if such, notify that we probably have invalid key */
+			ts->last_encrypted_output_ts = now;
+			if (now > ts->last_decrypted_output_ts + 500000) {
+				if (!ts->output_is_encrypted) {
+					ts->output_is_encrypted = 1;
+					ts_LOGf("OUT | *ERR* The output is encrypted for %" PRId64 " ms, stopping output\n", (now - ts->last_decrypted_output_ts) / 1000);
+					notify(ts, "ENCRYPTED_OUTPUT", "The output can not be decrypted");
+				}
+			}
+		} else {
+			ts->last_decrypted_output_ts = now;
+			if (ts->output_is_encrypted) {
+				ts_LOGf("OUT | Got decrypted data: %s %s %s\n",
+					(ret & 0x01) == 0x01 ? "PES" : "   ",
+					(ret & 0x02) == 0x02 ? "PTS" : "   ",
+					(ret & 0x04) == 0x04 ? "DTS" : "   "
+				);
+				notify(ts, "OUTPUT_OK", "The output is decrypted");
+			}
+			ts->output_is_encrypted = 0;
+		}
+		if (ts->output_is_encrypted)
+			return;
+	}
+
 	if (!ts->rtp_output) {
 		if (write(ts->output.fd, data, data_size) < 0) {
 			perror("write(output_fd)");

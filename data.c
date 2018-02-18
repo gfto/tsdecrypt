@@ -19,6 +19,7 @@
 #include "data.h"
 #include "csa.h"
 #include "camd.h"
+#include "util.h"
 
 void data_init(struct ts *ts) {
 	memset(ts, 0, sizeof(struct ts));
@@ -98,6 +99,11 @@ void data_init(struct ts *ts) {
 	ts->cw_last_warn= time(NULL);
 	ts->cw_last_warn= ts->cw_last_warn + ts->cw_warn_sec;
 	ts->key.ts      = time(NULL);
+
+	ts->allow_encrypted_output   = 0;
+	ts->output_is_encrypted      = 0;
+	ts->last_encrypted_output_ts = get_time();
+	ts->last_decrypted_output_ts = get_time();
 
 	ts->input.fd    = 0; // STDIN
 	ts->input.type  = FILE_IO;

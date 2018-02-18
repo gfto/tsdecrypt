@@ -77,9 +77,9 @@ static void LOG_func(const char *msg) {
 		LOG(msg);
 }
 
-static const char short_options[] = "i:d:N:90:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwxyc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:2:KJ:D:jbhVn:m:";
+static const char short_options[] = "i:d:N:90:Sl:L:F:I:1:RzM:T:W:O:o:t:rk:g:upwx3yc:C:Y:Q:A:s:U:P:B:46eZ:Ef:a:X:vqH:G:2:KJ:D:jbhVn:m:";
 
-// Unused short options: 3578
+// Unused short options: 578
 static const struct option long_options[] = {
 	{ "ident",				required_argument, NULL, 'i' },
 	{ "daemon",				required_argument, NULL, 'd' },
@@ -110,6 +110,7 @@ static const struct option long_options[] = {
 	{ "output-nit-pass",	no_argument,       NULL, 'y' },
 	{ "output-eit-pass",	no_argument,       NULL, 'w' },
 	{ "output-tdt-pass",	no_argument,       NULL, 'x' },
+	{ "output-enc-pass",	no_argument,       NULL, '3' },
 
 	{ "ca-system",			required_argument, NULL, 'c' },
 	{ "caid",				required_argument, NULL, 'C' },
@@ -194,6 +195,7 @@ static void show_help(struct ts *ts) {
 	printf(" -g --output-tos <tos>      | Set TOS value of output packets. Default: none\n");
 	printf(" -u --no-output-on-error    | Do not output data when the code word is missing.\n");
 	printf(" -p --no-output-filter      | Disable output filtering. Default: %s\n", ts->pid_filter ? "enabled" : "disabled");
+	printf(" -3 --output-enc-pass       | Output the stream even if can not be decrypted.\n");
 	printf(" -y --output-nit-pass       | Pass through NIT.\n");
 	printf(" -w --output-eit-pass       | Pass through EIT (EPG).\n");
 	printf(" -x --output-tdt-pass       | Pass through TDT/TOT.\n");
@@ -405,6 +407,9 @@ static void parse_options(struct ts *ts, int argc, char **argv) {
 				break;
 			case 'x': // --output-tdt-pass
 				ts->tdt_passthrough = !ts->tdt_passthrough;
+				break;
+			case '3': // --output-enc-pass
+				ts->allow_encrypted_output = !ts->allow_encrypted_output;
 				break;
 			case 'c': // --ca-system
 				if (strcasecmp("IRDETO", optarg) == 0)
