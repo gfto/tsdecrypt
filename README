@@ -63,11 +63,11 @@ version string. You can use --bench option to test decryption speed.
 Development
 ===========
 The development is done using git. tsdecrypt repository is hosted
-at http://github.com/gfto/tsdecrypt
+at https://georgi.unixsol.org/git/gfto/tsdecrypt
 
 To clone the repository issue the following commands:
 
-   git clone git://github.com/gfto/tsdecrypt.git
+   git clone https://georgi.unixsol.org/gfto/tsdecrypt.git
    cd tsdecrypt
    git submodule init
    git submodule update
@@ -354,7 +354,7 @@ Releases
 ========
 Official releases can be downloaded from tsdecrypt home page which is
 
-   http://georgi.unixsol.org/programs/tsdecrypt/
+   https://georgi.unixsol.org/programs/tsdecrypt/
 
 Contact
 =======
