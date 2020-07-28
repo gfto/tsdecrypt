@@ -20,7 +20,7 @@ Linux distribution.
 
 If you are not using shipped FFdecsa then the other tsdecrypt dependency
 is libdvbcsa. libdvbcsa can be downloaded from
-http://www.videolan.org/developers/libdvbcsa.html
+https://www.videolan.org/developers/libdvbcsa.html
 
 FFdecsa vs libdvbcsa
 ====================
