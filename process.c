@@ -14,6 +14,7 @@
  */
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/uio.h>
 
 #include "bitstream.h"

@@ -14,6 +14,7 @@
  */
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "data.h"
 #include "filter.h"
