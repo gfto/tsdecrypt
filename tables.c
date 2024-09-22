@@ -211,7 +211,14 @@ void process_pmt(struct ts *ts, uint16_t pid, uint8_t *ts_packet) {
 	if (ts->camd.constant_codeword)
 		return;
 
+	// initialise used values to 0
+	ts->ecm_caid = 0;
+	ts->ecm_pid = 0;
+	for (int j=0; j<MAX_ECM_PIDS; j++)
+		ts->ecm_pids[j] = 0;
+	// end initialising values
 	ts->n_ecm_pids = 0;
+
 	__ts_get_ecm_info(ts->pmt, ts->req_CA_sys, ts->forced_caid, &ts->ecm_caid, &ts->ecm_pid, &ts->ecm_pids[0], &ts->n_ecm_pids);
 
 	if (ts->forced_ecm_pid)
