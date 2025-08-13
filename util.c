@@ -159,14 +159,14 @@ int decode_hex_string(char *hex, uint8_t *bin, int asc_len) {
 	return asc_len / 2;
 }
 
-#ifdef __MACH__
+#if defined(__MACH__) && defined(__APPLE__)
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
 
 int64_t get_time(void) {
 	struct timespec ts;
-#ifdef __MACH__
+#if defined(__MACH__) && defined(__APPLE__)
 // OS X does not have clock_gettime, use clock_get_time
 	clock_serv_t cclock;
 	mach_timespec_t mts;
