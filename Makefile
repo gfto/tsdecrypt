@@ -1,4 +1,4 @@
-CC = cc
+CC ?= cc
 STRIP = strip
 CROSS := $(TARGET)
 MKDEP = $(CROSS)$(CC) -MP -MM -o $*.d $<
